@@ -21,7 +21,7 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
 // Simulated write-back of a lot progress update. In production this would
 // push the change to the central sheet / MES; here it always succeeds.
 export const updateLotProgress = createServerFn({ method: "POST" })
-  .inputValidator((data: { ID_Key: string; status: string; ngay_nhan?: string; do_cung?: string; reason?: string; code?: string }) => data)
+  .inputValidator((data: { ID_Key: string; status: string; ngay_nhan?: string; do_cung?: string; reason?: string; code?: string; webhook?: string }) => data)
   .handler(async ({ data }) => {
     if (!data.ID_Key) return { ok: false as const, error: "Thiếu ID_Key" };
     return { ok: true as const };
