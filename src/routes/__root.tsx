@@ -4,10 +4,12 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { DynamoShell } from "@/components/dynamo-shell";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
@@ -124,11 +126,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const bare = pathname === "/login";
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {bare ? <Outlet /> : <DynamoShell><Outlet /></DynamoShell>}
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );
