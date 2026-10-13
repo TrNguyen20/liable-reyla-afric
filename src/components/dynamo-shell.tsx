@@ -7,6 +7,7 @@ import logo from '@/assets/dynamo-logo.png';
 import { canAccessRoute, readRole, roleBadge, roleLabel, setPricingVisible, canViewPricing, getVendorScope, type Role } from '@/lib/dynamo-auth';
 import { toast } from 'sonner';
 import { clearDataset, loadDataset, saveDataset } from '@/lib/dynamo-source';
+import { ShopfloorTelemetry } from '@/components/shopfloor-telemetry';
 
 type Filter = 'Tất cả' | Workshop;
 type AppContextType = {
@@ -136,15 +137,7 @@ export function DynamoShell({ children }: { children: ReactNode }) {
             <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/15" title={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'} aria-label={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'} onClick={toggleTheme}>{theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}</Button>
           </div>
         </header>
-        <div className="border-b border-border bg-secondary">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1.5 text-[11px] font-semibold text-muted-foreground xl:px-6">
-            <span>TỔNG QUAN QT — PHÂN XƯỞNG: <b className="text-foreground">{workshop === 'Tất cả' ? 'ALL' : workshop}</b></span>
-            <span className="hidden sm:inline">·</span>
-            <span className="hidden sm:inline">{filtered.length.toLocaleString('vi-VN')} / {dataset.length.toLocaleString('vi-VN')} dòng</span>
-            <span className="hidden md:inline">·</span>
-            <span className="hidden md:inline items-center gap-1.5 md:flex"><span className="size-1.5 rounded-full fx-run-dot" aria-hidden /> {isLive ? `${sourceLabel}${syncedAt ? ` · đồng bộ ${new Date(syncedAt).toLocaleString('vi-VN')}` : ''}` : 'Dữ liệu mẫu — nạp dữ liệu thật tại mục Đồng bộ'}</span>
-          </div>
-        </div>
+        <ShopfloorTelemetry />
         <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">{ready ? children : <div className="min-h-[400px] text-sm text-muted-foreground">Đang tải dữ liệu phân quyền…</div>}</main>
         <footer className="flex items-center justify-between border-t border-border px-4 py-3 text-[11px] text-muted-foreground xl:px-6"><span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển QT</span><span className="flex items-center gap-1.5"><Activity size={12} className="text-primary" /> Môi trường mô phỏng <CircleHelp size={12} className="ml-2" /></span></footer>
       </div>
