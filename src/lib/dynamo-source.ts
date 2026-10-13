@@ -1,6 +1,6 @@
 import type { QTItem, Status, Vendor, Workshop } from '@/lib/dynamo-data';
 
-export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cC9VnRrjf3IgADbzYL1VulrqgcSf2h56XkXEJILdyuE/edit?usp=sharing';
+export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cC9VnRrjf3IgADbzYL1VulrqgcSf2h56XkXEJILdyuE/edit#gid=1963478526';
 
 export function sheetCsvUrl(url: string) {
   const id = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1];
