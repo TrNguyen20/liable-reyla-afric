@@ -178,6 +178,26 @@
   animation: fx-run-pulse 1.2s ease-in-out infinite;
 }
 
+@utility mes-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.03);
+  transition: all 0.15s ease-in-out;
+}
+
+@utility andon-pulse {
+  animation: andon-alarm-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes andon-alarm-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.55 0.22 27 / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px oklch(0.55 0.22 27 / 0);
+  }
+}
+
 @keyframes fx-run-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
@@ -192,5 +212,12 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
+
+  /* Industrial high-precision tables */
+  table th {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+

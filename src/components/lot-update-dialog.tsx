@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useDynamo } from '@/components/dynamo-shell';
-import { getVendorScope } from '@/lib/dynamo-auth';
+import { getVendorScope, formatVendorName } from '@/lib/dynamo-auth';
 import { date, type QTItem, type Status } from '@/lib/dynamo-data';
 import { appendAudit, nextMoves, validateUpdate, type Draft } from '@/lib/dynamo-workflow';
 import { updateLotProgress } from '@/lib/auth.functions';
@@ -61,8 +61,11 @@ export function LotUpdateButton({ item }: { item: QTItem }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader><DialogTitle>Cập nhật lô {item.ID_Key}</DialogTitle></DialogHeader>
-        <dl className="grid grid-cols-2 gap-2 border border-border bg-secondary/50 p-3 text-xs">
-          {([['Mã hàng', item.ma_hang], ['Đơn hàng', item.So_DatHang], ['Vendor', item.cty_QT], ['Hạn trả', item.han_tra ? date(item.han_tra) : 'Chưa có']] as const).map(([k, v]) => <div key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-semibold">{v}</dd></div>)}
+        <dl className="grid grid-cols-2 gap-2 rounded-sm border border-border bg-muted/40 p-3 text-xs">
+          <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Mã hàng</dt><dd className="font-mono font-bold text-foreground">{item.ma_hang}</dd></div>
+          <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Số đặt hàng</dt><dd className="font-mono text-foreground">{item.So_DatHang}</dd></div>
+          <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Đơn vị gia công</dt><dd className="font-medium text-foreground">{formatVendorName(item.cty_QT, role)}</dd></div>
+          <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Hạn trả</dt><dd className="font-mono tabular-nums text-foreground">{item.han_tra ? date(item.han_tra) : 'Chưa có'}</dd></div>
         </dl>
         <div className="space-y-3 text-sm">
           <label className="block">Trạng thái mới

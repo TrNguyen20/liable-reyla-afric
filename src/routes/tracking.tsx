@@ -5,6 +5,7 @@ import { auditFor, failedSyncIds } from '@/lib/dynamo-workflow';
 import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert, Download, GanttChart, PackageOpen, Table2, X } from 'lucide-react';
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
 import { date, daysLate, money, number, type QTItem } from '@/lib/dynamo-data';
+import { formatVendorName } from '@/lib/dynamo-auth';
 import { daysOver, hasValidDue, isDueSoon, isOverdue, logisticsOf, qcOf, type Logistics, type QcState } from '@/lib/dynamo-rules';
 
 export const Route = createFileRoute('/tracking')({
@@ -15,20 +16,20 @@ export const Route = createFileRoute('/tracking')({
 
 type Priority = 'critical' | 'warning' | 'due_soon' | 'on_track' | 'done';
 const PRIORITIES: { key: Priority; label: string; dot: string; chip: string }[] = [
-  { key: 'critical', label: 'Quá hạn > 3 ngày', dot: 'bg-destructive', chip: 'border-destructive/40 bg-destructive/10 text-destructive' },
-  { key: 'warning', label: 'Trễ 1 – 3 ngày', dot: 'bg-warning', chip: 'border-warning/40 bg-warning/10 text-warning' },
-  { key: 'due_soon', label: 'Cận hạn trong 48h', dot: 'bg-info', chip: 'border-info/40 bg-info/10 text-info' },
-  { key: 'on_track', label: 'Đúng hạn (đang chạy)', dot: 'bg-primary', chip: 'border-primary/40 bg-primary/10 text-primary' },
+  { key: 'critical', label: 'Quá hạn > 3 ngày', dot: 'bg-destructive', chip: 'border-destructive/60 bg-destructive/15 text-destructive' },
+  { key: 'warning', label: 'Trễ 1 – 3 ngày', dot: 'bg-warning', chip: 'border-warning/60 bg-warning/15 text-warning' },
+  { key: 'due_soon', label: 'Cận hạn trong 48h', dot: 'bg-info', chip: 'border-info/60 bg-info/15 text-info' },
+  { key: 'on_track', label: 'Đúng hạn (đang chạy)', dot: 'bg-primary', chip: 'border-primary/60 bg-primary/15 text-primary' },
   { key: 'done', label: 'Đã nhập kho', dot: 'bg-muted-foreground', chip: 'border-border bg-secondary text-muted-foreground' },
 ];
 type Focus = 'overdue' | 'due_soon' | 'est_due' | 'sync_failed' | 'no_qc' | 'qc_fail';
 const FOCUS: { key: Focus; label: string; tone: string }[] = [
-  { key: 'overdue', label: 'Quá hạn', tone: 'border-destructive/40 bg-destructive/10 text-destructive' },
-  { key: 'due_soon', label: 'Cận hạn 48h', tone: 'border-warning/40 bg-warning/10 text-warning' },
+  { key: 'overdue', label: 'Quá hạn', tone: 'border-destructive/60 bg-destructive/15 text-destructive' },
+  { key: 'due_soon', label: 'Cận hạn 48h', tone: 'border-warning/60 bg-warning/15 text-warning' },
   { key: 'est_due', label: 'Hạn trả ước tính', tone: 'border-border bg-secondary text-muted-foreground' },
-  { key: 'sync_failed', label: 'Ghi Sheet lỗi', tone: 'border-warning/40 bg-warning/10 text-warning' },
-  { key: 'no_qc', label: 'Nhập kho chưa QC', tone: 'border-info/40 bg-info/10 text-info' },
-  { key: 'qc_fail', label: 'QC không đạt', tone: 'border-destructive/40 bg-destructive/10 text-destructive' },
+  { key: 'sync_failed', label: 'Ghi Sheet lỗi', tone: 'border-warning/60 bg-warning/15 text-warning' },
+  { key: 'no_qc', label: 'Nhập kho chưa QC', tone: 'border-info/60 bg-info/15 text-info' },
+  { key: 'qc_fail', label: 'QC không đạt', tone: 'border-destructive/60 bg-destructive/15 text-destructive' },
 ];
 const PAGE_SIZES = [10, 30, 50, 100];
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -47,7 +48,8 @@ function priorityOf(row: QTItem): Priority {
 const RANK: Record<Priority, number> = { critical: 0, warning: 1, due_soon: 2, on_track: 3, done: 4 };
 
 function Tracking() {
-  const { filtered: all } = useDynamo();
+  const { filtered: all, role } = useDynamo();
+
   const search = Route.useSearch();
   const [focus, setFocus] = useState<Focus | null>(search.focus ?? null);
   const [failed, setFailed] = useState<Set<string>>(new Set());
@@ -153,30 +155,49 @@ function Tracking() {
         }
       />
 
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
-        <span className="font-semibold text-muted-foreground">Cần xử lý:</span>
-        {FOCUS.map(f => <button key={f.key} onClick={() => { setFocus(v => v === f.key ? null : f.key); setShown({}); setTablePage(0); }} aria-pressed={focus === f.key} className={`border px-2.5 py-1 font-semibold ${f.tone} ${focus === f.key ? 'ring-2 ring-ring' : ''}`}>{f.label} <b className="font-mono">{number(focusCounts[f.key])}</b></button>)}
-        {focus && <button onClick={() => setFocus(null)} className="flex items-center gap-1 text-muted-foreground underline"><X size={12} />Bỏ lọc</button>}
+      <div className="mb-3.5 flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="font-bold uppercase tracking-wider text-muted-foreground">Cần xử lý:</span>
+        {FOCUS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => { setFocus(v => v === f.key ? null : f.key); setShown({}); setTablePage(0); }}
+            aria-pressed={focus === f.key}
+            className={`rounded-sm border px-2.5 py-1 text-xs font-semibold transition-all ${f.tone} ${focus === f.key ? 'ring-2 ring-primary ring-offset-1' : 'opacity-90 hover:opacity-100'}`}
+          >
+            {f.label} <b className="ml-1 font-mono tabular-nums">{number(focusCounts[f.key])}</b>
+          </button>
+        ))}
+        {focus && (
+          <button onClick={() => setFocus(null)} className="flex items-center gap-1 text-xs text-muted-foreground underline hover:text-foreground">
+            <X size={12} /> Bỏ lọc
+          </button>
+        )}
       </div>
-      <div className="mb-4 flex flex-wrap items-center gap-2 border border-border bg-card px-3 py-2">
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/80 p-3 shadow-2xs">
         <details className="relative">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium">
-            Mức ưu tiên: <b>{picked.length ? `${picked.length} đã chọn` : 'Tất cả'}</b><ChevronRight size={12} className="rotate-90" />
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-[11px] font-semibold text-foreground">
+            Ưu tiên: <b>{picked.length ? `${picked.length} đã chọn` : 'Tất cả'}</b>
+            <ChevronRight size={12} className="rotate-90 text-muted-foreground" />
           </summary>
-          <div className="absolute left-0 z-30 mt-1 w-60 border border-border bg-popover p-1 shadow-lg">
+          <div className="absolute left-0 z-30 mt-1 w-64 rounded-md border border-border bg-popover p-1.5 shadow-lg">
             {PRIORITIES.map((p) => (
-              <label key={p.key} className="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[11px] hover:bg-accent">
-                <input type="checkbox" checked={picked.includes(p.key)} onChange={() => toggle(p.key)} />
-                <span className={`size-2 rounded-full ${p.dot}`} />{p.label}<b className="ml-auto font-mono">{number(counts[p.key])}</b>
+              <label key={p.key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] hover:bg-accent">
+                <input type="checkbox" checked={picked.includes(p.key)} onChange={() => toggle(p.key)} className="rounded" />
+                <span className={`size-2 rounded-full ${p.dot}`} />
+                <span>{p.label}</span>
+                <b className="ml-auto font-mono tabular-nums text-foreground">{number(counts[p.key])}</b>
               </label>
             ))}
           </div>
         </details>
-        <select value={dateField} onChange={(e) => { setDateField(e.target.value as 'ngay_gui_QT' | 'han_tra'); setShown({}); setTablePage(0); }} className="border border-border bg-background px-2 py-1.5 text-[11px]">
+
+        <select value={dateField} onChange={(e) => { setDateField(e.target.value as 'ngay_gui_QT' | 'han_tra'); setShown({}); setTablePage(0); }} className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none">
           <option value="ngay_gui_QT">Theo ngày gửi QT</option>
           <option value="han_tra">Theo hạn trả</option>
         </select>
-        <select value={range} onChange={(e) => { const v = e.target.value as typeof range; setRange(v); if (v !== 'custom') preset(v); }} className="border border-border bg-background px-2 py-1.5 text-[11px]">
+
+        <select value={range} onChange={(e) => { const v = e.target.value as typeof range; setRange(v); if (v !== 'custom') preset(v); }} className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none">
           <option value="all">Thời gian: Tất cả</option>
           <option value="today">Hôm nay</option>
           <option value="week">7 ngày qua</option>
@@ -184,29 +205,56 @@ function Tracking() {
           <option value="prev">Tháng trước</option>
           <option value="custom">Tùy chọn ngày…</option>
         </select>
+
         {range === 'custom' && (
-          <>
-            <button onClick={() => shiftMonth(-1)} aria-label="Tháng trước" className="border border-border bg-background p-1.5 text-muted-foreground"><ChevronLeft size={14} /></button>
-            <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setShown({}); setTablePage(0); }} className="border border-border bg-background px-2 py-1 text-[11px]" />
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => shiftMonth(-1)} aria-label="Tháng trước" className="rounded border border-input bg-background p-1.5 text-muted-foreground hover:text-foreground"><ChevronLeft size={14} /></button>
+            <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setShown({}); setTablePage(0); }} className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground" />
             <span className="text-[11px] text-muted-foreground">→</span>
-            <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setShown({}); setTablePage(0); }} className="border border-border bg-background px-2 py-1 text-[11px]" />
-            <button onClick={() => shiftMonth(1)} aria-label="Tháng sau" className="border border-border bg-background p-1.5 text-muted-foreground"><ChevronRight size={14} /></button>
-          </>
+            <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setShown({}); setTablePage(0); }} className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground" />
+            <button onClick={() => shiftMonth(1)} aria-label="Tháng sau" className="rounded border border-input bg-background p-1.5 text-muted-foreground hover:text-foreground"><ChevronRight size={14} /></button>
+          </div>
         )}
-        <select aria-label="Vendor" value={vendor} onChange={(e) => { setVendor(e.target.value); setShown({}); setTablePage(0); }} className="border border-border bg-background px-2 py-1.5 text-[11px]"><option value="all">Tất cả vendor</option>{vendors.map(v => <option key={v}>{v}</option>)}</select>
-        <select aria-label="Logistics" value={logi} onChange={(e) => { setLogi(e.target.value as Logistics); setShown({}); setTablePage(0); }} className="border border-border bg-background px-2 py-1.5 text-[11px]"><option value="all">Logistics: tất cả</option>{(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map(l => <option key={l}>{l}</option>)}</select>
-        <select aria-label="QC" value={qc} onChange={(e) => { setQc(e.target.value as QcState); setShown({}); setTablePage(0); }} className="border border-border bg-background px-2 py-1.5 text-[11px]"><option value="all">QC: tất cả</option>{(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map(q => <option key={q}>{q}</option>)}</select>
-        <label className="flex items-center gap-1.5 border border-border bg-background px-2 py-1.5 text-[11px]"><input type="checkbox" checked={missDue} onChange={(e) => { setMissDue(e.target.checked); setTablePage(0); }} />Thiếu hạn trả</label>
-        <select aria-label="Sắp xếp" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="border border-border bg-background px-2 py-1.5 text-[11px]"><option value="priority">Sắp xếp: ưu tiên</option><option value="han_tra">Sắp xếp: hạn trả</option><option value="ID_Key">Sắp xếp: mã lô</option></select>
-        {(picked.length > 0 || from || to || vendor !== 'all' || logi !== 'all' || qc !== 'all' || missDue) && <button onClick={() => { reset(); setRange('all'); }} className="flex items-center gap-1 px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"><X size={12} /> Xóa lọc</button>}
+
+        <select aria-label="Vendor" value={vendor} onChange={(e) => { setVendor(e.target.value); setShown({}); setTablePage(0); }} className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none">
+          <option value="all">Tất cả đối tác</option>
+          {vendors.map(v => <option key={v} value={v}>{formatVendorName(v, role)}</option>)}
+        </select>
+
+        <select aria-label="Logistics" value={logi} onChange={(e) => { setLogi(e.target.value as Logistics); setShown({}); setTablePage(0); }} className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none">
+          <option value="all">Logistics: Tất cả</option>
+          {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map(l => <option key={l}>{l}</option>)}
+        </select>
+
+        <select aria-label="QC" value={qc} onChange={(e) => { setQc(e.target.value as QcState); setShown({}); setTablePage(0); }} className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none">
+          <option value="all">QC: Tất cả</option>
+          {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map(q => <option key={q}>{q}</option>)}
+        </select>
+
+        <label className="flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-[11px] font-medium text-foreground">
+          <input type="checkbox" checked={missDue} onChange={(e) => { setMissDue(e.target.checked); setTablePage(0); }} />
+          <span>Thiếu hạn trả</span>
+        </label>
+
+        <select aria-label="Sắp xếp" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none">
+          <option value="priority">Sắp xếp: Mức ưu tiên</option>
+          <option value="han_tra">Sắp xếp: Hạn trả</option>
+          <option value="ID_Key">Sắp xếp: Mã lô</option>
+        </select>
+
+        {(picked.length > 0 || from || to || vendor !== 'all' || logi !== 'all' || qc !== 'all' || missDue) && (
+          <button onClick={() => { reset(); setRange('all'); }} className="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold text-primary hover:underline">
+            <X size={12} /> Xóa lọc
+          </button>
+        )}
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-        <span>{number(rows.length)} / {number(filtered.length)} lô khớp bộ lọc</span>
-        <span className="size-1 rounded-full bg-muted-foreground" />
-        <span>{number(totalKg, 1)} kg tổng khối lượng</span>
-        <span className="size-1 rounded-full bg-muted-foreground" />
-        <span>02 đối tác gia công</span>
+      <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span className="font-mono tabular-nums text-foreground">{number(rows.length)} / {number(filtered.length)} lô khớp</span>
+        <span className="size-1 rounded-full bg-border" />
+        <span className="font-mono tabular-nums text-foreground">{number(totalKg, 1)} kg tổng khối lượng</span>
+        <span className="size-1 rounded-full bg-border" />
+        <span>Phân xưởng: {all.length ? [...new Set(all.map(i => i.phong_sx))].join(', ') : '—'}</span>
       </div>
 
       {view === 'timeline' ? (() => {
@@ -220,112 +268,252 @@ function Tracking() {
         const t0 = new Date(min + 'T00:00:00').getTime(); const span = Math.max(DAY, new Date(max + 'T00:00:00').getTime() + DAY - t0);
         const pos = (d: string) => ((new Date(d + 'T00:00:00').getTime() - t0) / span) * 100;
         const ticks = Array.from({ length: 6 }, (_, k) => ymd(new Date(t0 + (span * k) / 5)));
-        const barColor: Record<Priority, string> = { critical: 'bg-destructive', warning: 'bg-warning', due_soon: 'bg-info', on_track: 'bg-primary/70', done: 'bg-muted-foreground/60' };
+        const barColor: Record<Priority, string> = { critical: 'bg-destructive', warning: 'bg-warning', due_soon: 'bg-info', on_track: 'bg-primary/80', done: 'bg-muted-foreground/60' };
         return (
-          <div className="border border-border bg-card">
-            <div className="grid grid-cols-[minmax(220px,300px)_1fr] border-b border-border bg-secondary text-[10px] font-bold text-muted-foreground">
-              <div className="px-3 py-2">ĐƠN HÀNG / LÔ</div>
-              <div className="relative h-8">{ticks.map((t, k) => <span key={k} className="absolute top-2 -translate-x-1/2 whitespace-nowrap" style={{ left: `${Math.min(96, Math.max(4, k * 20))}%` }}>{date(t)}</span>)}</div>
+          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
+            <div className="grid grid-cols-[minmax(240px,320px)_1fr] border-b border-border bg-secondary/80 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="px-4 py-2.5">ĐƠN HÀNG / LÔ GIA CÔNG</div>
+              <div className="relative h-8">
+                {ticks.map((t, k) => (
+                  <span key={k} className="absolute top-2 -translate-x-1/2 font-mono text-[10px] tabular-nums" style={{ left: `${Math.min(96, Math.max(4, k * 20))}%` }}>
+                    {date(t)}
+                  </span>
+                ))}
+              </div>
             </div>
             {visible.length ? visible.map((g) => {
               const open = !collapsed[g.id];
               const late = g.lots.filter((l) => isOverdue(l)).length;
               return (
-                <div key={g.id} className="border-b border-border">
-                  <button onClick={() => setCollapsed((c) => ({ ...c, [g.id]: open }))} className="grid w-full grid-cols-[minmax(220px,300px)_1fr] bg-secondary/40 text-left hover:bg-secondary">
-                    <span className="flex items-center gap-2 px-3 py-2"><ChevronRight size={13} className={`transition-transform ${open ? 'rotate-90' : ''}`} /><b className="font-mono text-xs text-primary">{g.id}</b><span className="text-[10px] text-muted-foreground">{g.lots.length} lô · {g.lots[0]?.cty_QT}</span></span>
-                    <span className="flex items-center px-3 text-[10px] text-muted-foreground">{late > 0 && <b className="text-destructive">{late} lô trễ hạn</b>}</span>
+                <div key={g.id} className="border-b border-border/70 last:border-b-0">
+                  <button onClick={() => setCollapsed((c) => ({ ...c, [g.id]: open }))} className="grid w-full grid-cols-[minmax(240px,320px)_1fr] bg-secondary/40 text-left transition-colors hover:bg-secondary/70">
+                    <span className="flex items-center gap-2 px-4 py-2.5">
+                      <ChevronRight size={14} className={`text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} />
+                      <b className="font-mono text-xs font-bold text-primary">{g.id}</b>
+                      <span className="text-[11px] text-muted-foreground">
+                        {g.lots.length} lô · {formatVendorName(g.lots[0]?.cty_QT, role)}
+                      </span>
+                    </span>
+                    <span className="flex items-center px-4 text-[11px]">
+                      {late > 0 && <b className="font-mono tabular-nums text-destructive">{late} lô trễ hạn</b>}
+                    </span>
                   </button>
                   {open && g.lots.slice(0, 50).map((l) => {
                     const p = priorityOf(l);
                     const end = l.ngay_nhan ?? (today > l.ngay_gui_QT ? today : l.ngay_gui_QT);
                     const left = pos(l.ngay_gui_QT); const width = Math.max(1, pos(end) + (DAY / span) * 100 - left);
                     return (
-                      <button key={l.ID_Key} onClick={() => setDetail(l)} className="grid w-full grid-cols-[minmax(220px,300px)_1fr] border-t border-border/60 text-left hover:bg-accent/40">
-                        <span className="min-w-0 px-3 py-2 pl-8"><span className="block truncate font-mono text-[11px] font-semibold">{l.ma_hang}</span><span className="block truncate text-[10px] text-muted-foreground">{l.phong_sx} · {l.vat_lieu} · {logisticsOf(l)}{qcOf(l) !== 'Chưa kiểm tra' ? ` · QC: ${qcOf(l)}` : ''}{l.han_tra_est ? ' · hạn ước tính' : ''}</span></span>
-                        <span className="relative my-2 mr-3 h-6">
-                          <span className="absolute inset-y-0 w-px bg-destructive/60" style={{ left: `${pos(today)}%` }} />
-                          <span className="absolute inset-y-0 w-px border-l border-dashed border-muted-foreground/50" style={{ left: `${pos(l.han_tra) + (DAY / span) * 100}%` }} title={`Hạn trả ${date(l.han_tra)}`} />
-                          <span className={`absolute top-1 flex h-4 items-center overflow-hidden rounded-sm px-1.5 text-[9px] font-bold text-primary-foreground ${barColor[p]} ${p === 'critical' ? 'animate-late-border' : ''}`} style={{ left: `${left}%`, width: `${width}%` }}>{isOverdue(l) ? `Trễ ${daysOver(l)}d` : ''}</span>
+                      <button key={l.ID_Key} onClick={() => setDetail(l)} className="grid w-full grid-cols-[minmax(240px,320px)_1fr] border-t border-border/50 text-left transition-colors hover:bg-accent/40">
+                        <span className="min-w-0 px-4 py-2 pl-9">
+                          <span className="block truncate font-mono text-[11px] font-bold text-foreground">{l.ma_hang}</span>
+                          <span className="block truncate text-[10px] text-muted-foreground">
+                            {l.ID_Key} · {l.phong_sx} · {l.vat_lieu} · {logisticsOf(l)}
+                            {qcOf(l) !== 'Chưa kiểm tra' ? ` · QC: ${qcOf(l)}` : ''}
+                            {l.han_tra_est ? ' · Hạn ước tính' : ''}
+                          </span>
+                        </span>
+                        <span className="relative my-2 mr-4 h-6">
+                          <span className="absolute inset-y-0 w-0.5 bg-destructive/70" style={{ left: `${pos(today)}%` }} title="Hôm nay" />
+                          <span className="absolute inset-y-0 w-0.5 border-l border-dashed border-muted-foreground/60" style={{ left: `${pos(l.han_tra) + (DAY / span) * 100}%` }} title={`Hạn trả ${date(l.han_tra)}`} />
+                          <span
+                            className={`absolute top-1 flex h-4.5 items-center overflow-hidden rounded-xs px-1.5 font-mono text-[9px] font-bold tabular-nums text-primary-foreground ${barColor[p]} ${p === 'critical' ? 'animate-pulse' : ''}`}
+                            style={{ left: `${left}%`, width: `${width}%` }}
+                          >
+                            {isOverdue(l) ? `Trễ ${daysOver(l)}d` : ''}
+                          </span>
                         </span>
                       </button>
                     );
                   })}
-                  {open && g.lots.length > 50 && <p className="px-8 py-2 text-[10px] text-muted-foreground">+{g.lots.length - 50} lô khác — dùng chế độ Bảng để xem đủ</p>}
+                  {open && g.lots.length > 50 && (
+                    <p className="px-9 py-2 font-mono text-[10px] text-muted-foreground">
+                      +{g.lots.length - 50} lô khác — chuyển sang chế độ Bảng để xem toàn bộ
+                    </p>
+                  )}
                 </div>
               );
-            }) : <div className="flex min-h-32 flex-col items-center justify-center gap-2 text-muted-foreground"><PackageOpen size={22} /><p className="text-xs">Không có lô hàng khớp bộ lọc</p></div>}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3 text-[11px] text-muted-foreground">
-              <span className="flex flex-wrap items-center gap-3">{PRIORITIES.map((p) => <span key={p.key} className="flex items-center gap-1"><span className={`size-2 rounded-full ${p.dot}`} />{p.label}</span>)}<span className="flex items-center gap-1"><span className="h-3 w-px bg-destructive" />Hôm nay</span></span>
-              {groups.length > visible.length && <button onClick={() => setOrderLimit((n) => n + pageSize)} className="border border-border px-3 py-1.5 font-semibold text-primary">Đang xem {number(visible.length)} / {number(groups.length)} đơn — Tải thêm {pageSize} đơn</button>}
+            }) : (
+              <div className="flex min-h-36 flex-col items-center justify-center gap-2 p-8 text-muted-foreground">
+                <PackageOpen size={24} className="opacity-40" />
+                <p className="text-xs">Không có lô hàng khớp bộ lọc</p>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 p-3 text-[11px] text-muted-foreground">
+              <span className="flex flex-wrap items-center gap-3">
+                {PRIORITIES.map((p) => (
+                  <span key={p.key} className="flex items-center gap-1.5">
+                    <span className={`size-2 rounded-full ${p.dot}`} />
+                    <span>{p.label}</span>
+                  </span>
+                ))}
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-0.5 bg-destructive" />
+                  <span>Hôm nay</span>
+                </span>
+              </span>
+              {groups.length > visible.length && (
+                <button onClick={() => setOrderLimit((n) => n + pageSize)} className="rounded-md border border-border px-3 py-1 font-semibold text-primary transition-colors hover:bg-primary/10">
+                  Đang xem {number(visible.length)} / {number(groups.length)} đơn — Tải thêm {pageSize} đơn
+                </button>
+              )}
             </div>
           </div>
         );
       })() : (
-        <div className="border border-border bg-card">
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-[11px]">
-              <thead className="bg-secondary text-muted-foreground">
-                <tr>{['Mã lô', 'Đơn hàng', 'Xưởng', 'Mã hàng', 'Vật liệu', 'Độ cứng', 'SL', 'Kg', 'Vendor', 'Logistics', 'QC', 'Ngày gửi', 'Hạn trả', 'Cảnh báo', 'Trễ'].map((h) => <th key={h} className="whitespace-nowrap px-3 py-2 font-bold">{h}</th>)}</tr>
+            <table className="w-full min-w-[980px] text-left text-xs">
+              <thead className="bg-secondary/70 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  {['Mã lô', 'Đơn hàng', 'Xưởng', 'Mã hàng', 'Vật liệu', 'Độ cứng', 'SL', 'Kg', 'Đối tác', 'Logistics', 'QC', 'Ngày gửi', 'Hạn trả', 'Cảnh báo', 'Trễ'].map((h) => (
+                    <th key={h} className="whitespace-nowrap px-3.5 py-3">{h}</th>
+                  ))}
+                </tr>
               </thead>
               <tbody>
                 {tableRows.length ? tableRows.map((r) => (
-                  <tr key={r.ID_Key} className="border-t border-border">
-                    <td className="whitespace-nowrap px-3 py-2 font-mono text-primary">{r.ID_Key}</td>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono">{r.So_DatHang}</td>
-                    <td className="px-3 py-2">{r.phong_sx}</td>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono font-semibold">{r.ma_hang}</td>
-                    <td className="px-3 py-2">{r.vat_lieu}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{r.do_cung}</td>
-                    <td className="px-3 py-2 text-right">{number(r.so_luong)}</td>
-                    <td className="px-3 py-2 text-right">{number(r.kg_Lot, 1)}</td>
-                    <td className="px-3 py-2">{r.cty_QT}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{logisticsOf(r)}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{qcOf(r)}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{date(r.ngay_gui_QT)}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{date(r.han_tra)}{r.han_tra_est && <span className="ml-1 text-[9px] text-warning" title="Hạn trả tạm tính (ngày gửi + 7 ngày) vì nguồn chưa có cột han_tra">ước tính</span>}</td>
-                    <td className="whitespace-nowrap px-3 py-2">{!hasValidDue(r) && r.TrangThai !== 'Đã nhập kho' ? <span className="text-warning">Thiếu hạn trả</span> : qcOf(r) === 'Không đạt' ? <b className="text-destructive">QC không đạt</b> : r.TrangThai === 'Đã nhập kho' && qcOf(r) !== 'Đạt' ? <span className="text-info">Chưa QC</span> : '—'}</td>
-                    <td className="px-3 py-2">{isOverdue(r) ? <b className="text-destructive">{daysOver(r)} ngày</b> : '—'}</td>
+                  <tr key={r.ID_Key} className="border-t border-border/70 transition-colors hover:bg-accent/40">
+                    <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-primary">{r.ID_Key}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3 font-mono text-muted-foreground">{r.So_DatHang}</td>
+                    <td className="px-3.5 py-3 font-medium text-foreground">{r.phong_sx}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-foreground">{r.ma_hang}</td>
+                    <td className="px-3.5 py-3 text-foreground">{r.vat_lieu}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3 font-mono text-muted-foreground">{r.do_cung}</td>
+                    <td className="px-3.5 py-3 text-right font-mono tabular-nums text-foreground">{number(r.so_luong)}</td>
+                    <td className="px-3.5 py-3 text-right font-mono tabular-nums text-foreground">{number(r.kg_Lot, 1)}</td>
+                    <td className="px-3.5 py-3 font-medium text-foreground">{formatVendorName(r.cty_QT, role)}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3">{logisticsOf(r)}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3">{qcOf(r)}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3 font-mono tabular-nums text-muted-foreground">{date(r.ngay_gui_QT)}</td>
+                    <td className="whitespace-nowrap px-3.5 py-3 font-mono tabular-nums">
+                      {date(r.han_tra)}
+                      {r.han_tra_est && <span className="ml-1 text-[9px] text-warning" title="Hạn trả ước tính">+7d</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-3.5 py-3">
+                      {!hasValidDue(r) && r.TrangThai !== 'Đã nhập kho' ? (
+                        <span className="rounded-xs bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning">Thiếu hạn</span>
+                      ) : qcOf(r) === 'Không đạt' ? (
+                        <span className="rounded-xs bg-destructive/15 px-1.5 py-0.5 text-[10px] font-bold text-destructive">QC lỗi</span>
+                      ) : r.TrangThai === 'Đã nhập kho' && qcOf(r) !== 'Đạt' ? (
+                        <span className="rounded-xs bg-info/15 px-1.5 py-0.5 text-[10px] font-bold text-info">Chưa QC</span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-3.5 py-3 font-mono tabular-nums">
+                      {isOverdue(r) ? <b className="font-bold text-destructive">{daysOver(r)} ngày</b> : '—'}
+                    </td>
                   </tr>
-                )) : <tr><td colSpan={15} className="px-3 py-10 text-center text-muted-foreground">Không có lô hàng khớp bộ lọc</td></tr>}
+                )) : (
+                  <tr>
+                    <td colSpan={15} className="px-3.5 py-12 text-center text-xs text-muted-foreground">
+                      Không có lô hàng khớp bộ lọc
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-3 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-2">
-              Đang xem {number(rows.length ? tablePage * pageSize + 1 : 0)} – {number(Math.min((tablePage + 1) * pageSize, rows.length))} trong {number(rows.length)} lô
-              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setTablePage(0); }} className="border border-border bg-background px-2 py-1 text-[11px]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 p-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-2 font-mono tabular-nums">
+              Đang xem {number(rows.length ? tablePage * pageSize + 1 : 0)} – {number(Math.min((tablePage + 1) * pageSize, rows.length))} / {number(rows.length)} lô
+              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setTablePage(0); }} className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground">
                 {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} dòng/trang</option>)}
               </select>
-              <button onClick={exportCsv} className="flex items-center gap-1.5 border border-border bg-background px-2.5 py-1 font-medium"><Download size={13} /> Xuất CSV</button>
+              <button onClick={exportCsv} className="flex items-center gap-1.5 rounded border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-accent">
+                <Download size={13} /> Xuất CSV
+              </button>
             </span>
             <div className="flex items-center gap-2">
-              <button disabled={tablePage === 0} onClick={() => setTablePage((p) => p - 1)} className="border border-border px-2.5 py-1.5 disabled:opacity-40">Trang trước</button>
-              <span>Trang {tablePage + 1} / {number(totalPages)}</span>
-              <button disabled={tablePage + 1 >= totalPages} onClick={() => setTablePage((p) => p + 1)} className="border border-border px-2.5 py-1.5 disabled:opacity-40">Trang sau</button>
+              <button disabled={tablePage === 0} onClick={() => setTablePage((p) => p - 1)} className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-accent">
+                Trang trước
+              </button>
+              <span className="font-mono tabular-nums">Trang {tablePage + 1} / {number(totalPages)}</span>
+              <button disabled={tablePage + 1 >= totalPages} onClick={() => setTablePage((p) => p + 1)} className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-accent">
+                Trang sau
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Inspector Detail Modal */}
       {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4" onClick={() => setDetail(null)}>
-          <div className="w-full max-w-lg border border-border bg-card p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-start justify-between"><div><p className="text-[10px] font-bold tracking-widest text-primary">{detail.So_DatHang}</p><h3 className="font-mono text-lg font-bold">{detail.ma_hang}</h3></div><button onClick={() => setDetail(null)} aria-label="Đóng" className="text-muted-foreground"><X size={16} /></button></div>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
-              {([['Mã lô', detail.ID_Key], ['Phân xưởng', detail.phong_sx], ['Kích thước SP', detail.Kich_Thuoc_SP], ['Mác thép', detail.vat_lieu], ['Độ cứng', detail.do_cung], ['Số lượng / Kg', `${number(detail.so_luong)} pcs · ${number(detail.kg_Lot, 1)} kg`], ['Đơn giá', `${money(detail.don_gia)}/${detail.don_vi_tinh}`], ['Thành tiền', money(detail.thanh_tien)], ['Nhà thầu', detail.cty_QT], ['Logistics', logisticsOf(detail)], ['QC', qcOf(detail)], ['Ngày gửi', date(detail.ngay_gui_QT)], ['Hạn trả', hasValidDue(detail) ? date(detail.han_tra) : `${date(detail.han_tra)} (ước tính)`], ['Ngày nhận', detail.ngay_nhan ? date(detail.ngay_nhan) : '—'], ['Trễ hạn', isOverdue(detail) ? `${daysOver(detail)} ngày` : '—']] as const).map(([k, v]) => <div key={k}><dt className="text-[10px] font-bold text-muted-foreground">{k}</dt><dd className="mt-0.5 font-semibold">{v}</dd></div>)}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/80 backdrop-blur-xs p-4" onClick={() => setDetail(null)}>
+          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="font-mono text-xs font-bold text-primary">{detail.So_DatHang}</p>
+                <h3 className="font-mono text-xl font-black text-foreground">{detail.ma_hang}</h3>
+              </div>
+              <button onClick={() => setDetail(null)} aria-label="Đóng" className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                <X size={18} />
+              </button>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md border border-border/80 bg-secondary/30 p-4 text-xs">
+              {([
+                ['Mã lô', detail.ID_Key, true],
+                ['Phân xưởng', detail.phong_sx, false],
+                ['Kích thước SP', detail.Kich_Thuoc_SP, true],
+                ['Mác thép', detail.vat_lieu, false],
+                ['Độ cứng', detail.do_cung, true],
+                ['Số lượng / Kg', `${number(detail.so_luong)} pcs · ${number(detail.kg_Lot, 1)} kg`, true],
+                ['Đơn giá', `${money(detail.don_gia)}/${detail.don_vi_tinh}`, true],
+                ['Thành tiền', money(detail.thanh_tien), true],
+                ['Đối tác gia công', formatVendorName(detail.cty_QT, role), false],
+                ['Logistics', logisticsOf(detail), false],
+                ['QC', qcOf(detail), false],
+                ['Ngày gửi', date(detail.ngay_gui_QT), true],
+                ['Hạn trả', hasValidDue(detail) ? date(detail.han_tra) : `${date(detail.han_tra)} (ước tính)`, true],
+                ['Ngày nhận', detail.ngay_nhan ? date(detail.ngay_nhan) : '—', true],
+                ['Trễ hạn', isOverdue(detail) ? `${daysOver(detail)} ngày` : '—', true],
+              ] as const).map(([k, v, isMono]) => (
+                <div key={k}>
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{k}</dt>
+                  <dd className={`mt-0.5 font-semibold text-foreground ${isMono ? 'font-mono tabular-nums' : ''}`}>{v}</dd>
+                </div>
+              ))}
             </dl>
-            {(() => { const live = all.find(r => r.ID_Key === detail.ID_Key) ?? detail; const log = auditFor(detail.ID_Key); return <>
-              {live.han_tra_est && <p className="mt-3 text-[11px] text-warning">Hạn trả là ước tính (ngày gửi + 7 ngày) vì nguồn chưa có cột han_tra.</p>}
-              <div className="mt-4 flex items-center justify-between border-t border-border pt-3"><span className="text-xs font-semibold">Trạng thái: {live.TrangThai}</span><LotUpdateButton key={live.TrangThai + live.ngay_nhan} item={live} /></div>
-              <h4 className="mt-4 text-xs font-bold">Lịch sử thay đổi trên máy này</h4>
-              {log.length ? <ol className="mt-2 max-h-48 space-y-2 overflow-y-auto text-[11px]">{log.map(e => <li key={e.id} className="border-l-2 border-border pl-2"><b>{new Date(e.at).toLocaleString('vi-VN')}</b> · {e.user} ({e.role}) — {e.result === 'ok' ? 'Đã ghi Sheet' : <span className="text-destructive">Ghi Sheet lỗi: {e.error}</span>}<br />{Object.entries(e.changes).map(([k, [a, b]]) => `${k}: ${a || '—'} → ${b || '—'}`).join('; ')}{e.reason && <><br />Lý do: {e.reason}</>}</li>)}</ol> : <p className="mt-1 text-[11px] text-muted-foreground">Chưa có thay đổi nào được ghi nhận.</p>}
-            </>; })()}
+            {(() => {
+              const live = all.find(r => r.ID_Key === detail.ID_Key) ?? detail;
+              const log = auditFor(detail.ID_Key);
+              return (
+                <>
+                  {live.han_tra_est && (
+                    <p className="mt-3 text-[11px] text-warning">
+                      Hạn trả là ước tính (+7 ngày sau ngày gửi) do nguồn dữ liệu chưa có cột hạn trả chính thức.
+                    </p>
+                  )}
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                    <span className="text-xs font-bold text-foreground">
+                      Trạng thái hiện tại: <b className="text-primary">{live.TrangThai}</b>
+                    </span>
+                    <LotUpdateButton key={live.TrangThai + live.ngay_nhan} item={live} />
+                  </div>
+                  <h4 className="mt-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Lịch sử thay đổi</h4>
+                  {log.length ? (
+                    <ol className="mt-2 max-h-44 space-y-2 overflow-y-auto rounded border border-border/60 bg-background/50 p-2.5 text-[11px]">
+                      {log.map(e => (
+                        <li key={e.id} className="border-l-2 border-primary/50 pl-2">
+                          <b className="font-mono tabular-nums">{new Date(e.at).toLocaleString('vi-VN')}</b> · {e.user} ({e.role}) — {e.result === 'ok' ? <span className="font-bold text-primary">Đã ghi Sheet</span> : <span className="font-bold text-destructive">Lỗi: {e.error}</span>}
+                          <br />
+                          {Object.entries(e.changes).map(([k, [a, b]]) => `${k}: ${a || '—'} → ${b || '—'}`).join('; ')}
+                          {e.reason && <><br />Lý do: {e.reason}</>}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Chưa có thay đổi nào được ghi nhận cho lô này.</p>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
 
-      <p className="mt-5 flex items-center gap-1.5 text-[11px] text-muted-foreground"><ArrowRight size={13} /> Dữ liệu phản ánh nguồn đã áp dụng trong mục Đồng bộ; bảng tính gốc không bị thay đổi.</p>
+      <p className="mt-5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <ArrowRight size={13} className="text-primary" /> Dữ liệu phản ánh nguồn đã áp dụng trong mục Đồng bộ; bảng tính gốc Google Sheets không bị ghi đè trực tiếp ngoài luồng cập nhật.
+      </p>
+
     </>
   );
 }
