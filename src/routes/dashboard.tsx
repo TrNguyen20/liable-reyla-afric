@@ -70,13 +70,14 @@ function Dashboard() {
     </div>
 
     {!rows.length ? <div className="border border-border bg-card p-10 text-center text-sm text-muted-foreground">Không có lô nào khớp bộ lọc. Hãy đổi kỳ báo cáo hoặc xóa bộ lọc.</div> : <>
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Kpi icon={<Boxes size={18} />} label="LÔ ĐANG MỞ" value={number(open.length)} detail={`Chưa nhập kho / ${number(rows.length)} lô`} tone="blue" />
-        <Kpi icon={<CircleAlert size={18} />} label="LÔ QUÁ HẠN" value={number(overdue.length)} detail={`${number(overdue.filter(r => daysOver(r) > 3).length)} lô trễ > 3 ngày · không tính ${number(missing.length)} lô thiếu hạn`} tone="red" to="overdue" />
-        <Kpi icon={<PackageCheck size={18} />} label="TRẢ HÀNG ĐÚNG HẠN" value={rate.rate === null ? '—' : `${Math.round(rate.rate * 100)}%`} detail={`${number(rate.onTime)}/${number(rate.denominator)} lô đủ ngày nhập kho & hạn trả${rate.excluded ? ` · loại ${number(rate.excluded)} lô thiếu dữ liệu` : ''}`} tone="green" />
-        <Kpi icon={<Clock3 size={18} />} label="NHẬP KHO CHƯA QC" value={number(stockedNoQc.length)} detail="Đã về kho, QC chưa đạt" tone="amber" />
-        <Kpi icon={<Wallet size={18} />} label="CHI PHÍ TẠM TÍNH" value={money(cost)} detail={`Theo ngày gửi QT · ${number(costRows.length)} lô có đơn giá · chưa phải chi phí thanh toán`} tone="amber" />
+      <div className="mb-4 grid grid-cols-1 gap-px border border-border bg-border sm:grid-cols-2 xl:grid-cols-5">
+        <Kpi icon={<Boxes size={16} />} label="LÔ ĐANG MỞ" value={number(open.length)} detail={`Chưa nhập kho / ${number(rows.length)} lô`} tone="blue" />
+        <Kpi icon={<CircleAlert size={16} />} label="LÔ QUÁ HẠN" value={number(overdue.length)} detail={`${number(overdue.filter(r => daysOver(r) > 3).length)} lô trễ > 3 ngày · không tính ${number(missing.length)} lô thiếu hạn`} tone="red" to="overdue" />
+        <Kpi icon={<PackageCheck size={16} />} label="TRẢ HÀNG ĐÚNG HẠN" value={rate.rate === null ? '—' : `${Math.round(rate.rate * 100)}%`} detail={`${number(rate.onTime)}/${number(rate.denominator)} lô · mục tiêu ≥ 95%`} tone="green" meter={rate.rate ?? undefined} />
+        <Kpi icon={<Clock3 size={16} />} label="NHẬP KHO CHƯA QC" value={number(stockedNoQc.length)} detail="Đã về kho, QC chưa đạt" tone="amber" />
+        <Kpi icon={<Wallet size={16} />} label="CHI PHÍ TẠM TÍNH" value={money(cost)} detail={`${number(costRows.length)} lô có đơn giá · chưa phải chi phí thanh toán`} tone="amber" />
       </div>
+      <Pipeline rows={rows} />
 
       <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1.4fr]">
         <section className="border border-border bg-card p-5">
@@ -102,11 +103,31 @@ function Dashboard() {
 }
 
 function Bottleneck({ title, rows }: { title: string; rows: { name: string; lots: number; kg: number; pcs: number; over: number; soon: number }[] }) {
-  return <section className="min-w-0 border border-border bg-card"><div className="border-b border-border px-5 py-4"><h2 className="font-display text-base font-bold">{title}</h2><p className="mt-1 text-xs text-muted-foreground">Chỉ lô đang mở · Kg và pcs tính riêng theo đơn vị của lô</p></div>
-    {rows.length ? <table className="w-full text-left text-xs"><thead className="bg-secondary/60 text-[10px] font-semibold tracking-wider text-muted-foreground"><tr><th className="px-5 py-2.5">NHÓM</th><th className="px-3 py-2.5 text-right">SỐ LÔ</th><th className="px-3 py-2.5 text-right">KG</th><th className="px-3 py-2.5 text-right">PCS</th><th className="px-3 py-2.5 text-right">QUÁ HẠN</th><th className="px-5 py-2.5 text-right">CẬN HẠN</th></tr></thead><tbody>{rows.map(r => <tr key={r.name} className="border-t border-border/70"><td className="px-5 py-2.5 font-semibold">{r.name}</td><td className="px-3 py-2.5 text-right tabular-nums">{number(r.lots)}</td><td className="px-3 py-2.5 text-right tabular-nums">{number(r.kg, 1)}</td><td className="px-3 py-2.5 text-right tabular-nums">{number(r.pcs)}</td><td className={`px-3 py-2.5 text-right tabular-nums ${r.over ? 'font-semibold text-destructive' : ''}`}>{number(r.over)}</td><td className={`px-5 py-2.5 text-right tabular-nums ${r.soon ? 'text-warning' : ''}`}>{number(r.soon)}</td></tr>)}</tbody></table> : <p className="p-6 text-center text-xs text-muted-foreground">Không có lô đang mở.</p>}
+  const max = Math.max(1, ...rows.map(r => r.lots));
+  return <section className="min-w-0 border border-border bg-card"><div className="border-b border-border px-5 py-4"><h2 className="font-display text-base font-bold">{title}</h2><p className="mt-1 text-xs text-muted-foreground">Chỉ lô đang mở · thanh = số lô, phần đỏ = quá hạn</p></div>
+    {rows.length ? <table className="w-full text-left text-xs"><thead className="bg-secondary/60 text-[10px] font-semibold tracking-wider text-muted-foreground"><tr><th className="px-5 py-2.5">NHÓM</th><th className="w-[30%] px-3 py-2.5">TẢI</th><th className="px-3 py-2.5 text-right">SỐ LÔ</th><th className="px-3 py-2.5 text-right">KG</th><th className="px-3 py-2.5 text-right">PCS</th><th className="px-3 py-2.5 text-right">QUÁ HẠN</th><th className="px-5 py-2.5 text-right">CẬN HẠN</th></tr></thead><tbody>{rows.map(r => <tr key={r.name} className="border-t border-border/70"><td className="px-5 py-2.5 font-semibold">{r.name}</td><td className="px-3 py-2.5"><div className="flex h-2" style={{ width: `${(r.lots / max) * 100}%` }}><span className="bg-destructive" style={{ width: `${(r.over / r.lots) * 100}%` }} /><span className="bg-warning" style={{ width: `${(r.soon / r.lots) * 100}%` }} /><span className="flex-1 bg-info/60" /></div></td><td className="px-3 py-2.5 text-right font-mono tabular-nums">{number(r.lots)}</td><td className="px-3 py-2.5 text-right font-mono tabular-nums">{number(r.kg, 1)}</td><td className="px-3 py-2.5 text-right font-mono tabular-nums">{number(r.pcs)}</td><td className={`px-3 py-2.5 text-right font-mono tabular-nums ${r.over ? 'font-semibold text-destructive' : ''}`}>{number(r.over)}</td><td className={`px-5 py-2.5 text-right font-mono tabular-nums ${r.soon ? 'text-warning' : ''}`}>{number(r.soon)}</td></tr>)}</tbody></table> : <p className="p-6 text-center text-xs text-muted-foreground">Không có lô đang mở.</p>}
   </section>;
 }
 
-function Kpi({icon,label,value,detail,tone,to}:{icon:React.ReactNode;label:string;value:string;detail:string;tone:'blue'|'green'|'red'|'amber';to?:Focus}) { if (to) return <Link to="/tracking" search={{focus:to}} className="block hover:ring-2 hover:ring-ring"><Kpi icon={icon} label={label} value={value} detail={detail} tone={tone}/></Link>; const colors={blue:'text-info bg-info/10',green:'text-primary bg-primary/10',red:'text-destructive bg-destructive/10',amber:'text-warning bg-warning/10'}; return <div className="h-full border border-border bg-card p-5"><div className="mb-5 flex items-start justify-between gap-2"><p className="text-[10px] font-bold tracking-[.12em] text-muted-foreground">{label}</p><span className={`flex size-9 shrink-0 items-center justify-center rounded ${colors[tone]}`}>{icon}</span></div><p className="font-display text-2xl font-bold tabular-nums">{value}</p><p className="mt-2 text-[11px] text-muted-foreground">{detail}</p></div> }
+function Pipeline({ rows }: { rows: QTItem[] }) {
+  const stages = [
+    { label: 'Chờ xuất xưởng', test: (r: QTItem) => logisticsOf(r) === 'Chờ xuất xưởng', tone: 'bg-muted-foreground' },
+    { label: 'Đang gia công ngoài', test: (r: QTItem) => logisticsOf(r) === 'Đang tại Vendor', tone: 'bg-info' },
+    { label: 'Về kho, chờ QC đạt', test: (r: QTItem) => isDone(r) && qcOf(r) !== 'Đạt', tone: 'bg-warning' },
+    { label: 'Hoàn tất (QC đạt)', test: (r: QTItem) => isDone(r) && qcOf(r) === 'Đạt', tone: 'bg-primary' },
+  ].map(s => { const list = rows.filter(s.test); return { ...s, lots: list.length, kg: list.reduce((a, r) => a + r.kg_Lot, 0), late: list.filter(r => isOverdue(r)).length }; });
+  const total = Math.max(1, stages.reduce((a, s) => a + s.lots, 0));
+  return <section className="mb-6 border border-border bg-card">
+    <div className="flex h-2">{stages.map(s => <span key={s.label} className={s.tone} style={{ width: `${(s.lots / total) * 100}%` }} />)}</div>
+    <ol className="grid grid-cols-2 gap-px bg-border md:grid-cols-4">{stages.map((s, i) => <li key={s.label} className="flex items-start gap-3 bg-card px-5 py-4">
+      <span className={`mt-1 size-2.5 shrink-0 rounded-sm ${s.tone}`} aria-hidden />
+      <div className="min-w-0"><p className="text-[11px] font-semibold text-muted-foreground">{i + 1}. {s.label}</p>
+        <p className="mt-1 font-mono text-xl font-bold tabular-nums">{number(s.lots)} <span className="text-xs font-medium text-muted-foreground">lô · {Math.round((s.lots / total) * 100)}%</span></p>
+        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{number(s.kg, 1)} kg{s.late ? <b className="ml-2 text-destructive">{s.late} quá hạn</b> : null}</p></div>
+    </li>)}</ol>
+  </section>;
+}
+
+function Kpi({icon,label,value,detail,tone,to,meter}:{icon:React.ReactNode;label:string;value:string;detail:string;tone:'blue'|'green'|'red'|'amber';to?:Focus;meter?:number|undefined}) { if (to) return <Link to="/tracking" search={{focus:to}} className="block bg-card hover:bg-accent/40"><Kpi icon={icon} label={label} value={value} detail={detail} tone={tone} meter={meter}/></Link>; const colors={blue:'text-info',green:'text-primary',red:'text-destructive',amber:'text-warning'}; return <div className="h-full bg-card px-5 py-4"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-[10px] font-bold tracking-[.12em] text-muted-foreground">{label}</p><span className={colors[tone]}>{icon}</span></div><p className="font-mono text-2xl font-bold tabular-nums">{value}</p>{meter!==undefined&&<div className="relative mt-2 h-1 bg-border"><span className={`absolute inset-y-0 left-0 ${meter>=0.95?'bg-primary':'bg-warning'}`} style={{width:`${meter*100}%`}}/><span className="absolute -top-1 h-3 w-px bg-foreground" style={{left:'95%'}} title="Mục tiêu 95%"/></div>}<p className="mt-2 text-[11px] text-muted-foreground">{detail}</p></div> }
 export function StatusDot({status}:{status:string}) {const color=status==='Đã nhập kho'?'bg-primary':status==='Đang tại Vendor'?'bg-info':status==='Kiểm tra QC'?'bg-warning':'bg-muted-foreground';return <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px]"><i className={`size-1.5 rounded-full ${color}`}/>{status}</span>}
 
