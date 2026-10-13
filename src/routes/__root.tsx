@@ -19,18 +19,18 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+      <div className="mes-card max-w-md p-8 text-center shadow-lg">
+        <span className="font-mono text-5xl font-black tracking-tight text-primary">404</span>
+        <h2 className="mt-3 font-display text-xl font-bold text-foreground">Không tìm thấy tài nguyên</h2>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Đường dẫn yêu cầu không tồn tại trong hệ thống điều hành luân chuyển QT hoặc đã được di dời sang địa chỉ khác.
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex justify-center">
           <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            to="/dashboard"
+            className="inline-flex items-center justify-center rounded-sm bg-primary px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
           >
-            Go home
+            Quay về Bàn điều hành
           </Link>
         </div>
       </div>
@@ -47,28 +47,31 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+      <div className="mes-card max-w-md border-l-4 border-l-destructive p-8 text-center shadow-lg">
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
+          SỰ CỐ VẬN HÀNH / RUNTIME EXCEPTION
+        </span>
+        <h2 className="mt-2 font-display text-xl font-bold text-foreground">
+          Không thể tải trang dữ liệu
+        </h2>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Đã xảy ra lỗi trong quá trình khởi tạo hoặc xử lý luồng dữ liệu trên trình duyệt. Bạn có thể thử tải lại trang hoặc quay về trang chủ.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-2.5">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-sm bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Thử tải lại
           </button>
           <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            href="/dashboard"
+            className="inline-flex items-center justify-center rounded-sm border border-input bg-card px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:bg-muted"
           >
-            Go home
+            Về Dashboard
           </a>
         </div>
       </div>

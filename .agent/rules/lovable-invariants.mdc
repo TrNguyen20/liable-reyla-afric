@@ -1,0 +1,43 @@
+---
+description: Bắt buộc tuân thủ kiến trúc TanStack Start v1 & Edge Deploy cho dự án Dynamo MES trên Lovable
+globs: ["**/*.ts", "**/*.tsx", "**/*.css", "**/*.json"]
+alwaysApply: true
+---
+
+# RULES: LOVABLE TANSTACK START & DEPLOYMENT INVARIANTS
+
+## 1. FRAMEWORK & ROUTING ARCHITECTURE
+- **Framework**: TanStack Start v1 (React 19 + Vite 7).
+- **Router**: TanStack Router (File-based Routing).
+  - TUYỆT ĐỐI KHÔNG chỉnh sửa file `src/routeTree.gen.ts`. File này do Vite plugin tự sinh.
+  - TUYỆT ĐỐI KHÔNG cài đặt hoặc import `react-router-dom`, `BrowserRouter`, `useNavigate` từ React Router.
+  - Tạo route mới chỉ bằng cách thêm file vào `src/routes/` (ví dụ: `src/routes/new-page.tsx`).
+  - Mọi Route Layout hoặc Pathless Layout bắt buộc phải render `<Outlet />`.
+  - Khung ứng dụng cố định tại `src/routes/__root.tsx`. TUYỆT ĐỐI KHÔNG tạo `App.tsx`, `src/pages/` hoặc các file `entry-client.tsx`/`entry-server.tsx` thừa.
+
+## 2. SERVER BOUNDARY & EDGE RUNTIME (WORKERD)
+- Môi trường chạy backend là **Cloudflare Workers (workerd Edge runtime)**, KHÔNG PHẢI Node.js.
+  - KHÔNG sử dụng thư viện phụ thuộc Node built-in (`fs`, `path`, `crypto`, `child_process`).
+  - Đọc biến môi trường:
+    - Ở Client (Browser): Bắt buộc dùng `import.meta.env.VITE_*`.
+    - Ở Server Function: Dùng `process.env.*` bên trong handler của `createServerFn`.
+  - Nghiệp vụ Backend / Server calls: Viết qua `createServerFn` từ `@tanstack/react-start`.
+  - Webhook hoặc External API: Đặt dưới `src/routes/api/public/*` và phải tự validate payload/caller.
+
+## 3. STYLING SYSTEM (TAILWIND CSS V4)
+- Styling sử dụng **Tailwind CSS v4** với Lightning CSS.
+  - TUYỆT ĐỐI KHÔNG tạo file `tailwind.config.js` hoặc `postcss.config.js` cấu hình v3.
+  - Toàn bộ Design Tokens, màu sắc OKLCH, và biến theme được khai báo tại `@theme` trong `src/styles.css`.
+  - Tất cả cú pháp `@import` trong `src/styles.css` bắt buộc phải đặt ở **đầu file**, trước `@theme` và selectors.
+  - Không nạp Web Font bằng `@import url(...)` trong CSS. Font và CSS ngoài chỉ được nhúng qua thẻ `<link>` trong phần `head()` của `src/routes/__root.tsx`.
+
+## 4. SSR SAFETY & HYDRATION RULES
+- TanStack Start render SSR trên server trước khi Hydrate ở client:
+  - KHÔNG đọc `window`, `document`, hoặc `localStorage` trong lúc component mount hoặc trong hàm khởi tạo `useState()`.
+  - Mọi thao tác đọc Storage/Window phải nằm an toàn bên trong `useEffect()` hoặc các hook check hydration.
+  - Sử dụng `<ClientOnly>` cho các component hoặc thư viện đặc thù browser (Mapbox, Leaflet, Canvas đặc thù).
+
+## 5. DYNAMO MES DOMAIN RULES (BẢO VỆ NGHIỆP VỤ)
+- **Bảo mật tên đối tác**: Tuyệt đối không hardcode hoặc hiển thị trực tiếp tên các đơn vị gia công ngoài (như YAMAICHI, PROVISION, Honsato, Setosha...) lên giao diện nếu người dùng chưa đăng nhập đúng vai trò (`admin`, `leader` hoặc `qt`). Mặc định ẩn danh thành "Đơn vị gia công [Mã/Ký hiệu]".
+- **Số liệu nhà xưởng**: Toàn bộ số liệu hiển thị (sản lượng, số lô, tải trọng kg, HRC) bắt buộc dùng class `font-mono tabular-nums`.
+- **Màu sắc công nghiệp**: Tuân thủ chuẩn ISA-101 đã cấu hình sẵn trong `src/styles.css`. Không tự ý thêm gradient mờ, neon hoặc bo góc tròn kiểu mạng xã hội (`rounded-full` trên card lớn).

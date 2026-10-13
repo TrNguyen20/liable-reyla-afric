@@ -122,27 +122,68 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
         </div>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 border-b border-border bg-primary text-primary-foreground">
-          <div className="flex min-h-[60px] flex-wrap items-center gap-2 px-4 py-2.5 xl:gap-4 xl:px-6">
-            <Button variant="ghost" size="icon" className="lg:hidden text-primary-foreground hover:bg-white/15" aria-label="Mở menu" onClick={() => setMobileOpen(true)}><Menu /></Button>
-            <div className="mr-auto flex min-w-[150px] items-center gap-3">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
+          <div className="flex min-h-[58px] flex-wrap items-center gap-2.5 px-4 py-2 xl:gap-3.5 xl:px-6">
+            <Button variant="ghost" size="icon" className="lg:hidden text-foreground hover:bg-secondary" aria-label="Mở menu" onClick={() => setMobileOpen(true)}><Menu size={18} /></Button>
+            <div className="mr-auto flex min-w-[160px] items-center gap-3">
               <div>
-                <p className="text-[10px] font-bold tracking-[.14em] text-primary-foreground/75">DYNAMO VIETNAM QT - MES</p>
-                <p className="font-display text-sm font-bold leading-tight">{current?.label ?? 'TỔNG QUAN'}</p>
+                <p className="text-[10px] font-bold tracking-[.18em] text-muted-foreground uppercase">DYNAMO VIETNAM QT - MES</p>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block size-2 rounded-full bg-primary" />
+                  <p className="font-display text-base font-bold tracking-tight text-foreground">{current?.label ?? 'TỔNG QUAN'}</p>
+                </div>
               </div>
             </div>
-            <div className="relative order-last w-full sm:order-none sm:w-52 xl:w-64"><Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-primary-foreground/60" /><input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && search) navigate({ to: '/orders' }); }} placeholder="Tìm mã đơn / mã hàng..." aria-label="Tìm mã đơn, mã hàng" className="h-8 w-full rounded-sm border border-white/25 bg-white/10 pl-8 pr-3 text-xs text-primary-foreground outline-none placeholder:text-primary-foreground/60 focus:border-white/50" /></div>
-            <div className="flex items-center rounded-sm bg-white/10 p-0.5" aria-label="Lọc phân xưởng">{(['Tất cả', 'PIN', 'INSERT', 'MOLD'] as const).map(v => <Button key={v} variant="ghost" size="sm" onClick={() => setWorkshop(v)} className={`h-6.5 rounded-sm px-2 text-[11px] font-bold ${workshop === v ? 'bg-white text-primary hover:bg-white hover:text-primary' : 'text-primary-foreground/80 hover:bg-white/15 hover:text-primary-foreground'}`}>{v === 'Tất cả' ? 'ALL' : v}</Button>)}</div>
-            <div className="led-clock flex h-8 items-center gap-2 rounded-sm px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực"><span className="hidden text-[9px] font-semibold tracking-widest text-slate-400 sm:inline">{dateLabel}</span><span className="inline-block size-1.5 rounded-full fx-run-dot" aria-hidden />{timeLabel}</div>
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/15" title={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'} aria-label={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'} onClick={toggleTheme}>{theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}</Button>
+            <div className="relative order-last w-full sm:order-none sm:w-56 xl:w-64">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && search) navigate({ to: '/orders' }); }} placeholder="Tìm mã đơn, mã hàng..." aria-label="Tìm mã đơn, mã hàng" className="h-8.5 w-full rounded-md border border-input bg-secondary/60 pl-8 pr-3 text-xs text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary/20" />
+            </div>
+            <div className="flex items-center rounded-md border border-border/80 bg-secondary/70 p-0.5" aria-label="Lọc phân xưởng">
+              {(['Tất cả', 'PIN', 'INSERT', 'MOLD'] as const).map(v => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setWorkshop(v)}
+                  className={`h-7 rounded-sm px-2.5 text-[11px] font-bold tracking-wide transition-all ${workshop === v ? 'bg-card text-foreground shadow-xs border border-border/80 font-black' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+                >
+                  {v === 'Tất cả' ? 'ALL' : v}
+                </button>
+              ))}
+            </div>
+            <div className="led-clock flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
+              <span className="hidden text-[9px] font-semibold tracking-widest text-slate-400 sm:inline">{dateLabel}</span>
+              <span className="inline-block size-1.5 rounded-full fx-run-dot" aria-hidden />
+              <span className="font-mono tabular-nums">{timeLabel}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8.5 w-8.5 text-muted-foreground hover:bg-secondary hover:text-foreground" title={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'} aria-label={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'} onClick={toggleTheme}>
+              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            </Button>
           </div>
         </header>
         <ShopfloorTelemetry />
-        <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">{ready ? children : <div className="min-h-[400px] text-sm text-muted-foreground">Đang tải dữ liệu phân quyền…</div>}</main>
-        <footer className="flex items-center justify-between border-t border-border px-4 py-3 text-[11px] text-muted-foreground xl:px-6"><span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển QT</span><span className="flex items-center gap-1.5"><Activity size={12} className="text-primary" /> Môi trường mô phỏng <CircleHelp size={12} className="ml-2" /></span></footer>
+        <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">{ready ? children : <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">Đang tải dữ liệu phân quyền…</div>}</main>
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-3 text-[11px] text-muted-foreground xl:px-6">
+          <span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ</span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-primary" /> Môi trường mô phỏng (Edge Runtime)
+            <CircleHelp size={12} className="ml-2 opacity-70" />
+          </span>
+        </footer>
       </div>
     </div>}
   </AppContext.Provider>;
 }
-export function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) { return <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-1.5 text-[10px] font-bold tracking-[.18em] text-primary">{eyebrow}</p><h1 className="font-display text-[24px] font-bold leading-tight text-foreground md:text-[28px]">{title}</h1><p className="mt-1.5 text-[12px] text-muted-foreground">{description}</p></div>{action}</div> }
+export function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
+  return (
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border/40 pb-4">
+      <div>
+        <p className="mb-1 text-[10px] font-bold tracking-[.2em] text-primary uppercase">{eyebrow}</p>
+        <h1 className="font-display text-[24px] font-extrabold tracking-tight text-foreground md:text-[28px]">{title}</h1>
+        <p className="mt-1 text-[12px] text-muted-foreground">{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 

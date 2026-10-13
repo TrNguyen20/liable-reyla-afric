@@ -1,10 +1,4 @@
-# Liable Reyla Afric
-
-Khởi tạo một dự án độc lập mới hoàn toàn mang tên "dulyl-layla-jeish-2" dựa trên toàn bộ mã nguồn và cấu trúc của repository remixtusub.03-of-dynamo-qt của 4work3010-ui trong tệp đính kèm.
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
+# Build with Lovable
 
 Continue developing this project in the [Lovable editor](https://lovable.dev/projects/dfbd9776-ceda-405d-bc1b-ba429be4313d).
 
@@ -22,3 +16,8 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+npm i -g pm2
+pm2 start server.mjs --name "server"
+pm2 save
+pm2 startup
