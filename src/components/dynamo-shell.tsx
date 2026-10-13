@@ -32,7 +32,7 @@ const nav: { to: '/dashboard' | '/orders' | '/tracking' | '/audit-costs' | '/mat
   { to: '/materials', label: 'MÁC THÉP', icon: Boxes },
   { to: '/sync', label: 'NẠP CSV / ĐỒNG BỘ', icon: DatabaseZap, section: 'HỆ THỐNG' },
 ] as const;
-export function DynamoShell({ children }: { children: ReactNode }) {
+export function DynamoShell({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
   const [workshop, setWorkshop] = useState<Filter>('Tất cả');
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState(false);
@@ -94,7 +94,7 @@ export function DynamoShell({ children }: { children: ReactNode }) {
   const dateLabel = now ? now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '--/--/----';
   const timeLabel = now ? now.toLocaleTimeString('vi-VN', { hour12: false }) : '--:--:--';
   return <AppContext.Provider value={{ workshop, setWorkshop, search, setSearch, filtered, dataset, sourceLabel, syncedAt, isLive, applyDataset, resetDataset, role, updateItem }}>
-    <div className="min-h-screen bg-background text-foreground lg:flex">
+    {bare ? children : <div className="min-h-screen bg-background text-foreground lg:flex">
       {mobileOpen && <div className="fixed inset-0 z-30 bg-overlay lg:hidden" onClick={() => setMobileOpen(false)} />}
       <aside className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'} ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}>
         <div className="flex h-[72px] items-center justify-between border-b border-sidebar-border px-5">
@@ -141,7 +141,7 @@ export function DynamoShell({ children }: { children: ReactNode }) {
         <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">{ready ? children : <div className="min-h-[400px] text-sm text-muted-foreground">Đang tải dữ liệu phân quyền…</div>}</main>
         <footer className="flex items-center justify-between border-t border-border px-4 py-3 text-[11px] text-muted-foreground xl:px-6"><span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển QT</span><span className="flex items-center gap-1.5"><Activity size={12} className="text-primary" /> Môi trường mô phỏng <CircleHelp size={12} className="ml-2" /></span></footer>
       </div>
-    </div>
+    </div>}
   </AppContext.Provider>;
 }
 export function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) { return <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-1.5 text-[10px] font-bold tracking-[.18em] text-primary">{eyebrow}</p><h1 className="font-display text-[24px] font-bold leading-tight text-foreground md:text-[28px]">{title}</h1><p className="mt-1.5 text-[12px] text-muted-foreground">{description}</p></div>{action}</div> }
