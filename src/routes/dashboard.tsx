@@ -70,7 +70,7 @@ function Dashboard() {
     </div>
 
     {!rows.length ? <div className="border border-border bg-card p-10 text-center text-sm text-muted-foreground">Không có lô nào khớp bộ lọc. Hãy đổi kỳ báo cáo hoặc xóa bộ lọc.</div> : <>
-      <div className="mb-4 grid grid-cols-1 divide-y divide-border border border-border bg-card sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-5 xl:divide-x [&>*]:border-border sm:[&>*:nth-child(odd)]:border-r xl:[&>*]:border-r-0">
+      <div className="mb-4 grid grid-cols-1 gap-px border border-border bg-border sm:grid-cols-2 xl:grid-cols-5">
         <Kpi icon={<Boxes size={16} />} label="LÔ ĐANG MỞ" value={number(open.length)} detail={`Chưa nhập kho / ${number(rows.length)} lô`} tone="blue" />
         <Kpi icon={<CircleAlert size={16} />} label="LÔ QUÁ HẠN" value={number(overdue.length)} detail={`${number(overdue.filter(r => daysOver(r) > 3).length)} lô trễ > 3 ngày · không tính ${number(missing.length)} lô thiếu hạn`} tone="red" to="overdue" />
         <Kpi icon={<PackageCheck size={16} />} label="TRẢ HÀNG ĐÚNG HẠN" value={rate.rate === null ? '—' : `${Math.round(rate.rate * 100)}%`} detail={`${number(rate.onTime)}/${number(rate.denominator)} lô · mục tiêu ≥ 95%`} tone="green" meter={rate.rate ?? undefined} />
