@@ -30,21 +30,36 @@ export const canAccessRoute = (role: Role, path: string) => {
 export const canViewPricing = (role: Role) => role === 'admin' || role === 'leader';
 
 /**
- * Domain Rule: Partner Security
- * Only admin, leader, and authorized partner accounts (qt_*) can see real partner names.
- * For unauthenticated users or viewers, partner names are anonymized as "Đơn vị gia công [Mã]".
+ * Poka-Yoke Masking: Partner Security
+ * Eliminates contractor name leaks for 'viewer' and 'leader' roles.
+ * Only 'admin' or matched vendor partner ('qt_<vendor>') can view raw names.
  */
-export const canViewVendorName = (role: Role): boolean => {
-  return role === 'admin' || role === 'leader' || role.startsWith('qt_');
+export const canViewVendorName = (role: Role, vendor?: string | null): boolean => {
+  if (role === 'admin') return true;
+  if (role.startsWith('qt_')) {
+    const scope = getVendorScope(role);
+    return Boolean(scope && (!vendor || vendor.trim().toUpperCase() === scope));
+  }
+  return false;
 };
 
 export const formatVendorName = (vendor: string | undefined | null, role: Role): string => {
   if (!vendor || vendor === '—') return '—';
-  if (canViewVendorName(role)) return vendor;
-  // Anonymized code representation for external display
-  const clean = vendor.trim().toUpperCase();
-  const shortCode = clean.length > 3 ? clean.slice(0, 3) : clean;
-  return `Đơn vị gia công [${shortCode}]`;
+  if (canViewVendorName(role, vendor)) return vendor;
+  return 'Đơn vị gia công theo chỉ định';
+};
+
+export const formatVendorSummary = (vendors: Iterable<string>, role: Role): string => {
+  const set = new Set([...vendors].map(v => v?.trim()).filter(Boolean));
+  const list = [...set];
+  if (list.length === 0) return '—';
+  if (role === 'admin') return list.join(', ');
+  if (role.startsWith('qt_')) {
+    const scope = getVendorScope(role);
+    if (scope && list.some(v => v.toUpperCase() === scope)) return scope;
+    return 'Đơn vị gia công theo chỉ định';
+  }
+  return list.length > 1 ? `${list.length} đơn vị gia công ngoài` : 'Đơn vị gia công theo chỉ định';
 };
 
 export const readRole = (): Role => {

@@ -1,10 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
-import { Download, FileText, Package, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Download, FileText, Package, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
 import { date, money, number, type QTItem } from '@/lib/dynamo-data';
 import { formatVendorName } from '@/lib/dynamo-auth';
+import { isMaterialEquivalent } from '@/lib/materials-data';
 import { StatusDot } from './dashboard';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
 import { daysOver, isDueSoon, isMissingDue, isOverdue } from '@/lib/dynamo-rules';
@@ -29,6 +30,9 @@ export const Route = createFileRoute('/orders')({
       { name: 'twitter:card', content: 'summary' },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { material?: string } => ({
+    ...(typeof s['material'] === 'string' && s['material'].trim() ? { material: s['material'].trim() } : {}),
+  }),
   component: Orders,
 });
 
@@ -37,12 +41,19 @@ const ROW_LIMIT = 150;
 
 function Orders() {
   const { filtered, role } = useDynamo();
+  const search = Route.useSearch();
+  const [materialFilter, setMaterialFilter] = useState<string | null>(search.material ?? null);
   const [selected, setSelected] = useState<string | null>(null);
   const [localSearch, setLocalSearch] = useState('');
+
+  useEffect(() => {
+    setMaterialFilter(search.material ?? null);
+  }, [search.material]);
 
   const { groups, byOrder } = useMemo(() => {
     const byOrder = new Map<string, QTItem[]>();
     for (const i of filtered) {
+      if (materialFilter && !isMaterialEquivalent(i.vat_lieu, materialFilter)) continue;
       const list = byOrder.get(i.So_DatHang);
       if (list) list.push(i);
       else byOrder.set(i.So_DatHang, [i]);
@@ -53,7 +64,7 @@ function Orders() {
       .reverse()
       .filter(id => !q || id.toLowerCase().includes(q) || byOrder.get(id)!.some(i => i.ma_hang.toLowerCase().includes(q)));
     return { groups, byOrder };
-  }, [filtered, localSearch]);
+  }, [filtered, localSearch, materialFilter]);
 
   const active = selected && byOrder.has(selected) ? selected : groups[0];
   const rows = active ? byOrder.get(active) ?? [] : [];
@@ -104,6 +115,19 @@ function Orders() {
                 className="h-8.5 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs outline-none transition-colors focus:border-primary"
               />
             </div>
+            {materialFilter && (
+              <div className="mt-2 flex items-center justify-between rounded bg-primary/10 px-2 py-1 text-[11px] text-primary">
+                <span>Mác thép: <b>{materialFilter}</b></span>
+                <button
+                  type="button"
+                  onClick={() => setMaterialFilter(null)}
+                  className="rounded p-0.5 hover:bg-primary/20"
+                  aria-label="Bỏ lọc mác thép"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="max-h-[580px] overflow-y-auto divide-y divide-border/60">

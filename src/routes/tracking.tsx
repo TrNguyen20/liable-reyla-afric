@@ -6,11 +6,15 @@ import { ArrowRight, ChevronLeft, ChevronRight, CircleAlert, Download, GanttChar
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
 import { date, daysLate, money, number, type QTItem } from '@/lib/dynamo-data';
 import { formatVendorName } from '@/lib/dynamo-auth';
+import { isMaterialEquivalent } from '@/lib/materials-data';
 import { daysOver, hasValidDue, isDueSoon, isOverdue, logisticsOf, qcOf, type Logistics, type QcState } from '@/lib/dynamo-rules';
 
 export const Route = createFileRoute('/tracking')({
   head: () => ({ meta: [{ title: 'Luân chuyển QT | DYNAMO VIETNAM QT - MES' }, { name: 'description', content: 'Timeline giám sát lô gia công theo đơn hàng từ xuất xưởng đến nhập kho.' }, { property: 'og:title', content: 'Luân chuyển QT | DYNAMO VIETNAM QT - MES' }, { property: 'og:description', content: 'Theo dõi tiến độ và cảnh báo quá hạn gia công ngoài.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary' }] }),
-  validateSearch: (s: Record<string, unknown>): { focus?: Focus } => (FOCUS.some(f => f.key === s['focus']) ? { focus: s['focus'] as Focus } : {}),
+  validateSearch: (s: Record<string, unknown>): { focus?: Focus; material?: string } => ({
+    ...(FOCUS.some(f => f.key === s['focus']) ? { focus: s['focus'] as Focus } : {}),
+    ...(typeof s['material'] === 'string' && s['material'].trim() ? { material: s['material'].trim() } : {}),
+  }),
   component: Tracking,
 });
 
@@ -52,14 +56,22 @@ function Tracking() {
 
   const search = Route.useSearch();
   const [focus, setFocus] = useState<Focus | null>(search.focus ?? null);
+  const [materialFilter, setMaterialFilter] = useState<string | null>(search.material ?? null);
   const [failed, setFailed] = useState<Set<string>>(new Set());
   useEffect(() => { const f = () => setFailed(failedSyncIds()); f(); window.addEventListener('dynamo-audit', f); return () => window.removeEventListener('dynamo-audit', f); }, []);
   useEffect(() => { setFocus(search.focus ?? null); }, [search.focus]);
+  useEffect(() => { setMaterialFilter(search.material ?? null); }, [search.material]);
   const inFocus = (r: QTItem, f: Focus) =>
     f === 'overdue' ? isOverdue(r) : f === 'due_soon' ? isDueSoon(r) : f === 'est_due' ? !!r.han_tra_est && r.TrangThai !== 'Đã nhập kho'
     : f === 'no_qc' ? r.TrangThai === 'Đã nhập kho' && qcOf(r) !== 'Đạt' : f === 'qc_fail' ? qcOf(r) === 'Không đạt' : failed.has(r.ID_Key);
   const focusCounts = useMemo(() => Object.fromEntries(FOCUS.map(f => [f.key, all.filter(r => inFocus(r, f.key)).length])) as Record<Focus, number>, [all, failed]);
-  const filtered = useMemo(() => (focus ? all.filter(r => inFocus(r, focus)) : all), [all, focus, failed]);
+  const filtered = useMemo(() => {
+    let list = focus ? all.filter(r => inFocus(r, focus)) : all;
+    if (materialFilter) {
+      list = list.filter(r => isMaterialEquivalent(r.vat_lieu, materialFilter));
+    }
+    return list;
+  }, [all, focus, failed, materialFilter]);
   const [view, setView] = useState<'timeline' | 'table'>('timeline');
   const [orderLimit, setOrderLimit] = useState(30);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -111,7 +123,7 @@ function Tracking() {
   const totalKg = useMemo(() => rows.reduce((a, i) => a + i.kg_Lot, 0), [rows]);
 
   const toggle = (p: Priority) => { setPicked((v) => (v.includes(p) ? v.filter((x) => x !== p) : [...v, p])); setShown({}); setTablePage(0); };
-  const reset = () => { setPicked([]); setVendor('all'); setLogi('all'); setQc('all'); setMissDue(false); setSort('priority'); setFrom(''); setTo(''); setShown({}); setTablePage(0); };
+  const reset = () => { setPicked([]); setVendor('all'); setLogi('all'); setQc('all'); setMissDue(false); setMaterialFilter(null); setSort('priority'); setFrom(''); setTo(''); setShown({}); setTablePage(0); };
   const preset = (kind: 'today' | 'week' | 'this' | 'prev' | 'all') => {
     const now = new Date();
     if (kind === 'all') { setFrom(''); setTo(''); }
@@ -171,6 +183,14 @@ function Tracking() {
           <button onClick={() => setFocus(null)} className="flex items-center gap-1 text-xs text-muted-foreground underline hover:text-foreground">
             <X size={12} /> Bỏ lọc
           </button>
+        )}
+        {materialFilter && (
+          <div className="flex items-center gap-1.5 rounded-sm border border-primary/50 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+            <span>Mác thép: <b>{materialFilter}</b></span>
+            <button onClick={() => setMaterialFilter(null)} className="ml-1 rounded p-0.5 hover:bg-primary/20 text-primary" aria-label="Bỏ lọc mác thép">
+              <X size={12} />
+            </button>
+          </div>
         )}
       </div>
 
