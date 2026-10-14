@@ -154,15 +154,15 @@ export function parseHrcCentroid(raw: string): number | null {
   // Pattern like 47±1 or 47+/-1
   const plusMinus = s.match(/(\d+(?:\.\d+)?)\s*(?:±|\+\/-)\s*(\d+(?:\.\d+)?)/);
   if (plusMinus) {
-    const base = parseFloat(plusMinus[1]);
+    const base = parseFloat(plusMinus[1] ?? "");
     return isNaN(base) ? null : base;
   }
 
   // Pattern like 48-52 or 48–52 or 48~52
   const range = s.match(/(\d+(?:\.\d+)?)\s*[-–~to]\s*(\d+(?:\.\d+)?)/i);
   if (range) {
-    const low = parseFloat(range[1]);
-    const high = parseFloat(range[2]);
+    const low = parseFloat(range[1] ?? "");
+    const high = parseFloat(range[2] ?? "");
     if (!isNaN(low) && !isNaN(high)) {
       return (low + high) / 2;
     }
@@ -171,7 +171,7 @@ export function parseHrcCentroid(raw: string): number | null {
   // Single number
   const single = s.match(/(\d+(?:\.\d+)?)/);
   if (single) {
-    const v = parseFloat(single[1]);
+    const v = parseFloat(single[1] ?? "");
     return isNaN(v) ? null : v;
   }
 
