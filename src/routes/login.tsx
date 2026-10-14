@@ -183,7 +183,7 @@ function Login() {
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-t border-slate-800/80 pt-6 text-[11px] text-slate-500">
           <p className="flex items-center gap-2">
             <Factory size={14} className="text-primary" />
-            <span>DYNAMO VIETNAM CO., LTD. · KHU CÔNG NGHIỆP THĂNG LONG</span>
+            <span>DYNAMO VIETNAM CO., LTD. · KHU CÔNG NGHIỆP ĐỒNG AN 2</span>
           </p>
           <div className="flex items-center gap-4 font-mono text-[10px]">
             <span className="flex items-center gap-1.5">

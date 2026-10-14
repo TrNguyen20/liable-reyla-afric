@@ -16,8 +16,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-npm i -g pm2
-pm2 start server.mjs --name "server"
-pm2 save
-pm2 startup
