@@ -70,7 +70,7 @@
   --color-breakdown: var(--breakdown);
   --color-wait: var(--wait);
   --color-setup: var(--setup);
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-display: "Be Vietnam Pro", system-ui, sans-serif;
   --font-sans: "Be Vietnam Pro", system-ui, sans-serif;
 }
 
@@ -190,17 +190,27 @@
 }
 
 @keyframes andon-alarm-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 oklch(0.55 0.22 27 / 0.4);
   }
+
   50% {
     box-shadow: 0 0 0 4px oklch(0.55 0.22 27 / 0);
   }
 }
 
 @keyframes fx-run-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
 }
 
 @layer base {
@@ -220,4 +230,3 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
-

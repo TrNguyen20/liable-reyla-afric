@@ -210,41 +210,37 @@ export function Materials() {
         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card p-1 text-xs">
           <button
             onClick={() => setSelectedCategory('ALL')}
-            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${
-              selectedCategory === 'ALL'
+            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${selectedCategory === 'ALL'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Tất cả ({TOP_MATERIALS.length})
           </button>
           <button
             onClick={() => setSelectedCategory('HOT_WORK')}
-            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${
-              selectedCategory === 'HOT_WORK'
+            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${selectedCategory === 'HOT_WORK'
                 ? 'bg-amber-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Khuôn dập nóng & Đúc (3)
           </button>
           <button
             onClick={() => setSelectedCategory('COLD_WORK')}
-            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${
-              selectedCategory === 'COLD_WORK'
+            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${selectedCategory === 'COLD_WORK'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Khuôn dập nguội (1)
           </button>
           <button
             onClick={() => setSelectedCategory('SPECIALTY')}
-            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${
-              selectedCategory === 'SPECIALTY'
+            className={`rounded-md px-3 py-1.5 font-bold transition-colors ${selectedCategory === 'SPECIALTY'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Hợp kim cao cấp (2)
           </button>
@@ -274,15 +270,15 @@ export function Materials() {
             spec.category === 'HOT_WORK'
               ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
               : spec.category === 'COLD_WORK'
-              ? 'border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400'
-              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+                ? 'border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400'
+                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
 
           const accentLine =
             spec.category === 'HOT_WORK'
               ? 'bg-amber-500'
               : spec.category === 'COLD_WORK'
-              ? 'bg-sky-500'
-              : 'bg-emerald-500';
+                ? 'bg-sky-500'
+                : 'bg-emerald-500';
 
           return (
             <article
@@ -581,15 +577,15 @@ function HrcVisualGauge({
     category === 'HOT_WORK'
       ? 'fill-amber-500/25 stroke-amber-500/80'
       : category === 'COLD_WORK'
-      ? 'fill-sky-500/25 stroke-sky-500/80'
-      : 'fill-emerald-500/25 stroke-emerald-500/80';
+        ? 'fill-sky-500/25 stroke-sky-500/80'
+        : 'fill-emerald-500/25 stroke-emerald-500/80';
 
   const pinFill =
     category === 'HOT_WORK'
       ? '#d97706' // amber-600
       : category === 'COLD_WORK'
-      ? '#0284c7' // sky-600
-      : '#059669'; // emerald-600
+        ? '#0284c7' // sky-600
+        : '#059669'; // emerald-600
 
   return (
     <div className="relative select-none pt-2 pb-1">
