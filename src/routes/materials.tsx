@@ -172,7 +172,7 @@ export function Materials() {
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">THƯ VIỆN CHỦ LỰC</p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="font-mono text-2xl font-black text-foreground">6 / 6</span>
-            <span className="text-[11px] text-muted-foreground">mác thép (>95% tải xưởng)</span>
+            <span className="text-[11px] text-muted-foreground">mác thép (&gt;95% tải xưởng)</span>
           </div>
         </div>
 
