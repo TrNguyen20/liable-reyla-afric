@@ -73,7 +73,12 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     setReady(true);
     return () => clearInterval(id);
   }, []);
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setMobileOpen(false);
+    // Re-read session after login navigation so role never sticks at the pre-login value.
+    const r = readRole(); setPricingVisible(canViewPricing(r)); setRole(r);
+    setUser(window.localStorage.getItem('dynamo-user') ?? 'Quản lý QT');
+  }, [location.pathname]);
   useEffect(() => { if (!canAccessRoute(readRole(), location.pathname)) { toast.error('Vai trò của bạn không có quyền truy cập trang này.'); navigate({ to: '/dashboard' }); } }, [location.pathname, role]);
   const visibleNav = nav.filter(n => canAccessRoute(role, n.to));
   const toggleTheme = () => {
