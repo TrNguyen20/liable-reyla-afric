@@ -239,24 +239,43 @@ function Login() {
               </p>
             </div>
 
-            <div aria-live="polite" className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-border bg-border font-mono text-[10px]">
-              {[
-                { label: 'Bước 1 · Vị trí', ok: !!position, value: position ? positions.find((p) => p.id === position)?.label : 'Chưa chọn' },
-                { label: 'Bước 2 · Mã', ok: !!code.trim(), value: code.trim() ? 'Đã nạp mã' : 'Chưa nhập' },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-2 bg-card px-3 py-2">
-                  {s.ok ? (
-                    <CheckCircle2 size={13} className="shrink-0 text-run" />
-                  ) : (
-                    <span aria-hidden className="size-2.5 shrink-0 rounded-full border border-muted-foreground/50" />
-                  )}
-                  <span className="min-w-0">
-                    <span className="block text-muted-foreground">{s.label}</span>
-                    <span className={`block truncate font-sans text-[11px] font-semibold ${s.ok ? 'text-foreground' : 'text-muted-foreground'}`}>{s.value}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
+            {(() => {
+              const steps = [
+                { label: 'Vị trí công tác', value: position ? positions.find((p) => p.id === position)?.label : 'Chưa chọn' },
+                { label: 'Mã truy cập ULID', value: code.trim() ? 'Đã nạp mã' : 'Chưa nhập' },
+              ];
+              const activeStep = !position ? 0 : !code.trim() ? 1 : 2;
+              return (
+                <ol aria-label="Tiến trình xác thực" aria-live="polite" className="mb-5 flex items-center gap-3 rounded-sm border border-border bg-card px-3 py-2.5">
+                  {steps.map((s, i) => {
+                    const state = i < activeStep ? 'done' : i === activeStep ? 'current' : 'upcoming';
+                    return (
+                      <li key={s.label} aria-current={state === 'current' ? 'step' : undefined} className="flex min-w-0 flex-1 items-center gap-2.5">
+                        <span
+                          aria-hidden
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tabular-nums transition-colors ${
+                            state === 'done'
+                              ? 'border-run bg-run text-background'
+                              : state === 'current'
+                                ? 'border-primary text-primary ring-2 ring-primary/25'
+                                : 'border-muted-foreground/40 text-muted-foreground'
+                          }`}
+                        >
+                          {state === 'done' ? <CheckCircle2 size={14} /> : i + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-mono text-[10px] text-muted-foreground">Bước {i + 1} · {s.label}</span>
+                          <span className={`block truncate text-[11px] font-semibold ${state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground'}`}>{s.value}</span>
+                        </span>
+                        {i < steps.length - 1 && (
+                          <span aria-hidden className={`ml-auto h-px w-6 shrink-0 ${i < activeStep ? 'bg-run' : 'bg-border'}`} />
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              );
+            })()}
 
             <form onSubmit={submit} className="space-y-5">
               <fieldset>
