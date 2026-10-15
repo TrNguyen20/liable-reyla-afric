@@ -124,9 +124,9 @@ function Login() {
   };
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-12">
+    <div className="grid min-h-[100dvh] grid-cols-1 lg:grid-cols-12">
       {/* Left Column: Industrial Plant Hero (Graphite Canvas) */}
-      <section className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0b0e14] p-12 text-slate-100 lg:col-span-7 lg:flex xl:col-span-8">
+      <section className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0b0e14] px-12 py-10 text-slate-100 lg:col-span-7 lg:flex xl:col-span-8">
         {/* Subtle Engineering Grid Background */}
         <div
           aria-hidden
@@ -154,7 +154,7 @@ function Login() {
             </div>
           </div>
 
-          <div className="mt-14 max-w-2xl">
+          <div className="mt-10 max-w-2xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               <Cpu size={14} />
               <span>HỆ THỐNG ĐIỀU HÀNH SẢN XUẤT NỘI BỘ</span>
@@ -170,7 +170,7 @@ function Login() {
         </div>
 
         {/* Technical Features Matrix */}
-        <div className="relative z-10 my-10 max-w-2xl rounded-sm border border-slate-800/80 bg-slate-900/40 p-1">
+        <div className="relative z-10 my-8 max-w-2xl rounded-sm border border-slate-700/80 bg-slate-900/60 p-1">
           <Cross className="-left-1.5 -top-1.5" />
           <Cross className="-right-1.5 -top-1.5" />
           <Cross className="-bottom-1.5 -left-1.5" />
@@ -179,7 +179,7 @@ function Login() {
           <div className="divide-y divide-slate-800/80">
             {features.map((f) => (
               <div key={f.title} className="flex gap-4 p-5 transition-colors hover:bg-slate-800/30">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/10 text-primary">
                   <f.icon size={18} strokeWidth={2} />
                 </span>
                 <div>
@@ -239,6 +239,25 @@ function Login() {
               </p>
             </div>
 
+            <div aria-live="polite" className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-border bg-border font-mono text-[10px]">
+              {[
+                { label: 'Bước 1 · Vị trí', ok: !!position, value: position ? positions.find((p) => p.id === position)?.label : 'Chưa chọn' },
+                { label: 'Bước 2 · Mã', ok: !!code.trim(), value: code.trim() ? 'Đã nạp mã' : 'Chưa nhập' },
+              ].map((s) => (
+                <div key={s.label} className="flex items-center gap-2 bg-card px-3 py-2">
+                  {s.ok ? (
+                    <CheckCircle2 size={13} className="shrink-0 text-run" />
+                  ) : (
+                    <span aria-hidden className="size-2.5 shrink-0 rounded-full border border-muted-foreground/50" />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block text-muted-foreground">{s.label}</span>
+                    <span className={`block truncate font-sans text-[11px] font-semibold ${s.ok ? 'text-foreground' : 'text-muted-foreground'}`}>{s.value}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
             <form onSubmit={submit} className="space-y-5">
               <fieldset>
                 <legend className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
@@ -258,7 +277,7 @@ function Login() {
                           setError('');
                         }}
                         className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
-                          active ? 'bg-muted shadow-[inset_0_0_0_1px_var(--color-foreground)]' : 'bg-card hover:bg-muted/50'
+                          active ? 'bg-muted shadow-[inset_0_0_0_2px_var(--color-dynamo)]' : 'bg-card hover:bg-muted/50'
                         }`}
                       >
                         <span
@@ -363,9 +382,14 @@ function Login() {
             </div>
           </div>
 
-          <p className="mt-4 text-center text-[11px] text-muted-foreground">
-            Môi trường vận hành mô phỏng · Bản quyền thuộc về DYNAMO VIETNAM
-          </p>
+          <div className="mt-5 text-center">
+            <p className="font-display text-xs font-bold tracking-wide text-foreground">
+              Kỷ luật - Chính xác - An toàn - Đúng hạn
+            </p>
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+              DYNAMO MES · Bản quyền thuộc về Công ty TNHH Dynamo Vietnam
+            </p>
+          </div>
         </div>
       </section>
     </div>
