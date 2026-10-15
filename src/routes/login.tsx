@@ -46,7 +46,7 @@ const features = [
   },
   {
     icon: ShieldCheck,
-    title: 'Kiểm soát trễ hạn đối tác (ISA-101 Andon)',
+    title: 'Kiểm soát trễ hạn đối tác',
     desc: 'Phát hiện và cảnh báo sớm các lô hàng quá hạn giao trả, đảm bảo tiến độ lắp ráp khuôn đúc.',
   },
   {
@@ -59,10 +59,10 @@ const features = [
 type Position = 'admin' | 'leader' | 'viewer' | 'partner';
 
 const positions: { id: Position; label: string; note: string; led: string }[] = [
-  { id: 'admin', label: 'Quản trị viên', note: 'Admin', led: 'bg-dynamo' },
-  { id: 'leader', label: 'Quản lý xưởng', note: 'Leader', led: 'bg-run' },
-  { id: 'viewer', label: 'Giám sát viên', note: 'Viewer', led: 'bg-titan' },
-  { id: 'partner', label: 'Đối tác', note: 'Đơn vị gia công theo chỉ định', led: 'bg-warning' },
+  { id: 'admin', label: 'BGĐ / IT hệ thống', note: 'Admin', led: 'bg-dynamo' },
+  { id: 'leader', label: 'Trưởng / Phó phòng', note: 'Leader', led: 'bg-run' },
+  { id: 'viewer', label: 'KTV / Nhân viên', note: 'Viewer', led: 'bg-titan' },
+  { id: 'partner', label: 'Nhà cung cấp ngoài', note: 'Partner', led: 'bg-warning' },
 ];
 
 
@@ -126,7 +126,7 @@ function Login() {
   return (
     <div className="grid min-h-[100dvh] grid-cols-1 lg:grid-cols-12">
       {/* Left Column: Industrial Plant Hero (Graphite Canvas) */}
-      <section className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0b0e14] px-12 py-10 text-slate-100 lg:col-span-7 lg:flex xl:col-span-8">
+      <section className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0b0e14] px-12 py-10 text-slate-100 lg:col-span-7 lg:flex xl:col-span-7">
         {/* Subtle Engineering Grid Background */}
         <div
           aria-hidden
@@ -157,14 +157,15 @@ function Login() {
           <div className="mt-10 max-w-2xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               <Cpu size={14} />
-              <span>HỆ THỐNG ĐIỀU HÀNH SẢN XUẤT NỘI BỘ</span>
+              <span>HỆ THỐNG ĐIỀU HÀNH QT NỘI BỘ</span>
             </div>
             <h1 className="font-display text-4xl font-black tracking-tight text-white xl:text-5xl">
-              Điều Hành Nhà Thầu Phụ, Nhiệt Luyện & Luân Chuyển QT
+              Quản Lý Nhà Thầu QT - Nhiệt Luyện & Luân Chuyển
             </h1>
             <p className="mt-5 text-sm leading-relaxed text-slate-400">
-              Cổng chỉ huy tập trung dành cho phân xưởng PIN, INSERT và MOLD: kiểm soát tiến độ từng lô gia công ngoài,
-              giám sát thời hạn giao trả theo tiêu chuẩn ISA-101 và tự động đối soát định mức vật liệu khuôn đúc chính xác.
+              Cổng điều hành tập trung phục vụ các xưởng PIN, INSERT, và MOLD.
+              <br></br>
+              Kiểm soát tiến độ từng lô gia công ngoài, giám sát thời hạn giao trả theo tiêu chuẩn và đối soát vật tư khuôn đúc chính xác.
             </p>
           </div>
         </div>
@@ -200,23 +201,23 @@ function Login() {
           <div className="flex items-center gap-4 font-mono text-[10px]">
             <span className="flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-run animate-pulse" />
-              <span>MES CORE: V1.0-STABLE</span>
+              <span>MES QT CORE: R&D-V1.0-DEMO</span>
             </span>
             <span>·</span>
-            <span>DATA GUARD: ACTIVE</span>
+            <span>DATA SYNC: REAL-TIME</span>
           </div>
         </div>
       </section>
 
       {/* Right Column: High-Density Authentication Console */}
-      <section className="flex flex-col justify-center bg-background px-6 py-12 sm:px-12 lg:col-span-5 xl:col-span-4">
+      <section className="flex flex-col justify-center bg-background px-6 py-12 sm:px-12 lg:col-span-5 xl:col-span-5">
         <div className="mx-auto w-full max-w-md">
           {/* Mobile Logo & Title */}
           <div className="mb-8 lg:hidden">
             <img src={logo} alt="Dynamo Vietnam" className="mb-4 h-10 w-auto" />
             <p className="font-display text-base font-extrabold text-foreground">DYNAMO VIETNAM QT - MES</p>
             <p className="font-mono text-[9px] font-bold tracking-[.25em] text-primary">
-              PRECISION OPERATIONS
+              PRECISION SHOPFLOOR SUBCONTRACT CONTROL
             </p>
           </div>
 
@@ -241,7 +242,7 @@ function Login() {
 
             {(() => {
               const steps = [
-                { label: 'Vị trí công tác', value: position ? positions.find((p) => p.id === position)?.label : 'Chưa chọn' },
+                { label: 'Vị trí', value: position ? positions.find((p) => p.id === position)?.label : 'Chưa chọn' },
                 { label: 'Mã truy cập ULID', value: code.trim() ? 'Đã nạp mã' : 'Chưa nhập' },
               ];
               const activeStep = !position ? 0 : !code.trim() ? 1 : 2;
@@ -253,13 +254,12 @@ function Login() {
                       <li key={s.label} aria-current={state === 'current' ? 'step' : undefined} className="flex min-w-0 flex-1 items-center gap-2.5">
                         <span
                           aria-hidden
-                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tabular-nums transition-colors ${
-                            state === 'done'
-                              ? 'border-run bg-run text-background'
-                              : state === 'current'
-                                ? 'border-primary text-primary ring-2 ring-primary/25'
-                                : 'border-muted-foreground/40 text-muted-foreground'
-                          }`}
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tabular-nums transition-colors ${state === 'done'
+                            ? 'border-run bg-run text-background'
+                            : state === 'current'
+                              ? 'border-primary text-primary ring-2 ring-primary/25'
+                              : 'border-muted-foreground/40 text-muted-foreground'
+                            }`}
                         >
                           {state === 'done' ? <CheckCircle2 size={14} /> : i + 1}
                         </span>
@@ -295,9 +295,8 @@ function Login() {
                           setPosition(p.id);
                           setError('');
                         }}
-                        className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
-                          active ? 'bg-muted shadow-[inset_0_0_0_2px_var(--color-dynamo)]' : 'bg-card hover:bg-muted/50'
-                        }`}
+                        className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${active ? 'bg-muted shadow-[inset_0_0_0_2px_var(--color-dynamo)]' : 'bg-card hover:bg-muted/50'
+                          }`}
                       >
                         <span
                           aria-hidden
@@ -334,7 +333,7 @@ function Login() {
                     }}
                     placeholder={
                       position
-                        ? `Nhập mã định danh dành cho ${positions.find((p) => p.id === position)?.label}`
+                        ? `Nhập mã truy cập của ${positions.find((p) => p.id === position)?.label}`
                         : 'Chọn vị trí ở Bước 1 trước'
                     }
                     aria-label="Mã xác thực"
@@ -395,7 +394,7 @@ function Login() {
               <div className="flex items-start gap-2">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0 text-primary" />
                 <p>
-                  Chưa có mã? Vui lòng liên hệ Trưởng phòng Kỹ thuật hoặc Quản trị viên để được cấp mã truy cập theo phân xưởng.
+                  Chưa có mã? Vui lòng liên hệ Quản trị viên để được cấp mã truy cập theo chức năng.
                 </p>
               </div>
             </div>
@@ -403,10 +402,10 @@ function Login() {
 
           <div className="mt-5 text-center">
             <p className="font-display text-xs font-bold tracking-wide text-foreground">
-              Kỷ luật - Chính xác - An toàn - Đúng hạn
+              Kỷ Luật - Chính Xác - An Toàn - Đúng Hạn
             </p>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-              DYNAMO MES · Bản quyền thuộc về Công ty TNHH Dynamo Vietnam
+              © 2026 DYNAMO VIET NAM CO., LTD. All rights reserved.
             </p>
           </div>
         </div>
