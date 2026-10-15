@@ -83,3 +83,10 @@ export async function verifyCode(code: string): Promise<AuthEntry | null> {
   return role ? { role, note: res.note } : null;
 }
 
+
+/** Poka-Yoke interlock: declared login position must match the code's role. */
+export const positionMatchesRole = (position: 'admin' | 'leader' | 'viewer' | 'partner', role: string): boolean => {
+  const r = role.trim().toLowerCase();
+  if (position === 'partner') return r.startsWith('qt_');
+  return r === position;
+};

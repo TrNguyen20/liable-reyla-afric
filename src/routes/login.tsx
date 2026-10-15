@@ -9,12 +9,14 @@ import {
   Loader2,
   RefreshCcw,
   ShieldCheck,
-  Sparkles,
+  Eye,
+  EyeOff,
+  X,
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/dynamo-logo.png';
-import { verifyCode } from '@/lib/dynamo-auth';
+import { verifyCode, positionMatchesRole } from '@/lib/dynamo-auth';
 
 export const Route = createFileRoute('/login')({
   head: () => ({
@@ -54,12 +56,15 @@ const features = [
   },
 ];
 
-const demoCodes = [
-  { role: 'Admin', code: '01m4hw6cqjyhzbh4dktdadbnqj', note: 'Toàn quyền điều hành & cài đặt' },
-  { role: 'Leader', code: '01m4hw6cqjmcaft6fbx1s009ae', note: 'Trưởng / Phó phân xưởng sản xuất' },
-  { role: 'Viewer', code: '01m4hw6cqj39r8p302yhgcy7g2', note: 'Xem tiến độ & dữ liệu đã ẩn danh' },
-  { role: 'Đối tác', code: '01m4hw6cqj3vkzhf2v7x9eg6dc', note: 'Tài khoản nhà thầu phụ (YAMAICHI)' },
+type Position = 'admin' | 'leader' | 'viewer' | 'partner';
+
+const positions: { id: Position; label: string; note: string; led: string }[] = [
+  { id: 'admin', label: 'Quản trị viên', note: 'Admin', led: 'bg-dynamo' },
+  { id: 'leader', label: 'Quản lý xưởng', note: 'Leader', led: 'bg-run' },
+  { id: 'viewer', label: 'Giám sát viên', note: 'Viewer', led: 'bg-titan' },
+  { id: 'partner', label: 'Đối tác', note: 'Đơn vị gia công theo chỉ định', led: 'bg-warning' },
 ];
+
 
 const Cross = ({ className }: { className: string }) => (
   <span aria-hidden className={`pointer-events-none absolute size-3 text-slate-700 ${className}`}>
@@ -71,14 +76,20 @@ const Cross = ({ className }: { className: string }) => (
 function Login() {
   const navigate = useNavigate();
   const [code, setCode] = useState('');
+  const [position, setPosition] = useState<Position | null>(null);
+  const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const cleanCode = code.trim();
+    if (!position) {
+      setError('Vui lòng chọn vị trí công tác (Bước 1) trước khi xác thực.');
+      return;
+    }
     if (!cleanCode) {
-      setError('Vui lòng nhập mã xác nhận truy cập do Quản trị viên cấp.');
+      setError('Vui lòng nhập mã định danh truy cập (Bước 2).');
       return;
     }
     setBusy(true);
@@ -88,8 +99,14 @@ function Login() {
       const entry = await verifyCode(cleanCode);
       if (!entry) {
         setError(
-          'Mã xác thực không hợp lệ hoặc đã hết hiệu lực. Vui lòng kiểm tra lại mã hoặc chọn mã mô phỏng bên dưới.'
+          'Mã xác thực không hợp lệ hoặc đã hết hiệu lực.'
         );
+        setBusy(false);
+        return;
+      }
+      if (!positionMatchesRole(position, entry.role)) {
+        const label = positions.find((p) => p.id === position)?.label ?? '';
+        setError(`Mã truy cập này không thuộc thẩm quyền của vị trí ${label} đã chọn. Vui lòng kiểm tra lại.`);
         setBusy(false);
         return;
       }
@@ -104,11 +121,6 @@ function Login() {
       setError('Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');
       setBusy(false);
     }
-  };
-
-  const handleSelectDemo = (c: string) => {
-    setCode(c);
-    setError('');
   };
 
   return (
@@ -227,10 +239,45 @@ function Login() {
               </p>
             </div>
 
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-5">
+              <fieldset>
+                <legend className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                  Bước 1 · Vị trí công tác
+                </legend>
+                <div role="radiogroup" aria-label="Vị trí công tác" className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-border bg-border">
+                  {positions.map((p) => {
+                    const active = position === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => {
+                          setPosition(p.id);
+                          setError('');
+                        }}
+                        className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
+                          active ? 'bg-muted shadow-[inset_0_0_0_1px_var(--color-foreground)]' : 'bg-card hover:bg-muted/50'
+                        }`}
+                      >
+                        <span
+                          aria-hidden
+                          className={`mt-1 size-2 shrink-0 rounded-full transition-opacity ${p.led} ${active ? 'opacity-100' : 'opacity-25'}`}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-foreground">{p.label}</span>
+                          <span className="block truncate text-[10px] text-muted-foreground">{p.note}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
               <div>
-                <label className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                  MÃ TRUY CẬP (ACCESS CODE)
+                <label htmlFor="access-code" className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                  Bước 2 · Mã truy cập (Access code)
                 </label>
                 <div className="relative">
                   <KeyRound
@@ -238,7 +285,8 @@ function Login() {
                     className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                   />
                   <input
-                    type="password"
+                    id="access-code"
+                    type={showCode ? 'text' : 'password'}
                     autoComplete="off"
                     spellCheck={false}
                     value={code}
@@ -246,11 +294,35 @@ function Login() {
                       setCode(e.target.value);
                       setError('');
                     }}
-                    placeholder="Dán hoặc nhập mã ULID"
+                    placeholder={
+                      position
+                        ? `Nhập mã định danh dành cho ${positions.find((p) => p.id === position)?.label}`
+                        : 'Chọn vị trí ở Bước 1 trước'
+                    }
                     aria-label="Mã xác thực"
                     aria-invalid={!!error}
-                    className="h-11 w-full rounded-sm border border-input bg-background/60 pl-10 pr-3 font-mono text-xs tracking-wider text-foreground outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-primary aria-[invalid=true]:border-destructive"
+                    className="h-11 w-full rounded-sm border border-input bg-background/60 pl-10 pr-20 font-mono tabular-nums text-xs tracking-wider text-foreground outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-primary aria-[invalid=true]:border-destructive"
                   />
+                  <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
+                    {code && (
+                      <button
+                        type="button"
+                        onClick={() => setCode('')}
+                        aria-label="Xóa mã"
+                        className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground active:scale-[0.98]"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowCode((v) => !v)}
+                      aria-label={showCode ? 'Ẩn mã' : 'Hiện mã'}
+                      className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground active:scale-[0.98]"
+                    >
+                      {showCode ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -275,38 +347,11 @@ function Login() {
                   </>
                 ) : (
                   <>
-                    XÁC THỰC & VÀO HỆ THỐNG <ArrowRight size={15} />
+                    XÁC THỰC VỊ TRÍ & VÀO HỆ THỐNG <ArrowRight size={15} />
                   </>
                 )}
               </Button>
             </form>
-
-            {/* Quick Demo Code Chooser for Factory / Testing */}
-            <div className="mt-6 border-t border-border/70 pt-5">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                  <Sparkles size={12} className="text-primary" /> MÃ MÔ PHỎNG KIỂM THỬ:
-                </span>
-                <span className="text-[10px] text-muted-foreground">Nhấn để điền nhanh</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {demoCodes.map((d) => (
-                  <button
-                    key={d.role}
-                    type="button"
-                    onClick={() => handleSelectDemo(d.code)}
-                    className="flex flex-col items-start rounded-sm border border-border/80 bg-muted/30 p-2 text-left transition-colors hover:border-primary/50 hover:bg-muted/50 active:scale-[0.98]"
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <span className="font-display text-xs font-bold text-foreground">{d.role}</span>
-                      <span className="font-mono text-[9px] text-primary">Điền mã</span>
-                    </div>
-                    <span className="mt-0.5 truncate text-[10px] text-muted-foreground">{d.note}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="mt-5 border-t border-border/60 pt-4 text-[11px] text-muted-foreground">
               <div className="flex items-start gap-2">
