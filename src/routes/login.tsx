@@ -337,7 +337,7 @@ function Login() {
 
               <Button
                 type="submit"
-                disabled={busy || !position || !code.trim()}
+                disabled={busy}
                 className="h-11 w-full gap-2 rounded-sm bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90"
               >
                 {busy ? (
