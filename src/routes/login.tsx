@@ -154,13 +154,15 @@ function Login() {
             </div>
           </div>
 
-          <div className="mt-10 max-w-2xl">
+          <div className="mt-10 max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               <Cpu size={14} />
               <span>HỆ THỐNG ĐIỀU HÀNH QT NỘI BỘ</span>
             </div>
-            <h1 className="font-display text-4xl font-black tracking-tight text-white xl:text-5xl">
-              Quản Lý Nhà Thầu QT - Nhiệt Luyện & Luân Chuyển
+            <h1 className="font-display text-4xl font-black tracking-tight text-white xl:text-5xl leading-[3.5rem]">
+              Quản Lý Nhà Thầu Phụ
+              <br></br> 
+              Nhiệt Luyện & Luân Chuyển QT
             </h1>
             <p className="mt-5 text-sm leading-relaxed text-slate-400">
               Cổng điều hành tập trung phục vụ các xưởng PIN, INSERT, và MOLD.
@@ -171,7 +173,7 @@ function Login() {
         </div>
 
         {/* Technical Features Matrix */}
-        <div className="relative z-10 my-8 max-w-2xl rounded-sm border border-slate-700/80 bg-slate-900/60 p-1">
+        <div className="relative z-10 my-8 max-w-3xl rounded-sm border border-slate-700/80 bg-slate-900/60 p-1">
           <Cross className="-left-1.5 -top-1.5" />
           <Cross className="-right-1.5 -top-1.5" />
           <Cross className="-bottom-1.5 -left-1.5" />
