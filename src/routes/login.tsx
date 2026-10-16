@@ -111,11 +111,7 @@ function Login() {
         return;
       }
 
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('dynamo-user', entry.note || entry.role);
-        window.localStorage.setItem('dynamo-role', entry.role);
-        window.localStorage.setItem('dynamo-code', cleanCode);
-      }
+      // Session cookie is set by the server; nothing about the role is stored in the browser.
       navigate({ to: '/dashboard' });
     } catch {
       setError('Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');

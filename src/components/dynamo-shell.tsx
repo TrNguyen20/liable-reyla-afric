@@ -65,8 +65,6 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     const next = saved === 'dark' ? 'dark' : 'light';
     setTheme(next);
     document.documentElement.classList.toggle('dark', next === 'dark');
-    setUser(window.localStorage.getItem('dynamo-user') ?? 'Quản lý QT');
-    const r = readRole(); setPricingVisible(canViewPricing(r)); setRole(r);
     void loadDataset().then(cached => {
       if (cached?.items?.length) { setDataset(cached.items); setSourceLabel(cached.label); setSyncedAt(cached.syncedAt); }
     });
@@ -75,11 +73,17 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   }, []);
   useEffect(() => {
     setMobileOpen(false);
-    // Re-read session after login navigation so role never sticks at the pre-login value.
-    const r = readRole(); setPricingVisible(canViewPricing(r)); setRole(r);
-    setUser(window.localStorage.getItem('dynamo-user') ?? 'Quản lý QT');
-  }, [location.pathname]);
-  useEffect(() => { if (!canAccessRoute(readRole(), location.pathname)) { toast.error('Vai trò của bạn không có quyền truy cập trang này.'); navigate({ to: '/dashboard' }); } }, [location.pathname, role]);
+    if (bare) return;
+    // Role comes only from the server-signed session; re-check on every navigation.
+    let alive = true;
+    void fetchSession().then(s => {
+      if (!alive) return;
+      if (!s) { setRole('viewer'); setPricingVisible(false); navigate({ to: '/login' }); return; }
+      setRole(s.role); setPricingVisible(canViewPricing(s.role)); setUser(s.note || s.role);
+      if (!canAccessRoute(s.role, location.pathname)) { toast.error('Vai trò của bạn không có quyền truy cập trang này.'); navigate({ to: '/dashboard' }); }
+    }).catch(() => { if (alive) navigate({ to: '/login' }); });
+    return () => { alive = false; };
+  }, [location.pathname, bare]);
   const visibleNav = nav.filter(n => canAccessRoute(role, n.to));
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -88,8 +92,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     window.localStorage.setItem('dynamo-theme', next);
   };
   const logout = () => {
-    window.localStorage.removeItem('dynamo-user'); window.localStorage.removeItem('dynamo-role'); window.localStorage.removeItem('dynamo-code');
-    navigate({ to: '/login' });
+    ['dynamo-user', 'dynamo-role', 'dynamo-code'].forEach(k => window.localStorage.removeItem(k));
+    void logoutSession().finally(() => { void clearDataset(); navigate({ to: '/login' }); });
   };
   const vendor = getVendorScope(role);
   const scoped = useMemo(() => vendor ? rawDataset.filter(i => String(i.cty_QT).toUpperCase() === vendor) : rawDataset, [rawDataset, vendor]);
