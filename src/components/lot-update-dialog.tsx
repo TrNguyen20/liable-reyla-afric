@@ -37,11 +37,11 @@ export function LotUpdateButton({ item }: { item: QTItem }) {
     if (d.do_cung.trim() !== oldHrc) changes['do_cung'] = [oldHrc, d.do_cung.trim()];
     if (!Object.keys(changes).length) { setBusy(false); setErrs(['Chưa có thay đổi nào để lưu.']); return; }
     const res = await updateLotProgress({ data: {
-      code: window.localStorage.getItem('dynamo-code') ?? '', webhook: window.localStorage.getItem('dynamo-webhook') ?? '',
+      webhook: window.localStorage.getItem('dynamo-webhook') ?? '',
       ID_Key: item.ID_Key, cty_QT: String(item.cty_QT), updates: { TrangThai: d.status, do_cung: d.do_cung.trim(), ngay_nhan_QT: d.ngay_nhan },
     } }).catch(() => ({ ok: false as const, error: 'Không kết nối được máy chủ.' }));
     setBusy(false);
-    const base = { ID_Key: item.ID_Key, user: window.localStorage.getItem('dynamo-user') ?? '—', role, from: item.TrangThai, to: d.status, changes, reason: d.reason.trim() };
+    const base = { ID_Key: item.ID_Key, user: role, role, from: item.TrangThai, to: d.status, changes, reason: d.reason.trim() };
     if (!res.ok) {
       // Keep the draft so the user can retry without retyping; the same ID_Key update is idempotent on the sheet.
       appendAudit({ ...base, result: 'sync_failed', error: res.error });

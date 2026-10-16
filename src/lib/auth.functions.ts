@@ -53,20 +53,40 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
     if (!code) return { ok: false as const };
     const entry = (await loadCodes())[code];
     if (!entry) return { ok: false as const };
+    const { startSession } = await import("./session.server");
+    await startSession({ role: entry.role, note: entry.note });
     return { ok: true as const, role: entry.role, note: entry.note };
   });
 
-// Simulated write-back of a lot progress update. In production this would
-// push the change to the central sheet / MES; here it always succeeds.
+/** Returns the server-verified session; the browser can never set its own role. */
+export const getSessionInfo = createServerFn({ method: "GET" }).handler(async () => {
+  const { readSession } = await import("./session.server");
+  const s = await readSession();
+  return s ? { role: s.role, note: s.note } : null;
+});
+
+export const logoutSession = createServerFn({ method: "POST" }).handler(async () => {
+  const { endSession } = await import("./session.server");
+  endSession();
+  return { ok: true as const };
+});
+
+// Write-back of a lot progress update. Role comes from the signed session only.
 export const updateLotProgress = createServerFn({ method: "POST" })
   .inputValidator((data: {
     ID_Key: string;
     cty_QT?: string;
-    code?: string;
     webhook?: string;
     updates?: { TrangThai?: string; do_cung?: string; ngay_nhan_QT?: string };
   }) => data)
   .handler(async ({ data }) => {
+    const { readSession } = await import("./session.server");
+    const s = await readSession();
+    if (!s) return { ok: false as const, error: "Phiên đăng nhập đã hết hạn" };
+    const role = s.role;
+    const vendor = role.startsWith("qt_") ? role.slice(3).toUpperCase() : null;
+    const allowed = role === "admin" || role === "leader" || (vendor !== null && String(data.cty_QT ?? "").toUpperCase() === vendor);
+    if (!allowed) return { ok: false as const, error: "Vai trò không có quyền cập nhật lô này" };
     if (!data.ID_Key) return { ok: false as const, error: "Thiếu ID_Key" };
     // Demo: no central sheet is connected, so the write-back is acknowledged
     // and the change is kept locally (audit log records the result).
