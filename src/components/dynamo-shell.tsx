@@ -4,9 +4,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Button } from '@/components/ui/button';
 import { items as sampleItems, type QTItem, type Workshop } from '@/lib/dynamo-data';
 import logo from '@/assets/dynamo-logo.png';
-import { canAccessRoute, readRole, roleBadge, roleLabel, setPricingVisible, canViewPricing, getVendorScope, type Role } from '@/lib/dynamo-auth';
+import { canAccessRoute, fetchSession, roleBadge, roleLabel, setPricingVisible, canViewPricing, getVendorScope, type Role } from '@/lib/dynamo-auth';
 import { toast } from 'sonner';
 import { clearDataset, loadDataset, saveDataset } from '@/lib/dynamo-source';
+import { logoutSession } from '@/lib/auth.functions';
 import { ShopfloorTelemetry } from '@/components/shopfloor-telemetry';
 
 type Filter = 'Tất cả' | Workshop;
