@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowRight,
   CheckCircle2,
@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/dynamo-logo.png';
-import { verifyCode, positionMatchesRole } from '@/lib/dynamo-auth';
+import { verifyCode, positionMatchesRole, LockedError, AttemptsError } from '@/lib/dynamo-auth';
+import { Lock } from 'lucide-react';
 
 export const Route = createFileRoute('/login')({
   head: () => ({
@@ -80,6 +81,29 @@ function Login() {
   const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
+  const [lockUntil, setLockUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lockLeft = Math.max(0, Math.ceil((lockUntil - now) / 1000));
+  const locked = lockLeft > 0;
+  const mmss = `${String(Math.floor(lockLeft / 60)).padStart(2, '0')}:${String(lockLeft % 60).padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (!lockUntil) return;
+    const t = setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      if (n >= lockUntil) {
+        clearInterval(t);
+        setLockUntil(0);
+        setError('');
+        setAttemptsLeft(null);
+        setTimeout(() => inputRef.current?.focus(), 0);
+      }
+    }, 250);
+    return () => clearInterval(t);
+  }, [lockUntil]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -94,13 +118,12 @@ function Login() {
     }
     setBusy(true);
     setError('');
+    setAttemptsLeft(null);
 
     try {
       const entry = await verifyCode(cleanCode);
       if (!entry) {
-        setError(
-          'Mã xác thực không hợp lệ hoặc đã hết hiệu lực.'
-        );
+        setError('Mã xác thực không hợp lệ hoặc đã hết hiệu lực.');
         setBusy(false);
         return;
       }
@@ -114,7 +137,15 @@ function Login() {
       // Session cookie is set by the server; nothing about the role is stored in the browser.
       navigate({ to: '/dashboard' });
     } catch (err) {
-      setError(err instanceof Error && err.message === 'LOCKED' ? 'Nhập sai quá 5 lần. Thiết bị tạm khóa 5 phút.' : 'Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');
+      if (err instanceof LockedError) {
+        setLockUntil(Date.now() + err.remainingMs);
+        setCode('');
+      } else if (err instanceof AttemptsError) {
+        setError('Mã xác thực không hợp lệ hoặc đã hết hiệu lực.');
+        setAttemptsLeft(err.attemptsLeft);
+      } else {
+        setError('Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');
+      }
       setBusy(false);
     }
   };
@@ -321,6 +352,8 @@ function Login() {
                   />
                   <input
                     id="access-code"
+                    ref={inputRef}
+                    disabled={locked}
                     type={showCode ? 'text' : 'password'}
                     autoComplete="off"
                     spellCheck={false}
@@ -361,21 +394,54 @@ function Login() {
                 </div>
               </div>
 
-              {error && (
+              {locked ? (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="overflow-hidden rounded-sm border border-destructive/60 bg-destructive/10"
+                >
+                  <div className="h-1.5 w-full bg-[repeating-linear-gradient(45deg,var(--color-destructive)_0_8px,transparent_8px_16px)] opacity-70" />
+                  <div className="flex items-center justify-between gap-3 p-3">
+                    <div className="flex items-start gap-2 text-xs text-destructive">
+                      <Lock size={14} className="mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-bold uppercase tracking-wider">Thiết bị tạm khóa an toàn</p>
+                        <p className="mt-0.5 text-destructive/80">Nhập sai 5 lần liên tiếp. Thử lại khi đồng hồ về 00:00.</p>
+                      </div>
+                    </div>
+                    <span className="font-mono text-2xl font-bold tabular-nums text-destructive">{mmss}</span>
+                  </div>
+                  <div className="h-1 w-full bg-destructive/20">
+                    <div
+                      className="h-full bg-destructive transition-[width] duration-1000 ease-linear"
+                      style={{ width: `${(lockLeft / 120) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ) : error ? (
                 <div
                   role="alert"
                   className="rounded-sm border-l-2 border-destructive bg-destructive/10 p-3 text-xs text-destructive"
                 >
                   <p className="font-semibold">{error}</p>
+                  {attemptsLeft !== null && (
+                    <p className="mt-1 font-mono tabular-nums text-destructive/80">
+                      Còn {attemptsLeft}/5 lần thử trước khi khóa thiết bị.
+                    </p>
+                  )}
                 </div>
-              )}
+              ) : null}
 
               <Button
                 type="submit"
-                disabled={busy}
-                className="h-11 w-full gap-2 rounded-sm bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90"
+                disabled={busy || locked}
+                className="h-11 w-full gap-2 rounded-sm bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
               >
-                {busy ? (
+                {locked ? (
+                  <>
+                    <Lock size={15} /> TẠM KHÓA · <span className="font-mono tabular-nums">{mmss}</span>
+                  </>
+                ) : busy ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
                     ĐANG XÁC THỰC QUYỀN HẠN...
