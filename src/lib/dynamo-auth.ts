@@ -77,12 +77,23 @@ export const isPricingVisible = () => pricingVisible;
 
 type AuthEntry = { role: Role; note: string };
 
+export class LockedError extends Error {
+  constructor(public remainingMs: number) { super('LOCKED'); }
+}
+export class AttemptsError extends Error {
+  constructor(public attemptsLeft: number) { super('INVALID'); }
+}
+
 /** Verify a ULID code on the server (the code list is never sent to the browser). */
 export async function verifyCode(code: string): Promise<AuthEntry | null> {
   if (!code.trim()) return null;
 
   const res = await verifyAccessCode({ data: { code } });
-  if (!res.ok) { if ('locked' in res && res.locked) throw new Error('LOCKED'); return null; }
+  if (!res.ok) {
+    if ('locked' in res && res.locked) throw new LockedError(res.remainingMs ?? 120000);
+    if ('attemptsLeft' in res && typeof res.attemptsLeft === 'number') throw new AttemptsError(res.attemptsLeft);
+    return null;
+  }
   const role = normalizeRole(res.role);
   return role ? { role, note: res.note } : null;
 }

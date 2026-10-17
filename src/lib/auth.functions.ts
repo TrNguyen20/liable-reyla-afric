@@ -52,11 +52,16 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
     const code = (data.code ?? "").trim().toLowerCase();
     if (!code) return { ok: false as const };
     const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const { isLocked, recordFail, clearFails } = await import("./data-scope");
+    const { lockRemainingMs, recordFail, clearFails } = await import("./data-scope");
     const ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for") || "local";
-    if (isLocked(ip)) return { ok: false as const, locked: true as const };
+    const rem = lockRemainingMs(ip);
+    if (rem > 0) return { ok: false as const, locked: true as const, remainingMs: rem };
     const entry = (await loadCodes())[code];
-    if (!entry) { recordFail(ip); return { ok: false as const }; }
+    if (!entry) {
+      const left = recordFail(ip);
+      if (left === 0) return { ok: false as const, locked: true as const, remainingMs: lockRemainingMs(ip) };
+      return { ok: false as const, attemptsLeft: left };
+    }
     clearFails(ip);
     const { startSession } = await import("./session.server");
     await startSession({ role: entry.role, note: entry.note });
