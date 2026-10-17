@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router';
+import { fetchScopedSheet } from '@/lib/sheet.functions';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useDynamo } from '@/components/dynamo-shell';
-import { fetchSheetItems } from '@/lib/dynamo-source';
+
 import { isDueSoon, isOpen, isOverdue } from '@/lib/dynamo-rules';
 import { number } from '@/lib/dynamo-data';
 
@@ -20,7 +21,7 @@ export function ShopfloorTelemetry() {
   const pull = async () => {
     if (busy.current) return;
     busy.current = true; setState('busy');
-    try { const r = await fetchSheetItems(LIVE_SHEET_URL); applyDataset(r.items, 'Google Sheets'); setState('idle'); }
+    try { const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } }); applyDataset(r.items, 'Google Sheets'); setState('idle'); }
     catch { setState('error'); }
     finally { busy.current = false; setLeft(CADENCE); }
   };

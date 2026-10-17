@@ -82,7 +82,7 @@ export async function verifyCode(code: string): Promise<AuthEntry | null> {
   if (!code.trim()) return null;
 
   const res = await verifyAccessCode({ data: { code } });
-  if (!res.ok) return null;
+  if (!res.ok) { if ('locked' in res && res.locked) throw new Error('LOCKED'); return null; }
   const role = normalizeRole(res.role);
   return role ? { role, note: res.note } : null;
 }
