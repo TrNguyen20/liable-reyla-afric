@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { fetchScopedSheet } from '@/lib/sheet.functions';
 import { useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
 import { WebhookConfig } from '@/components/webhook-config';
 import { items as sampleItems, money, number, type QTItem } from '@/lib/dynamo-data';
-import { SHEET_URL, fetchSheetItems, mapRows, parseCsvRows, type MapResult } from '@/lib/dynamo-source';
+import { SHEET_URL, mapRows, parseCsvRows, type MapResult } from '@/lib/dynamo-source';
 import { formatVendorName } from '@/lib/dynamo-auth';
 
 export const Route = createFileRoute('/sync')({
@@ -98,7 +99,7 @@ function Sync() {
     setRows([]);
     setApplied(false);
     try {
-      stage(await fetchSheetItems(sheetUrl.trim()), 'Google Sheets');
+      stage(await fetchScopedSheet({ data: { url: sheetUrl.trim() } }), 'Google Sheets');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Không tải được Google Sheets.');
     } finally {
