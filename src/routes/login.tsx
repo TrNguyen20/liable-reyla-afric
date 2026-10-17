@@ -114,7 +114,7 @@ function Login() {
       // Session cookie is set by the server; nothing about the role is stored in the browser.
       navigate({ to: '/dashboard' });
     } catch {
-      setError('Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');
+      setError(err instanceof Error && err.message === 'LOCKED' ? 'Nhập sai quá 5 lần. Thiết bị tạm khóa 5 phút.' : 'Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');
       setBusy(false);
     }
   };
