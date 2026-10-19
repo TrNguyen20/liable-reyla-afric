@@ -230,3 +230,9 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body:has(.job-ticket-dialog) > *:not([role="dialog"]):not([data-radix-portal]) { display: none !important; }
+  body:has(.job-ticket-dialog) [data-slot="dialog-overlay"], .job-ticket-actions, .job-ticket-dialog > button { display: none !important; }
+  .job-ticket-dialog { position: static !important; transform: none !important; max-height: none !important; overflow: visible !important; border: 0 !important; box-shadow: none !important; max-width: 100% !important; }
+}
