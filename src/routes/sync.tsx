@@ -282,7 +282,7 @@ function Sync() {
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={downloadSample} className="h-8 gap-1.5 text-xs">
-                <Download size={13} /> Tải CSV mẫu
+                <Download size={13} /> Tải cấu trúc cột CSV
               </Button>
             </div>
 

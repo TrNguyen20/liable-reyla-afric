@@ -311,16 +311,7 @@ function Orders() {
                             <StatusDot status={i.TrangThai} />
                           </td>
                           <td className="px-4 py-3.5">
-                            <a
-                              href={`/sample-pdfs/${i.ID_Key}.pdf`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Xem PDF mẫu ${i.ma_hang}`}
-                              title="Xem PDF mẫu"
-                              className="inline-flex rounded p-1 text-primary transition-colors hover:bg-primary/10 hover:text-primary/80"
-                            >
-                              <FileText size={16} />
-                            </a>
+                            <span title="Chưa có phiếu PDF cho lô này" className="inline-flex p-1 text-muted-foreground/50"><FileText size={16} aria-label={`Chưa có phiếu PDF cho ${i.ma_hang}`} /></span>
                           </td>
                           <td className="px-4 py-3.5">
                             <LotUpdateButton item={i} />
