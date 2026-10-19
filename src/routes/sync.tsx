@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
 import { WebhookConfig } from '@/components/webhook-config';
-import { items as sampleItems, money, number, type QTItem } from '@/lib/dynamo-data';
+import { money, number, type QTItem } from '@/lib/dynamo-data';
 import { SHEET_URL, mapRows, parseCsvRows, type MapResult } from '@/lib/dynamo-source';
 import { formatVendorName } from '@/lib/dynamo-auth';
 
@@ -139,15 +139,10 @@ function Sync() {
   const downloadSample = () => {
     const content = [
       columns.join(','),
-      ...sampleItems.map((i) =>
-        columns
-          .map((k) => `"${String(i[k as keyof QTItem] ?? '').replaceAll('"', '""')}"`)
-          .join(',')
-      ),
     ].join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'dynamo-qt-mau.csv';
+    a.download = 'dynamo-qt-cau-truc-cot.csv';
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -580,7 +575,7 @@ function Sync() {
                   onClick={() => {
                     if (
                       !window.confirm(
-                        'Đặt lại về bộ dữ liệu mẫu mặc định 12 dòng? Dữ liệu đã nạp trên phiên này sẽ bị xóa.'
+                        'Xóa bộ nhớ trên máy này và tải lại toàn bộ dữ liệu mới nhất từ Google Sheets?'
                       )
                     ) {
                       return;
@@ -591,7 +586,7 @@ function Sync() {
                   }}
                   className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <RotateCcw size={13} /> Khôi phục dữ liệu mẫu (12 dòng)
+                  <RotateCcw size={13} /> Tải lại từ Google Sheets
                 </Button>
               )}
             </div>

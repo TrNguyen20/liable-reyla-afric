@@ -1,13 +1,15 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { Activity, ArrowLeftRight, Boxes, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, DatabaseZap, LayoutDashboard, LogOut, Menu, Moon, Search, ShieldCheck, Sun, X } from 'lucide-react';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { items as sampleItems, type QTItem, type Workshop } from '@/lib/dynamo-data';
+import { type QTItem, type Workshop } from '@/lib/dynamo-data';
 import logo from '@/assets/dynamo-logo.png';
 import { canAccessRoute, fetchSession, roleBadge, roleLabel, setPricingVisible, canViewPricing, getVendorScope, type Role } from '@/lib/dynamo-auth';
 import { toast } from 'sonner';
 import { clearDataset, loadDataset, saveDataset } from '@/lib/dynamo-source';
 import { logoutSession } from '@/lib/auth.functions';
+import { fetchScopedSheet } from '@/lib/sheet.functions';
+import { LIVE_LABEL, LIVE_SHEET_URL } from '@/lib/live-sheet';
 import { ShopfloorTelemetry } from '@/components/shopfloor-telemetry';
 
 type Filter = 'Tất cả' | Workshop;
@@ -15,7 +17,7 @@ type AppContextType = {
   workshop: Filter; setWorkshop: (v: Filter) => void;
   search: string; setSearch: (v: string) => void;
   filtered: QTItem[]; dataset: QTItem[];
-  sourceLabel: string; syncedAt: string; isLive: boolean;
+  sourceLabel: string; syncedAt: string; isLive: boolean; loading: boolean; loadError: string;
   applyDataset: (rows: QTItem[], label: string) => void;
   role: Role;
   resetDataset: () => void;
@@ -43,20 +45,27 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   const [user, setUser] = useState('Quản lý QT');
   const [role, setRole] = useState<Role>('admin');
   const [ready, setReady] = useState(false);
-  const [rawDataset, setDataset] = useState<QTItem[]>(sampleItems);
-  const [sourceLabel, setSourceLabel] = useState('Bộ dữ liệu mẫu');
+  const [rawDataset, setDataset] = useState<QTItem[]>([]);
+  const [sourceLabel, setSourceLabel] = useState(LIVE_LABEL);
   const [syncedAt, setSyncedAt] = useState('');
-  const isLive = sourceLabel !== 'Bộ dữ liệu mẫu';
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const booted = useRef(false);
+  const isLive = rawDataset.length > 0;
   const applyDataset = (rows: QTItem[], label: string) => {
     const stamp = new Date().toISOString();
     setDataset(rows); setSourceLabel(label); setSyncedAt(stamp);
     void saveDataset({ items: rows, label, syncedAt: stamp });
   };
   const updateItem = (id: string, patch: Partial<QTItem>) => setDataset(prev => { const next = prev.map(i => i.ID_Key === id ? { ...i, ...patch } : i); void saveDataset({ items: next, label: sourceLabel, syncedAt }); return next; });
-  const resetDataset = () => {
-    setDataset(sampleItems); setSourceLabel('Bộ dữ liệu mẫu'); setSyncedAt('');
-    void clearDataset();
+  // Pull live rows through the server; the server scopes/masks them by the signed session role.
+  const pullLive = async () => {
+    setLoading(true); setLoadError('');
+    try { const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } }); applyDataset(r.items, LIVE_LABEL); }
+    catch (e) { setLoadError(e instanceof Error ? e.message : 'Không tải được dữ liệu từ Google Sheets.'); }
+    finally { setLoading(false); }
   };
+  const resetDataset = () => { void clearDataset().then(pullLive); };
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
@@ -66,9 +75,6 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     const next = saved === 'dark' ? 'dark' : 'light';
     setTheme(next);
     document.documentElement.classList.toggle('dark', next === 'dark');
-    void loadDataset().then(cached => {
-      if (cached?.items?.length) { setDataset(cached.items); setSourceLabel(cached.label); setSyncedAt(cached.syncedAt); }
-    });
     setReady(true);
     return () => clearInterval(id);
   }, []);
@@ -81,6 +87,15 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       if (!alive) return;
       if (!s) { setRole('viewer'); setPricingVisible(false); navigate({ to: '/login' }); return; }
       setRole(s.role); setPricingVisible(canViewPricing(s.role)); setUser(s.note || s.role);
+      // Bootstrap once per mount: use this device's cache, otherwise pull live data from Google Sheets.
+      if (!booted.current) {
+        booted.current = true;
+        setLoading(true);
+        void loadDataset().then(cached => {
+          if (cached?.items?.length) { setDataset(cached.items); setSourceLabel(cached.label); setSyncedAt(cached.syncedAt); setLoading(false); }
+          else void pullLive();
+        });
+      }
       if (!canAccessRoute(s.role, location.pathname)) { toast.error('Vai trò của bạn không có quyền truy cập trang này.'); navigate({ to: '/dashboard' }); }
     }).catch(() => { if (alive) navigate({ to: '/login' }); });
     return () => { alive = false; };
@@ -94,6 +109,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   };
   const logout = () => {
     ['dynamo-user', 'dynamo-role', 'dynamo-code'].forEach(k => window.localStorage.removeItem(k));
+    booted.current = false; setDataset([]);
     void logoutSession().finally(() => { void clearDataset(); navigate({ to: '/login' }); });
   };
   const vendor = getVendorScope(role);
@@ -103,7 +119,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   const current = nav.find(n => n.to === location.pathname);
   const dateLabel = now ? now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '--/--/----';
   const timeLabel = now ? now.toLocaleTimeString('vi-VN', { hour12: false }) : '--:--:--';
-  return <AppContext.Provider value={{ workshop, setWorkshop, search, setSearch, filtered, dataset, sourceLabel, syncedAt, isLive, applyDataset, resetDataset, role, updateItem }}>
+  return <AppContext.Provider value={{ workshop, setWorkshop, search, setSearch, filtered, dataset, sourceLabel, syncedAt, isLive, loading, loadError, applyDataset, resetDataset, role, updateItem }}>
     {bare ? children : <div className="min-h-screen bg-background text-foreground lg:flex">
       {mobileOpen && <div className="fixed inset-0 z-30 bg-overlay lg:hidden" onClick={() => setMobileOpen(false)} />}
       <aside className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'} ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}>
@@ -171,7 +187,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
           </div>
         </header>
         <ShopfloorTelemetry />
-        <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">{ready ? children : <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">Đang tải dữ liệu phân quyền…</div>}</main>
+        <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">{!ready ? <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">Đang tải dữ liệu phân quyền…</div>
+          : loading && rawDataset.length === 0 ? <BootSkeleton />
+          : loadError && rawDataset.length === 0 ? <div role="alert" className="mes-card mx-auto mt-10 max-w-xl p-6"><p className="font-semibold text-foreground">Chưa tải được dữ liệu sản xuất</p><p className="mt-1 text-sm text-muted-foreground">{loadError}</p><Button className="mt-4 active:scale-[0.98]" onClick={() => void pullLive()}>Thử lại</Button></div>
+          : children}</main>
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-3 text-[11px] text-muted-foreground xl:px-6">
           <span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ</span>
           <span className="flex items-center gap-1.5">
@@ -197,3 +216,11 @@ export function PageHeading({ eyebrow, title, description, action }: { eyebrow: 
 }
 
 
+
+function BootSkeleton() {
+  return <div aria-busy="true" aria-live="polite" className="space-y-5">
+    <div className="flex items-center gap-2.5 text-sm font-medium text-muted-foreground"><span className="size-2 animate-pulse rounded-full bg-warning" />Đang đồng bộ dữ liệu nhiệt luyện từ Google Sheets…</div>
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[0, 1, 2, 3].map(i => <div key={i} className="mes-card h-24 animate-pulse bg-muted/40" />)}</div>
+    <div className="mes-card space-y-3 p-5">{[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="h-7 animate-pulse rounded bg-muted/50" />)}</div>
+  </div>;
+}

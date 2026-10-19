@@ -8,12 +8,12 @@ import { isDueSoon, isOpen, isOverdue } from '@/lib/dynamo-rules';
 import { number } from '@/lib/dynamo-data';
 
 const CADENCE = 60;
-// Heat-treatment log sheet (DATA_XU_LY_NHIET).
-export const LIVE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cC9VnRrjf3IgADbzYL1VulrqgcSf2h56XkXEJILdyuE/edit#gid=1963478526';
+import { LIVE_SHEET_URL } from '@/lib/live-sheet';
+export { LIVE_SHEET_URL };
 
 export function ShopfloorTelemetry() {
   const { filtered, dataset, sourceLabel, syncedAt, applyDataset } = useDynamo();
-  const auto = sourceLabel === 'Google Sheets';
+  const auto = true;
   const [left, setLeft] = useState(CADENCE);
   const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
   const busy = useRef(false);
@@ -56,7 +56,7 @@ export function ShopfloorTelemetry() {
               {syncedAt ? ` · ${new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}` : ''}
             </p>
           </div>
-          {auto && (
+          {(
             <button
               onClick={() => void pull()}
               disabled={state === 'busy'}
