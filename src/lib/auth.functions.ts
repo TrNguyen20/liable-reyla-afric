@@ -9,7 +9,7 @@ const AUTH_CSV =
 const TTL = 10 * 60 * 1000;
 
 const SNAPSHOT: Record<string, Entry> = {
-  "01m4hw6cqjyhzbh4dktdadbnqj": { role: "admin", note: "Admin Hệ thống 1" },
+  "01m4hw6cqjyhzbh4dktdadbnqj": { role: "viewer", note: "Viewer 0" },
   "01m4hw6cqj5fns97b6c11r49v5": { role: "admin", note: "Admin Hệ thống 2" },
   "01m4hw6cqjgxtxy6ccjp4he4qc": { role: "admin", note: "Admin Hệ thống 3" },
   "01m4hw6cqjmcaft6fbx1s009ae": { role: "leader", note: "Trưởng / Phó phòng" },
@@ -51,22 +51,52 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const code = (data.code ?? "").trim().toLowerCase();
     if (!code) return { ok: false as const };
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const { lockRemainingMs, recordFail, clearFails } = await import("./data-scope");
+    const ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for") || "local";
+    const rem = lockRemainingMs(ip);
+    if (rem > 0) return { ok: false as const, locked: true as const, remainingMs: rem };
     const entry = (await loadCodes())[code];
-    if (!entry) return { ok: false as const };
+    if (!entry) {
+      const left = recordFail(ip);
+      if (left === 0) return { ok: false as const, locked: true as const, remainingMs: lockRemainingMs(ip) };
+      return { ok: false as const, attemptsLeft: left };
+    }
+    clearFails(ip);
+    const { startSession } = await import("./session.server");
+    await startSession({ role: entry.role, note: entry.note });
     return { ok: true as const, role: entry.role, note: entry.note };
   });
 
-// Simulated write-back of a lot progress update. In production this would
-// push the change to the central sheet / MES; here it always succeeds.
+/** Returns the server-verified session; the browser can never set its own role. */
+export const getSessionInfo = createServerFn({ method: "GET" }).handler(async () => {
+  const { readSession } = await import("./session.server");
+  const s = await readSession();
+  return s ? { role: s.role, note: s.note } : null;
+});
+
+export const logoutSession = createServerFn({ method: "POST" }).handler(async () => {
+  const { endSession } = await import("./session.server");
+  endSession();
+  return { ok: true as const };
+});
+
+// Write-back of a lot progress update. Role comes from the signed session only.
 export const updateLotProgress = createServerFn({ method: "POST" })
   .inputValidator((data: {
     ID_Key: string;
     cty_QT?: string;
-    code?: string;
     webhook?: string;
     updates?: { TrangThai?: string; do_cung?: string; ngay_nhan_QT?: string };
   }) => data)
   .handler(async ({ data }) => {
+    const { readSession } = await import("./session.server");
+    const s = await readSession();
+    if (!s) return { ok: false as const, error: "Phiên đăng nhập đã hết hạn" };
+    const role = s.role;
+    const vendor = role.startsWith("qt_") ? role.slice(3).toUpperCase() : null;
+    const allowed = role === "admin" || role === "leader" || (vendor !== null && String(data.cty_QT ?? "").toUpperCase() === vendor);
+    if (!allowed) return { ok: false as const, error: "Vai trò không có quyền cập nhật lô này" };
     if (!data.ID_Key) return { ok: false as const, error: "Thiếu ID_Key" };
     // Demo: no central sheet is connected, so the write-back is acknowledged
     // and the change is kept locally (audit log records the result).

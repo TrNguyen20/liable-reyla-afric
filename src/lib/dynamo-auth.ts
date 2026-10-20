@@ -1,5 +1,5 @@
-import { verifyAccessCode } from './auth.functions';
-// Client-side role simulation (no backend). Not real security — UI gating only.
+import { getSessionInfo, logoutSession, verifyAccessCode } from './auth.functions';
+// Role is issued by the server in a signed HttpOnly session; helpers below only shape the UI.
 // Roles: admin | leader | viewer | qt_<vendor> (partner, scoped to cty_QT = VENDOR).
 export type Role = 'admin' | 'leader' | 'viewer' | `qt_${string}`;
 
@@ -62,10 +62,14 @@ export const formatVendorSummary = (vendors: Iterable<string>, role: Role): stri
   return list.length > 1 ? `${list.length} đơn vị gia công ngoài` : 'Đơn vị gia công theo chỉ định';
 };
 
-export const readRole = (): Role => {
-  if (typeof window === 'undefined') return 'admin';
-  return normalizeRole(window.localStorage.getItem('dynamo-role') ?? '') ?? 'viewer';
-};
+/** Read the server-verified session. Null means signed out (or tampered/expired cookie). */
+export async function fetchSession(): Promise<{ role: Role; note: string } | null> {
+  const s = await getSessionInfo();
+  const role = s ? normalizeRole(s.role) : null;
+  return s && role ? { role, note: s.note } : null;
+}
+
+export const logout = () => logoutSession();
 
 let pricingVisible = true;
 export const setPricingVisible = (v: boolean) => { pricingVisible = v; };
@@ -73,13 +77,31 @@ export const isPricingVisible = () => pricingVisible;
 
 type AuthEntry = { role: Role; note: string };
 
+export class LockedError extends Error {
+  constructor(public remainingMs: number) { super('LOCKED'); }
+}
+export class AttemptsError extends Error {
+  constructor(public attemptsLeft: number) { super('INVALID'); }
+}
+
 /** Verify a ULID code on the server (the code list is never sent to the browser). */
 export async function verifyCode(code: string): Promise<AuthEntry | null> {
   if (!code.trim()) return null;
 
   const res = await verifyAccessCode({ data: { code } });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    if ('locked' in res && res.locked) throw new LockedError(res.remainingMs ?? 120000);
+    if ('attemptsLeft' in res && typeof res.attemptsLeft === 'number') throw new AttemptsError(res.attemptsLeft);
+    return null;
+  }
   const role = normalizeRole(res.role);
   return role ? { role, note: res.note } : null;
 }
 
+
+/** Poka-Yoke interlock: declared login position must match the code's role. */
+export const positionMatchesRole = (position: 'admin' | 'leader' | 'viewer' | 'partner', role: string): boolean => {
+  const r = role.trim().toLowerCase();
+  if (position === 'partner') return r.startsWith('qt_');
+  return r === position;
+};
