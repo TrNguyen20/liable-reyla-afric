@@ -1,43 +1,166 @@
 ---
-description: Bắt buộc tuân thủ kiến trúc TanStack Start v1 & Edge Deploy cho dự án Dynamo MES trên Lovable
+description: Bắt buộc tuân thủ kiến trúc TanStack Start v1, Cloudflare Edge Deploy, TypeScript strict và nghiệp vụ Dynamo MES trên Lovable
 globs: ["**/*.ts", "**/*.tsx", "**/*.css", "**/*.json"]
 alwaysApply: true
 ---
 
-# RULES: LOVABLE TANSTACK START & DEPLOYMENT INVARIANTS
+# RULES: LOVABLE TANSTACK START & DYNAMO MES INVARIANTS
 
-## 1. FRAMEWORK & ROUTING ARCHITECTURE
-- **Framework**: TanStack Start v1 (React 19 + Vite 7).
-- **Router**: TanStack Router (File-based Routing).
-  - TUYỆT ĐỐI KHÔNG chỉnh sửa file `src/routeTree.gen.ts`. File này do Vite plugin tự sinh.
-  - TUYỆT ĐỐI KHÔNG cài đặt hoặc import `react-router-dom`, `BrowserRouter`, `useNavigate` từ React Router.
-  - Tạo route mới chỉ bằng cách thêm file vào `src/routes/` (ví dụ: `src/routes/new-page.tsx`).
-  - Mọi Route Layout hoặc Pathless Layout bắt buộc phải render `<Outlet />`.
-  - Khung ứng dụng cố định tại `src/routes/__root.tsx`. TUYỆT ĐỐI KHÔNG tạo `App.tsx`, `src/pages/` hoặc các file `entry-client.tsx`/`entry-server.tsx` thừa.
+> [!IMPORTANT]
+> Toàn bộ các Agent, AI Skills (`brainstorming`, `debugger`, `frontend-design`, `redesign`, `taste`, v.v.) và tác vụ sinh mã BẮT BUỘC tuân thủ 100% các nguyên tắc bất biến (Invariants) dưới đây khi làm việc trên repository này.
 
-## 2. SERVER BOUNDARY & EDGE RUNTIME (WORKERD)
-- Môi trường chạy backend là **Cloudflare Workers (workerd Edge runtime)**, KHÔNG PHẢI Node.js.
-  - KHÔNG sử dụng thư viện phụ thuộc Node built-in (`fs`, `path`, `crypto`, `child_process`).
-  - Đọc biến môi trường:
-    - Ở Client (Browser): Bắt buộc dùng `import.meta.env.VITE_*`.
-    - Ở Server Function: Dùng `process.env.*` bên trong handler của `createServerFn`.
-  - Nghiệp vụ Backend / Server calls: Viết qua `createServerFn` từ `@tanstack/react-start`.
-  - Webhook hoặc External API: Đặt dưới `src/routes/api/public/*` và phải tự validate payload/caller.
+---
 
-## 3. STYLING SYSTEM (TAILWIND CSS V4)
-- Styling sử dụng **Tailwind CSS v4** với Lightning CSS.
-  - TUYỆT ĐỐI KHÔNG tạo file `tailwind.config.js` hoặc `postcss.config.js` cấu hình v3.
-  - Toàn bộ Design Tokens, màu sắc OKLCH, và biến theme được khai báo tại `@theme` trong `src/styles.css`.
-  - Tất cả cú pháp `@import` trong `src/styles.css` bắt buộc phải đặt ở **đầu file**, trước `@theme` và selectors.
-  - Không nạp Web Font bằng `@import url(...)` trong CSS. Font và CSS ngoài chỉ được nhúng qua thẻ `<link>` trong phần `head()` của `src/routes/__root.tsx`.
+## 1. LOVABLE ECOSYSTEM & VITE CONFIG INVARIANTS
+1. **Bảo toàn lịch sử Git (Git History Integrity)**:
+   - Dự án được kết nối trực tiếp với [Lovable](https://lovable.dev).
+   - TUYỆT ĐỐI KHÔNG force-push (`git push --force`), rebase, squash hoặc amend các commit đã đẩy lên remote. Mọi hành vi sửa đổi lịch sử git đã push sẽ làm hỏng đồng bộ và mất lịch sử dự án trên Lovable editor.
+   - Luôn đảm bảo branch chính ở trạng thái build thành công (`npm run build` không lỗi).
+2. **Cấu hình Vite (`vite.config.ts`)**:
+   - File cấu hình sử dụng `defineConfig` từ `@lovable.dev/vite-tanstack-config`.
+   - Gói này **đã tích hợp sẵn**: TanStack devtools, tanstackStart, viteReact, tailwindcss, tsConfigPaths, nitro (Cloudflare target), tự động inject biến môi trường `VITE_*`, alias `@`, khử trùng lặp React/TanStack và logger lỗi.
+   - **TUYỆT ĐỐI KHÔNG** tự ý thêm các plugin trùng lặp như `@vitejs/plugin-react`, `tailwindcss`, `vite-tsconfig-paths` vào mảng plugins thủ công, vì sẽ gây lỗi duplicate plugin làm sập Vite build.
 
-## 4. SSR SAFETY & HYDRATION RULES
-- TanStack Start render SSR trên server trước khi Hydrate ở client:
-  - KHÔNG đọc `window`, `document`, hoặc `localStorage` trong lúc component mount hoặc trong hàm khởi tạo `useState()`.
-  - Mọi thao tác đọc Storage/Window phải nằm an toàn bên trong `useEffect()` hoặc các hook check hydration.
-  - Sử dụng `<ClientOnly>` cho các component hoặc thư viện đặc thù browser (Mapbox, Leaflet, Canvas đặc thù).
+---
 
-## 5. DYNAMO MES DOMAIN RULES (BẢO VỆ NGHIỆP VỤ)
-- **Bảo mật tên đối tác**: Tuyệt đối không hardcode hoặc hiển thị trực tiếp tên các đơn vị gia công ngoài (như YAMAICHI, PROVISION, Honsato, Setosha...) lên giao diện nếu người dùng chưa đăng nhập đúng vai trò (`admin`, `leader` hoặc `qt`). Mặc định ẩn danh thành "Đơn vị gia công [Mã/Ký hiệu]".
-- **Số liệu nhà xưởng**: Toàn bộ số liệu hiển thị (sản lượng, số lô, tải trọng kg, HRC) bắt buộc dùng class `font-mono tabular-nums`.
-- **Màu sắc công nghiệp**: Tuân thủ chuẩn ISA-101 đã cấu hình sẵn trong `src/styles.css`. Không tự ý thêm gradient mờ, neon hoặc bo góc tròn kiểu mạng xã hội (`rounded-full` trên card lớn).
+## 2. KIẾN TRÚC ROUTING & APPLICATION SHELL
+1. **Framework & File-based Router**:
+   - Sử dụng **TanStack Start v1** (React 19 + Vite 8).
+   - Router là **TanStack Router** theo cơ chế file-based routing tại thư mục `src/routes/`.
+   - **TUYỆT ĐỐI KHÔNG** can thiệp hoặc sửa đổi thủ công file `src/routeTree.gen.ts`. File này do router compiler tự động đồng bộ.
+   - **TUYỆT ĐỐI KHÔNG** cài đặt hoặc import các thư viện router ngoài như `react-router-dom`, `BrowserRouter`, `useNavigate` từ React Router. Sử dụng `@tanstack/react-router` (`useRouter`, `Link`, `useNavigate`, `useRouterState`).
+2. **Cấu trúc Shell cố định**:
+   - Shell gốc duy nhất là `src/routes/__root.tsx`.
+   - TUYỆT ĐỐI KHÔNG tạo `App.tsx`, thư mục `src/pages/` hoặc các file `entry-client.tsx`/`entry-server.tsx` tự chế.
+   - Mọi Route Layout hoặc Pathless Layout bắt buộc phải giữ lại thẻ `<Outlet />`. Xóa `<Outlet />` sẽ làm vỡ toàn bộ các trang con.
+   - Đặt route mới: Thêm file trực tiếp trong `src/routes/` (ví dụ: `src/routes/new-feature.tsx`, dynamic param: `users/$id.tsx`).
+
+---
+
+## 3. SERVER BOUNDARY & WORKERD EDGE RUNTIME
+1. **Môi trường Edge Runtime (Cloudflare Workers / workerd)**:
+   - Backend chạy trên **workerd Edge runtime**, KHÔNG PHẢI môi trường Node.js truyền thống.
+   - **TUYỆT ĐỐI KHÔNG** import các module built-in của Node.js: `fs`, `path`, `child_process`.
+   - Mã hóa và bảo mật sử dụng chuẩn **Web Crypto API** toàn cầu (`crypto.subtle`, `crypto.randomUUID()`).
+2. **Khai báo và gọi Server Function (`createServerFn`)**:
+   - Mọi nghiệp vụ server, gọi API nhạy cảm, tra cứu database hoặc Google Sheets phải được viết qua `createServerFn` từ `@tanstack/react-start`.
+   - Luôn định nghĩa phương thức rõ ràng: `createServerFn({ method: 'GET' | 'POST' })` và khai báo input validator qua `.inputValidator(...)`.
+   - Các module độc quyền server như `@tanstack/react-start/server` (`getCookie`, `setCookie`, `getRequestHeader`) chỉ được:
+     - Hoặc tách riêng trong các file có đuôi `*.server.ts` (ví dụ: `session.server.ts`).
+     - Hoặc dynamic import `const { getCookie } = await import('@tanstack/react-start/server');` bên trong handler của `createServerFn`.
+     - TUYỆT ĐỐI KHÔNG import tĩnh các hàm này ở top-level của file client hoặc shared code vì sẽ làm vỡ client bundle.
+3. **Quản lý biến môi trường**:
+   - Tại Client (Browser code): Bắt buộc dùng `import.meta.env.VITE_*`.
+   - Tại Server Function: Dùng `process.env.*` bên trong handler của `createServerFn`.
+4. **Session & Cookie bảo mật**:
+   - Session được ký số HMAC-SHA256 lưu trong HttpOnly Cookie `dynamo_session` (thời hạn 1 ca làm việc 8 tiếng). Client không đọc hoặc giả mạo được session này; quyền hạn người dùng do server giải mã và quyết định.
+
+---
+
+## 4. QUY CHUẨN TYPESCRIPT CHẶT CHẼ (STRICT TYPING)
+Dự án áp dụng cấu hình TypeScript cực kỳ nghiêm ngặt (`tsconfig.json`), mọi code mới viết bắt buộc phải tuân thủ:
+1. **`exactOptionalPropertyTypes: true`**:
+   - Thuộc tính tùy chọn (`property?: T`) không được gán `undefined` nếu không được định nghĩa kiểu tường minh là `property?: T | undefined`.
+2. **`noUncheckedIndexedAccess: true`**:
+   - Mọi thao tác truy xuất mảng hoặc object qua index/key (`arr[i]`, `record[key]`) đều trả về kiểu `T | undefined`.
+   - BẮT BUỘC phải dùng Optional Chaining (`?.`), Nullish Coalescing (`??`) hoặc kiểm tra `if (item !== undefined)` trước khi truy cập thuộc tính con.
+3. **`noImplicitReturns: true` & `strict: true`**:
+   - Mọi nhánh rẽ trong hàm đều phải có `return` hợp lệ.
+   - Không được ép kiểu `any` tùy tiện; sử dụng `unknown` và type guard/Zod validator khi parse dữ liệu ngoài.
+4. **Path Alias**:
+   - Luôn sử dụng alias `@/*` trỏ về `./src/*` thay vì import relative lồng nhau sâu (`../../..`).
+
+---
+
+## 5. SSR SAFETY & QUY TẮC HYDRATION
+TanStack Start thực hiện Server-Side Rendering (SSR) trước khi Hydrate trên trình duyệt:
+1. **Cấm truy cập Browser APIs ở Scope khởi tạo**:
+   - TUYỆT ĐỐI KHÔNG truy cập `window`, `document`, `navigator` hoặc `localStorage` trong:
+     - Thân hàm render của component.
+     - Hàm khởi tạo state ban đầu: `useState(localStorage.getItem(...))` (gây vỡ hydration ngay lập tức).
+2. **Mẫu truy xuất an toàn**:
+   - Mọi thao tác đọc Storage hoặc đo đạc DOM phải đặt trong `useEffect()`, `useLayoutEffect()` có điều kiện, hoặc custom hook kiểm tra `isMounted`.
+   - Sử dụng `<ClientOnly>` wrapper cho các thư viện phụ thuộc hoàn toàn vào DOM browser.
+3. **Bắt và ghi nhận lỗi SSR**:
+   - Mọi lỗi SSR nghiêm trọng phải được bắt thông qua cơ chế `src/server.ts` và `src/lib/error-capture.ts` để hiển thị trang lỗi an toàn `src/lib/error-page.ts`, tránh hiện màn hình trắng chết người cho người dùng.
+
+---
+
+## 6. XỬ LÝ DỮ LIỆU LỚN & HIỆU NĂNG NHÀ XƯỞNG (22,000+ ROWS)
+Hệ thống Dynamo MES vận hành tập dữ liệu thực tế lên tới hơn **22.000 dòng luân chuyển QT**:
+1. **Cấm render DOM toàn phần vô hạn định**:
+   - TUYỆT ĐỐI KHÔNG map trực tiếp hàng nghìn dòng vào DOM (`items.map(...)`) trong bảng dữ liệu hoặc Kanban view.
+   - BẮT BUỘC sử dụng phân trang (Pagination), Virtualization, hoặc giới hạn chặn đầu (Capping/Slice) kết hợp `useMemo` khi lọc và tính toán.
+2. **Cơ chế lưu trữ Client**:
+   - Không lưu trữ toàn bộ tập dữ liệu 22k dòng vào `localStorage` (sẽ vượt ngưỡng hạn mức 5MB của browser và làm crash tab).
+   - Sử dụng **IndexedDB** kết hợp React Context (`src/routes/sync.tsx`) để lưu trữ và truy vấn offline/cache cục bộ.
+
+---
+
+## 7. BẢO VỆ NGHIỆP VỤ & AN NINH DỮ LIỆU (POKA-YOKE DOMAIN RULES)
+Hệ thống quản lý dữ liệu gia công nhiệt luyện nhạy cảm của nhà máy DYNAMO VIETNAM:
+1. **Phân quyền vai trò (Role Hierarchy)**:
+   - Hệ thống hỗ trợ 4 nhóm vai trò: `admin` | `leader` | `viewer` | `qt_<vendor>` (Ví dụ: `qt_yamaichi`, `qt_provision`, `qt_honsato`, `qt_setosha`).
+2. **Bảo mật danh tính nhà thầu (Vendor Poka-Yoke Anonymization)**:
+   - TUYỆT ĐỐI KHÔNG hardcode hoặc hiển thị trực tiếp tên các đối tác gia công ngoài (YAMAICHI, PROVISION, Honsato, Setosha...) nếu người dùng không đủ quyền.
+   - Theo hàm chuẩn `canViewVendorName` trong `src/lib/dynamo-auth.ts`:
+     - CHỈ CÓ `admin` HOẶC đúng tài khoản đối tác đó (`qt_<vendor>`) mới được xem tên thật của đối tác.
+     - Vai trò `viewer` và `leader` **KHÔNG ĐƯỢC PHÉP** thấy tên nhà thầu ngoài.
+     - BẮT BUỘC sử dụng hàm `formatVendorName(vendor, role)` (trả về chuỗi an toàn: `"Đơn vị gia công theo chỉ định"`).
+   - Trên Server: Hàm `fetchScopedSheet` bắt buộc gọi `scopeItemsForRole(items, role)` để gạt bỏ trường `cty_QT` và giá trước khi payload truyền về browser.
+3. **Bảo mật đơn giá & thành tiền**:
+   - Đơn giá (`don_gia`) và thành tiền (`thanh_tien`) CHỈ hiển thị với `admin` và `leader` (qua hàm `canViewPricing`).
+   - Với `viewer` hoặc `qt_<vendor>`, giá trị bị gán về 0 từ server và hiển thị `"*** ₫"` trên giao diện (hàm `money()`).
+4. **Giới hạn phân quyền route**:
+   - Route `/sync`: Chỉ dành riêng cho `admin`.
+   - Route `/audit-costs`: Dành cho `admin` và `leader`.
+   - Viewer và Partner bị chặn truy cập các route trên thông qua `canAccessRoute()`.
+
+---
+
+## 8. CHUẨN TRẠNG THÁI LOGISTICS & QC (DYNAMO-RULES.TS SSOT)
+Mọi component Dashboard, Orders, Tracking, Job Ticket đều phải tuân thủ chuẩn thống nhất từ `src/lib/dynamo-rules.ts`:
+1. **Ánh xạ Logistics & QC**:
+   - `logisticsOf(item)`: Trạng thái `'Kiểm tra QC'` được coi là `'Đang tại Vendor'`.
+   - `qcOf(item)`: Trạng thái `'Kiểm tra QC'` = `'Đang kiểm tra'`; `'Đã nhập kho'` = `'Đạt'`; còn lại là `'Chưa kiểm tra'`.
+2. **Quy tắc trễ hạn (Overdue Calculation)**:
+   - Thuộc tính `han_tra_est === true` là hạn trả ước tính mặc định (7 ngày do thiếu dữ liệu gốc).
+   - **Chỉ tính quá hạn (`isOverdue`, `isLate`) khi ngày hẹn là ngày CHÍNH THỨC (`!item.han_tra_est` và đúng định dạng `YYYY-MM-DD`)**. Không phạt trễ đối với các lô có hạn ước tính.
+3. **Quy tắc định dạng công nghiệp**:
+   - Toàn bộ số liệu sản xuất (số lượng, kg/Lot, độ cứng HRC, kích thước SP, mã hàng) bắt buộc dùng font đơn cách: `font-mono tabular-nums`.
+
+---
+
+## 9. HỆ THỐNG GIAO DIỆN CÔNG NGHIỆP ISA-101 & TAILWIND CSS V4
+1. **Kiến trúc CSS (Tailwind CSS v4 + Lightning CSS)**:
+   - Cấu hình theme nằm toàn bộ tại `src/styles.css` qua directive `@theme inline`.
+   - **TUYỆT ĐỐI KHÔNG** tạo `tailwind.config.js` hoặc `postcss.config.js`.
+   - Mọi khai báo `@import` (`@import "tailwindcss" source(none);`, `@import "tw-animate-css";`) bắt buộc nằm ở đầu file `src/styles.css`.
+   - Không nạp font bằng `@import url(...)` trong CSS. Toàn bộ Web Fonts (`Be Vietnam Pro`, `JetBrains Mono`) được nhúng qua thẻ `<link>` trong `Route.head()` tại `src/routes/__root.tsx`.
+2. **Bảng màu công nghiệp chuẩn OKLCH**:
+   - Sử dụng màu ngữ nghĩa đã ánh xạ:
+     - Đang chạy / Vận hành: `var(--run)` / `text-primary`
+     - Sự cố / Báo động: `var(--breakdown)` / `var(--dynamo)`
+     - Chờ / Cảnh báo: `var(--wait)` / `var(--warning)`
+     - Setup / Thông tin: `var(--setup)` / `var(--info)`
+     - Thép / Cơ khí: `var(--graphite)`, `var(--titan)`
+3. **Thành phần giao diện đặc thù (Industrial Utilities)**:
+   - `.mes-card`: Khung thẻ dữ liệu viền nét, bóng tối giản.
+   - `.led-clock`: Đồng hồ hiển thị thời gian ca sản xuất kiểu bảng LED kỹ thuật số.
+   - `.fx-run-dot`: Đèn báo trạng thái dây chuyền xung nhịp.
+   - `.andon-pulse`: Hiệu ứng đèn Andon cảnh báo sự cố.
+   - Không sử dụng phong cách mạng xã hội (bo tròn `rounded-full` trên card lớn, đổ bóng neon lòe loẹt, gradient mờ ảo thiếu độ tương phản).
+4. **In ấn phiếu gia công (Job Ticket Print View)**:
+   - Hỗ trợ in chuẩn khổ A4 theo `@media print`: Ẩn toàn bộ thanh điều hướng, shell, dialog overlay; chỉ hiển thị nội dung phiếu gia công kỹ thuật `.job-ticket-dialog`.
+
+---
+
+## 10. CHỈ THỊ DÀNH CHO CÁC AGENT & AI SKILLS
+Khi thực hiện bất kỳ yêu cầu nào liên quan đến dự án này:
+1. **Pre-flight Check**: Trước khi tạo mới hoặc refactor mã nguồn, kiểm tra xem thay đổi có vi phạm:
+   - SSR Hydration?
+   - Workerd Edge Runtime (có dính Node built-ins không)?
+   - Bảo mật nhà thầu (Poka-Yoke) & Đơn giá?
+   - Cấu trúc TanStack Start & Tailwind v4?
+2. **Không tự ý đơn giản hóa (Anti-downgrade)**: Không thay thế hệ thống router hoặc server function hiện tại bằng các giải pháp SPA truyền thống.
+3. **Phối hợp quy tắc**: Quy tắc này có hiệu lực ưu tiên cao nhất, ghi đè lên các template hoặc cấu hình mặc định của các AI tools thông thường.
