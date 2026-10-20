@@ -2,6 +2,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Boxes, CircleAlert, Clock3, Filter, PackageCheck, RotateCcw, Wallet } from 'lucide-react';
 import { useDynamo, PageHeading } from '@/components/dynamo-shell';
+import { JobTicketButton } from '@/components/job-ticket';
+import { LotUpdateButton } from '@/components/lot-update-dialog';
 import { date, money, number, type QTItem } from '@/lib/dynamo-data';
 import { formatVendorName } from '@/lib/dynamo-auth';
 import { daysOver, hasValidDue, isDone, isDueSoon, isMissingDue, isOpen, isOverdue, logisticsOf, onTimeRate, qcOf, type Logistics, type QcState } from '@/lib/dynamo-rules';
@@ -177,6 +179,8 @@ function Dashboard() {
                       <th className="px-3 py-3">LOGISTICS / QC</th>
                       <th className="px-3 py-3">HẠN TRẢ</th>
                       <th className="px-4 py-3">CẢNH BÁO</th>
+                      <th className="px-3 py-3 text-center">PHIẾU</th>
+                      <th className="px-3 py-3 text-center">XỬ LÝ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -194,6 +198,12 @@ function Dashboard() {
                           {hasValidDue(r) ? date(r.han_tra) : <span className="text-warning font-semibold">Thiếu hạn</span>}
                         </td>
                         <td className="px-4 py-2.5 font-semibold text-destructive">{reasonOf(r)}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          <JobTicketButton item={r} role={role} variant="icon" />
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          <LotUpdateButton item={r} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -267,10 +277,10 @@ function Bottleneck({ title, rows }: { title: string; rows: { name: string; lots
 
 function Pipeline({ rows }: { rows: QTItem[] }) {
   const stages = [
-    { label: 'Chờ xuất xưởng', test: (r: QTItem) => logisticsOf(r) === 'Chờ xuất xưởng', tone: 'bg-muted-foreground', textTone: 'text-muted-foreground' },
-    { label: 'Đang tại Vendor', test: (r: QTItem) => logisticsOf(r) === 'Đang tại Vendor', tone: 'bg-info', textTone: 'text-info' },
-    { label: 'Về kho, chờ QC', test: (r: QTItem) => isDone(r) && qcOf(r) !== 'Đạt', tone: 'bg-warning', textTone: 'text-warning' },
-    { label: 'Hoàn tất (QC đạt)', test: (r: QTItem) => isDone(r) && qcOf(r) === 'Đạt', tone: 'bg-primary', textTone: 'text-primary' },
+    { label: 'Chờ xuất xưởng', focus: undefined, test: (r: QTItem) => logisticsOf(r) === 'Chờ xuất xưởng', tone: 'bg-muted-foreground', textTone: 'text-muted-foreground' },
+    { label: 'Đang tại Vendor', focus: undefined, test: (r: QTItem) => logisticsOf(r) === 'Đang tại Vendor', tone: 'bg-info', textTone: 'text-info' },
+    { label: 'Về kho, chờ QC', focus: 'no_qc' as Focus, test: (r: QTItem) => isDone(r) && qcOf(r) !== 'Đạt', tone: 'bg-warning', textTone: 'text-warning' },
+    { label: 'Hoàn tất (QC đạt)', focus: undefined, test: (r: QTItem) => isDone(r) && qcOf(r) === 'Đạt', tone: 'bg-primary', textTone: 'text-primary' },
   ].map(s => { const list = rows.filter(s.test); return { ...s, lots: list.length, kg: list.reduce((a, r) => a + r.kg_Lot, 0), late: list.filter(r => isOverdue(r)).length }; });
   const total = Math.max(1, stages.reduce((a, s) => a + s.lots, 0));
 
@@ -278,22 +288,40 @@ function Pipeline({ rows }: { rows: QTItem[] }) {
     <section className="mb-6 overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
       <div className="flex h-1.5">{stages.map(s => <span key={s.label} className={s.tone} style={{ width: `${(s.lots / total) * 100}%` }} />)}</div>
       <ol className="grid grid-cols-2 divide-x divide-border bg-border/40 sm:grid-cols-4">
-        {stages.map((s, i) => (
-          <li key={s.label} className="flex items-start gap-3 bg-card px-5 py-4 transition-colors hover:bg-accent/20">
-            <span className={`mt-1 size-2.5 shrink-0 rounded-xs ${s.tone}`} aria-hidden />
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">{i + 1}. {s.label}</p>
-              <p className="mt-1 font-mono text-xl font-bold tabular-nums text-foreground">
-                {number(s.lots)}{' '}
-                <span className="text-xs font-normal text-muted-foreground">lô ({Math.round((s.lots / total) * 100)}%)</span>
-              </p>
-              <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
-                {number(s.kg, 1)} kg
-                {s.late ? <b className="ml-2 font-bold text-destructive">{s.late} trễ hạn</b> : null}
-              </p>
+        {stages.map((s, i) => {
+          const content = (
+            <div className="flex items-start gap-3 bg-card px-5 py-4 transition-all hover:bg-accent/30 group cursor-pointer h-full">
+              <span className={`mt-1 size-2.5 shrink-0 rounded-xs ${s.tone} group-hover:scale-125 transition-transform`} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">{i + 1}. {s.label}</p>
+                  <ArrowRight size={12} className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <p className="mt-1 font-mono text-xl font-bold tabular-nums text-foreground">
+                  {number(s.lots)}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">lô ({Math.round((s.lots / total) * 100)}%)</span>
+                </p>
+                <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {number(s.kg, 1)} kg
+                  {s.late ? <b className="ml-2 font-bold text-destructive andon-pulse">{s.late} trễ hạn</b> : null}
+                </p>
+              </div>
             </div>
-          </li>
-        ))}
+          );
+          return (
+            <li key={s.label}>
+              {s.focus ? (
+                <Link to="/tracking" search={{ focus: s.focus }} className="block h-full focus:outline-none">
+                  {content}
+                </Link>
+              ) : (
+                <Link to="/tracking" className="block h-full focus:outline-none">
+                  {content}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ol>
     </section>
   );

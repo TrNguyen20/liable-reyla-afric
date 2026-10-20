@@ -167,15 +167,32 @@ function Sync() {
         title="Đồng bộ Dữ liệu Lô QT"
         description="Nạp dữ liệu thực tế từ Google Sheets công khai hoặc tệp CSV kỹ thuật, kiểm tra tính toàn vẹn và cập nhật đồng bộ cho toàn bộ phân xưởng."
         action={
-          <div className="flex items-center gap-2.5 rounded-sm border border-border bg-card/90 px-3.5 py-2 text-xs shadow-xs">
-            <span className="flex size-2 rounded-full bg-run animate-pulse" />
-            <span className="text-muted-foreground">Nguồn hoạt động:</span>
-            <b className="font-mono text-foreground">{sourceLabel}</b>
-            <span className="text-muted-foreground/60">·</span>
-            <span className="font-mono font-bold tabular-nums text-primary">
-              {dataset.length.toLocaleString('vi-VN')}
-            </span>
-            <span className="text-[11px] text-muted-foreground">lô</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2.5 rounded-sm border border-border bg-card/90 px-3.5 py-2 text-xs shadow-xs">
+              <span className="flex size-2 rounded-full bg-run animate-pulse" />
+              <span className="text-muted-foreground">Nguồn hoạt động:</span>
+              <b className="font-mono text-foreground">{sourceLabel}</b>
+              <span className="text-muted-foreground/60">·</span>
+              <span className="font-mono font-bold tabular-nums text-primary">
+                {dataset.length.toLocaleString('vi-VN')}
+              </span>
+              <span className="text-[11px] text-muted-foreground">lô</span>
+              <span className="text-muted-foreground/60">·</span>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                ~{(JSON.stringify(dataset).length / (1024 * 1024)).toFixed(1)} MB Cache
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                resetDataset();
+              }}
+              className="gap-1.5 text-xs font-semibold"
+              title="Làm mới bộ nhớ đệm và kéo lại toàn bộ từ Google Sheets"
+            >
+              <RotateCcw size={13} /> Làm mới Cache
+            </Button>
           </div>
         }
       />

@@ -13,6 +13,8 @@ import {
   EyeOff,
   X,
   TrendingUp,
+  Delete,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/dynamo-logo.png';
@@ -79,6 +81,7 @@ function Login() {
   const [code, setCode] = useState('');
   const [position, setPosition] = useState<Position | null>(null);
   const [showCode, setShowCode] = useState(false);
+  const [kioskMode, setKioskMode] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
@@ -342,9 +345,19 @@ function Login() {
               </fieldset>
 
               <div>
-                <label htmlFor="access-code" className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                  Bước 2 · Mã truy cập (Access code)
-                </label>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label htmlFor="access-code" className="font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                    Bước 2 · Mã truy cập (Access code)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setKioskMode((v) => !v)}
+                    className="flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline"
+                  >
+                    <Smartphone size={12} />
+                    {kioskMode ? 'Ẩn phím cảm ứng' : 'Phím số Kiosk'}
+                  </button>
+                </div>
                 <div className="relative">
                   <KeyRound
                     size={16}
@@ -392,6 +405,59 @@ function Login() {
                     </button>
                   </div>
                 </div>
+
+                {/* Industrial Touchscreen Virtual Numpad */}
+                {kioskMode && (
+                  <div className="mt-3 overflow-hidden rounded-md border border-border bg-card p-2.5 shadow-xs">
+                    <p className="mb-2 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)
+                    </p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+                        <button
+                          key={digit}
+                          type="button"
+                          disabled={locked}
+                          onClick={() => {
+                            setCode((prev) => prev + digit);
+                            setError('');
+                          }}
+                          className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
+                        >
+                          {digit}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={locked || !code}
+                        onClick={() => setCode('')}
+                        className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-xs font-bold text-destructive transition-all hover:bg-destructive/10 hover:border-destructive active:scale-95 disabled:opacity-40"
+                      >
+                        C (Xóa hết)
+                      </button>
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => {
+                          setCode((prev) => prev + '0');
+                          setError('');
+                        }}
+                        className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
+                      >
+                        0
+                      </button>
+                      <button
+                        type="button"
+                        disabled={locked || !code}
+                        onClick={() => setCode((prev) => prev.slice(0, -1))}
+                        className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-xs font-bold text-muted-foreground transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-40"
+                        aria-label="Xóa 1 ký tự"
+                      >
+                        <Delete size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {locked ? (
