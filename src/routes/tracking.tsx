@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
+import { JobTicketButton } from '@/components/job-ticket';
 import { auditFor, failedSyncIds } from '@/lib/dynamo-workflow';
 import {
   ArrowRight,
@@ -876,6 +877,7 @@ function Tracking() {
                     'Hạn trả',
                     'Cảnh báo',
                     'Trễ',
+                    'Phiếu A4',
                   ].map((h) => (
                     <th key={h} className="whitespace-nowrap px-3.5 py-3">
                       {h}
@@ -937,11 +939,14 @@ function Tracking() {
                       <td className="px-3.5 py-3 font-mono tabular-nums">
                         {isOverdue(r) ? <b className="font-bold text-destructive">{daysOver(r)} ngày</b> : '—'}
                       </td>
+                      <td className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
+                        <JobTicketButton item={r} role={role} variant="icon" />
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={15} className="px-3.5 py-12 text-center text-xs text-muted-foreground">
+                    <td colSpan={16} className="px-3.5 py-12 text-center text-xs text-muted-foreground">
                       Không có lô hàng khớp bộ lọc
                     </td>
                   </tr>
@@ -1074,11 +1079,14 @@ function Tracking() {
                       Hạn trả là ước tính (+7 ngày sau ngày gửi) do nguồn dữ liệu chưa có cột hạn trả chính thức.
                     </p>
                   )}
-                  <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                     <span className="text-xs font-bold text-foreground">
                       Trạng thái hiện tại: <b className="text-primary">{live.TrangThai}</b>
                     </span>
-                    <LotUpdateButton key={live.TrangThai + (live.ngay_nhan ?? '')} item={live} />
+                    <div className="flex items-center gap-2">
+                      <JobTicketButton item={live} role={role} variant="button" />
+                      <LotUpdateButton key={live.TrangThai + (live.ngay_nhan ?? '')} item={live} />
+                    </div>
                   </div>
                   <h4 className="mt-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Lịch sử thay đổi
