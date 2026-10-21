@@ -333,6 +333,8 @@ export function Materials() {
               <span>{pair.din}</span>
             </button>
           ))}
+        </div>
+
         {/* Hardness Conversion Matrix Tool (ASTM E140 / ISO 18265) */}
         <div className="mt-3.5 border-t border-border/60 pt-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
