@@ -140,7 +140,10 @@ export async function fetchSheetItems(url: string): Promise<MapResult> {
 const DB = 'dynamo-qt';
 const STORE = 'dataset';
 
-function openDb() {
+function openDb(): Promise<IDBDatabase> {
+  if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+    return Promise.reject(new Error('IndexedDB is not available'));
+  }
   return new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB, 1);
     req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
@@ -152,6 +155,7 @@ function openDb() {
 export type CachedDataset = { items: QTItem[]; label: string; syncedAt: string };
 
 export async function saveDataset(value: CachedDataset) {
+  if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return;
   try {
     const db = await openDb();
     await new Promise<void>((resolve, reject) => {
@@ -165,6 +169,7 @@ export async function saveDataset(value: CachedDataset) {
 }
 
 export async function loadDataset(): Promise<CachedDataset | null> {
+  if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return null;
   try {
     const db = await openDb();
     const value = await new Promise<CachedDataset | null>((resolve, reject) => {
@@ -178,6 +183,7 @@ export async function loadDataset(): Promise<CachedDataset | null> {
 }
 
 export async function clearDataset() {
+  if (typeof window === 'undefined' || typeof indexedDB === 'undefined') return;
   try {
     const db = await openDb();
     await new Promise<void>(resolve => {

@@ -9,7 +9,7 @@ const AUTH_CSV =
 const TTL = 10 * 60 * 1000;
 
 const SNAPSHOT: Record<string, Entry> = {
-  "01m4hw6cqjyhzbh4dktdadbnqj": { role: "viewer", note: "Viewer 0" },
+  "01m4hw6cqjyhzbh4dktdadbnqj": { role: "admin", note: "Admin Hệ thống 1" },
   "01m4hw6cqj5fns97b6c11r49v5": { role: "admin", note: "Admin Hệ thống 2" },
   "01m4hw6cqjgxtxy6ccjp4he4qc": { role: "admin", note: "Admin Hệ thống 3" },
   "01m4hw6cqjmcaft6fbx1s009ae": { role: "leader", note: "Trưởng / Phó phòng" },
@@ -53,7 +53,12 @@ export const verifyAccessCode = createServerFn({ method: "POST" })
     if (!code) return { ok: false as const };
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { lockRemainingMs, recordFail, clearFails } = await import("./data-scope");
-    const ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for") || "local";
+    let ip = "local";
+    try {
+      ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for") || "local";
+    } catch {
+      ip = "local";
+    }
     const rem = lockRemainingMs(ip);
     if (rem > 0) return { ok: false as const, locked: true as const, remainingMs: rem };
     const entry = (await loadCodes())[code];

@@ -274,7 +274,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   };
 
   const logout = () => {
-    ['dynamo-user', 'dynamo-role', 'dynamo-code'].forEach((k) => window.localStorage.removeItem(k));
+    ['dynamo-user', 'dynamo-role', 'dynamo-code', 'dynamo-session'].forEach((k) => window.localStorage.removeItem(k));
     booted.current = false;
     setDataset([]);
     void logoutSession().finally(() => {

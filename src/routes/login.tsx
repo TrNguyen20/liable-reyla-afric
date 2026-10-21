@@ -137,7 +137,13 @@ function Login() {
         return;
       }
 
-      // Session cookie is set by the server; nothing about the role is stored in the browser.
+      // Session cookie is set by the server; local backup stores session for iframe resilience
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          'dynamo-session',
+          JSON.stringify({ role: entry.role, note: entry.note, at: Date.now() }),
+        );
+      }
       navigate({ to: '/dashboard' });
     } catch (err) {
       if (err instanceof LockedError) {
