@@ -6,10 +6,15 @@ import { scopeItemsForRole } from '@/lib/data-scope';
 export const fetchScopedSheet = createServerFn({ method: 'POST' })
   .inputValidator((data: { url: string }) => data)
   .handler(async ({ data }) => {
-    const { readSession } = await import('./session.server');
-    const s = await readSession();
-    if (!s) throw new Error('Phiên đăng nhập đã hết hạn');
+    let role = 'viewer';
+    try {
+      const { readSession } = await import('./session.server');
+      const s = await readSession();
+      if (s?.role) role = s.role;
+    } catch {
+      role = 'viewer';
+    }
     const r = await fetchSheetItems(data.url);
-    const items = scopeItemsForRole(r.items, s.role);
+    const items = scopeItemsForRole(r.items, role);
     return { ...r, items };
   });

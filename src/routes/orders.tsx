@@ -8,6 +8,7 @@ import { formatVendorName } from '@/lib/dynamo-auth';
 import { isMaterialEquivalent } from '@/lib/materials-data';
 import { StatusDot } from './dashboard';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
+import { JobTicketButton } from '@/components/job-ticket';
 import { daysOver, isDueSoon, isMissingDue, isOverdue, isOpen, isDone } from '@/lib/dynamo-rules';
 
 const dueTag = (i: QTItem) =>
@@ -436,12 +437,7 @@ function Orders() {
                             <StatusDot status={i.TrangThai} />
                           </td>
                           <td className={`px-3.5 ${padY}`}>
-                            <span
-                              title="Chưa có phiếu PDF cho lô này"
-                              className="inline-flex p-1 text-muted-foreground/50"
-                            >
-                              <FileText size={16} aria-label={`Chưa có phiếu PDF cho ${i.ma_hang}`} />
-                            </span>
+                            <JobTicketButton item={i} role={role} variant="icon" />
                           </td>
                           <td className={`px-3.5 ${padY}`}>
                             <LotUpdateButton item={i} />

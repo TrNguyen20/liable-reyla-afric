@@ -231,8 +231,82 @@
   }
 }
 @media print {
-  @page { size: A4; margin: 12mm; }
-  body:has(.job-ticket-dialog) > *:not([role="dialog"]):not([data-radix-portal]) { display: none !important; }
-  body:has(.job-ticket-dialog) [data-slot="dialog-overlay"], .job-ticket-actions, .job-ticket-dialog > button { display: none !important; }
-  .job-ticket-dialog { position: static !important; transform: none !important; max-height: none !important; overflow: visible !important; border: 0 !important; box-shadow: none !important; max-width: 100% !important; }
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+  /* Hide all app chrome, header, sidebar, and non-ticket elements */
+  body:has(.job-ticket-dialog) > *:not([role="dialog"]):not([data-radix-portal]) {
+    display: none !important;
+  }
+  body:has(.job-ticket-dialog) [data-slot="dialog-overlay"],
+  .job-ticket-actions,
+  .job-ticket-dialog > button,
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+  .job-ticket-dialog {
+    position: static !important;
+    transform: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .job-ticket {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .printable-job-ticket {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+}
+
+@utility hud-panel {
+  background: linear-gradient(180deg, oklch(0.24 0.02 250 / 90%) 0%, oklch(0.20 0.02 250 / 95%) 100%);
+  border: 1px solid oklch(0.38 0.03 250 / 60%);
+  box-shadow: 0 4px 20px -2px oklch(0 0 0 / 0.25), inset 0 1px 0 0 oklch(1 0 0 / 0.05);
+  backdrop-filter: blur(8px);
+}
+
+@utility status-glow-ok {
+  box-shadow: 0 0 8px oklch(0.68 0.16 150 / 60%);
+}
+
+@utility status-glow-warn {
+  box-shadow: 0 0 8px oklch(0.82 0.15 85 / 60%);
+}
+
+@utility status-glow-err {
+  box-shadow: 0 0 8px oklch(0.63 0.22 27 / 60%);
+}
+
+@utility touch-target {
+  min-height: 48px;
+  min-width: 48px;
 }

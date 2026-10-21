@@ -10,7 +10,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { DynamoShell } from "@/components/dynamo-shell";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
@@ -41,38 +41,90 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const [showStack, setShowStack] = useState(false);
+
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
+  const handleSelfHeal = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        const keysToRemove = [
+          'dynamo-local-items',
+          'dynamo-audit-log',
+          'dynamo-active-role',
+          'dynamo-workshop-filter',
+          'dynamo-audio-enabled',
+        ];
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
+        sessionStorage.clear();
+        window.location.href = '/dashboard';
+      }
+    } catch {
+      window.location.reload();
+    }
+  };
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack = error instanceof Error ? error.stack : '';
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="mes-card max-w-md border-l-4 border-l-destructive p-8 text-center shadow-lg">
-        <span className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
-          SỰ CỐ VẬN HÀNH / RUNTIME EXCEPTION
-        </span>
-        <h2 className="mt-2 font-display text-xl font-bold text-foreground">
-          Không thể tải trang dữ liệu
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="mes-card w-full max-w-lg border-l-4 border-l-destructive p-8 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">
+            SỰ CỐ VẬN HÀNH / RUNTIME FAIL-SAFE
+          </span>
+          <span className="font-mono text-[10px] text-muted-foreground">FAIL-SAFE MODE</span>
+        </div>
+        <h2 className="font-display text-xl font-bold text-foreground">
+          Không thể kết nối hoặc kết xuất dữ liệu
         </h2>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Đã xảy ra lỗi trong quá trình khởi tạo hoặc xử lý luồng dữ liệu trên trình duyệt. Bạn có thể thử tải lại trang hoặc quay về trang chủ.
+          Hệ thống phát hiện lỗi ngoại lệ trong luồng runtime. Bộ tự phục hồi (Self-Healing Engine) sẵn sàng làm sạch cache hỏng và khôi phục trạng thái chuẩn để xưởng tiếp tục vận hành.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2.5">
+
+        {/* Action Buttons */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-sm bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 cursor-pointer"
           >
-            Thử tải lại
+            Thử tải lại luồng
+          </button>
+          <button
+            onClick={handleSelfHeal}
+            className="inline-flex items-center justify-center rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-destructive transition-colors hover:bg-destructive/20 cursor-pointer"
+          >
+            Khôi phục sạch (Self-Heal)
           </button>
           <a
             href="/dashboard"
-            className="inline-flex items-center justify-center rounded-sm border border-input bg-card px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:bg-muted"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-card px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:bg-muted cursor-pointer"
           >
             Về Dashboard
           </a>
+        </div>
+
+        {/* Collapsible Error Log for Shopfloor Technicians */}
+        <div className="mt-6 border-t border-border/80 pt-4 text-left">
+          <button
+            type="button"
+            onClick={() => setShowStack(!showStack)}
+            className="text-[11px] font-mono text-muted-foreground hover:text-foreground underline decoration-dotted cursor-pointer"
+          >
+            {showStack ? 'Ẩn nhật ký kỹ thuật ▲' : 'Xem nhật ký ngoại lệ kỹ thuật ▼'}
+          </button>
+          {showStack && (
+            <div className="mt-2 max-h-48 overflow-y-auto rounded bg-black/80 p-3 font-mono text-[10px] text-red-300">
+              <p className="font-bold text-red-200">{errorMessage}</p>
+              {errorStack && <pre className="mt-2 whitespace-pre-wrap opacity-80">{errorStack}</pre>}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -90,17 +90,19 @@ export function Materials() {
 
       const matchedSpec = findMasterSpec(rawMat);
       if (matchedSpec) {
-        const u = masterMap.get(matchedSpec.code)!;
-        u.lots++;
-        if (isOpen(r)) u.open++;
-        u.kg += r.kg_Lot || 0;
-        u.workshops.add(r.phong_sx);
-        if (r.cty_QT) u.vendors.add(r.cty_QT);
-        if (r.do_cung && r.do_cung !== '—') u.hrcList.push(r.do_cung);
+        const u = masterMap.get(matchedSpec.code);
+        if (u) {
+          u.lots++;
+          if (isOpen(r)) u.open++;
+          u.kg += r.kg_Lot || 0;
+          u.workshops.add(r.phong_sx);
+          if (r.cty_QT) u.vendors.add(r.cty_QT);
+          if (r.do_cung && r.do_cung !== '—') u.hrcList.push(r.do_cung);
 
-        // Track how this variant was spelled in the dataset
-        const variantKey = rawMat;
-        u.detectedVariants.set(variantKey, (u.detectedVariants.get(variantKey) ?? 0) + 1);
+          // Track how this variant was spelled in the dataset
+          const variantKey = rawMat;
+          u.detectedVariants.set(variantKey, (u.detectedVariants.get(variantKey) ?? 0) + 1);
+        }
       } else {
         let o = otherMap.get(rawMat);
         if (!o) {
@@ -257,6 +259,103 @@ export function Materials() {
           />
         </div>
       </div>
+
+      {/* Rockwell Hardness Spectrum & International Equivalency Guide */}
+      <section className="mb-6 overflow-hidden rounded-lg border border-border bg-card p-4 sm:p-5 shadow-2xs">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Gauge size={16} className="text-primary" />
+            <h2 className="font-display text-sm font-extrabold uppercase tracking-wide text-foreground">
+              Thước đo độ cứng Rockwell (HRC) &amp; Phân vùng công nghệ nhiệt luyện
+            </h2>
+          </div>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            Tiêu chuẩn đo kiểm: ASTM E18 / JIS Z2245 (Tải trọng 150 kgf, Mũi kim cương 120°)
+          </span>
+        </div>
+
+        {/* Visual Gradient HRC Spectrum Bar */}
+        <div className="mt-4">
+          <div className="relative h-4 overflow-hidden rounded-sm bg-gradient-to-r from-sky-500 via-amber-500 to-rose-600 shadow-inner">
+            <div className="absolute inset-0 flex justify-between px-2 text-[9px] font-black text-white/90 font-mono">
+              <span>20 HRC (Thép mềm)</span>
+              <span>40 HRC (Dập nóng)</span>
+              <span>50 HRC (Đúc áp lực)</span>
+              <span>60 HRC (Dập nguội)</span>
+              <span>65+ HRC (HSS)</span>
+            </div>
+          </div>
+
+          {/* Spectrum Zones Grid */}
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4 text-xs">
+            <div className="rounded-xs border border-border/70 bg-secondary/30 p-2.5">
+              <span className="font-mono text-[11px] font-extrabold text-sky-600 dark:text-sky-400">28 – 35 HRC</span>
+              <p className="font-semibold text-foreground mt-0.5">Thép phôi / Khuôn nhựa</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">S50C, P20, NAK80. Gia công cắt gọt tốt, thấm carbon bề mặt.</p>
+            </div>
+            <div className="rounded-xs border border-border/70 bg-secondary/30 p-2.5">
+              <span className="font-mono text-[11px] font-extrabold text-amber-600 dark:text-amber-400">42 – 50 HRC</span>
+              <p className="font-semibold text-foreground mt-0.5">Khuôn dập nóng &amp; Đúc nhôm</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">SKD61, DAC, FDAC. Chịu mỏi nhiệt cao, ram 2 lần chống rạn nứt.</p>
+            </div>
+            <div className="rounded-xs border border-border/70 bg-secondary/30 p-2.5">
+              <span className="font-mono text-[11px] font-extrabold text-rose-600 dark:text-rose-400">58 – 62 HRC</span>
+              <p className="font-semibold text-foreground mt-0.5">Khuôn dập nguội &amp; Chày đột</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">SKD11, DC53, SLD. Chống mài mòn cực cao, tôi chân không.</p>
+            </div>
+            <div className="rounded-xs border border-border/70 bg-secondary/30 p-2.5">
+              <span className="font-mono text-[11px] font-extrabold text-purple-600 dark:text-purple-400">62 – 66+ HRC</span>
+              <p className="font-semibold text-foreground mt-0.5">Thép gió &amp; Dao cắt kỹ thuật</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">SKH51, HSS, Hợp kim Carbide. Chịu tải trọng cắt xé tốc độ cao.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* International Cross-Reference Quick Bar */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-[11px]">
+          <span className="font-bold text-muted-foreground uppercase text-[10px]">Tra cứu tương đương:</span>
+          {[
+            { jis: 'SKD11', aisi: 'D2', din: '1.2379' },
+            { jis: 'SKD61', aisi: 'H13', din: '1.2344' },
+            { jis: 'S50C', aisi: '1050', din: '1.1213' },
+            { jis: 'SCM440', aisi: '4140', din: '1.7225' },
+            { jis: 'SUS304', aisi: '304', din: '1.4301' },
+          ].map((pair) => (
+            <button
+              key={pair.jis}
+              onClick={() => setSearchQuery(pair.jis)}
+              className="flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              <b className="text-foreground">{pair.jis}</b>
+              <span className="opacity-50">↔</span>
+              <span>{pair.aisi}</span>
+              <span className="opacity-50">↔</span>
+              <span>{pair.din}</span>
+            </button>
+          ))}
+        {/* Hardness Conversion Matrix Tool (ASTM E140 / ISO 18265) */}
+        <div className="mt-3.5 border-t border-border/60 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-bold text-foreground uppercase tracking-wider text-[10px]">
+              Quy đổi độ cứng tương đương (ASTM E140 / ISO 18265):
+            </span>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+              <span className="rounded-xs border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary font-bold">
+                60 HRC ≈ 697 HV ≈ 654 HB ≈ 2180 MPa
+              </span>
+              <span className="rounded-xs border border-border bg-secondary/50 px-2 py-0.5 text-muted-foreground">
+                50 HRC ≈ 513 HV ≈ 481 HB ≈ 1620 MPa
+              </span>
+              <span className="rounded-xs border border-border bg-secondary/50 px-2 py-0.5 text-muted-foreground">
+                40 HRC ≈ 392 HV ≈ 371 HB ≈ 1220 MPa
+              </span>
+              <span className="rounded-xs border border-border bg-secondary/50 px-2 py-0.5 text-muted-foreground">
+                30 HRC ≈ 302 HV ≈ 286 HB ≈ 940 MPa
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Top 6 Master Material Cards Grid */}
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">

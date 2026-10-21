@@ -62,14 +62,49 @@ export const formatVendorSummary = (vendors: Iterable<string>, role: Role): stri
   return list.length > 1 ? `${list.length} đơn vị gia công ngoài` : 'Đơn vị gia công theo chỉ định';
 };
 
-/** Read the server-verified session. Null means signed out (or tampered/expired cookie). */
+/** Read the server-verified session with client-side fallback for iframe previews. Null means signed out. */
 export async function fetchSession(): Promise<{ role: Role; note: string } | null> {
-  const s = await getSessionInfo();
-  const role = s ? normalizeRole(s.role) : null;
-  return s && role ? { role, note: s.note } : null;
+  try {
+    const s = await getSessionInfo();
+    const role = s ? normalizeRole(s.role) : null;
+    if (s && role) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('dynamo-session', JSON.stringify({ role, note: s.note, at: Date.now() }));
+      }
+      return { role, note: s.note };
+    }
+  } catch {
+    // server session unreachable or cookie blocked in iframe preview
+  }
+
+  // Local storage session backup (persists 8h)
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem('dynamo-session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.role && Date.now() - (parsed.at || 0) < 8 * 60 * 60 * 1000) {
+          const role = normalizeRole(parsed.role);
+          if (role) return { role, note: parsed.note || parsed.role };
+        }
+      }
+    } catch {
+      // ignore JSON error
+    }
+  }
+  return null;
 }
 
-export const logout = () => logoutSession();
+export const logout = async () => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem('dynamo-session');
+  }
+  try {
+    await logoutSession();
+  } catch {
+    // ignore
+  }
+};
 
 let pricingVisible = true;
 export const setPricingVisible = (v: boolean) => { pricingVisible = v; };
