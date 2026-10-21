@@ -16,8 +16,12 @@ import {
   Search,
   ShieldCheck,
   Sun,
+  Volume2,
+  VolumeX,
+  WifiOff,
   X,
 } from 'lucide-react';
+import { isSoundEnabled, setSoundEnabled, playSuccessChime } from '@/lib/audio-cues';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { type QTItem, type Workshop } from '@/lib/dynamo-data';
@@ -85,11 +89,13 @@ const nav: {
 ] as const;
 
 export function DynamoShell({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
-  const [workshop, setWorkshop] = useState<Filter>('Tất cả');
+  const [workshop, setWorkshopState] = useState<Filter>('Tất cả');
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
   const [now, setNow] = useState<Date | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [user, setUser] = useState('Quản lý QT');
@@ -147,9 +153,35 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     const next = saved === 'dark' ? 'dark' : 'light';
     setTheme(next);
     document.documentElement.classList.toggle('dark', next === 'dark');
+    setSoundOn(isSoundEnabled());
+    const savedWs = window.localStorage.getItem('dynamo-workshop') as Filter | null;
+    if (savedWs && ['Tất cả', 'PIN', 'INSERT', 'MOLD'].includes(savedWs)) {
+      setWorkshopState(savedWs);
+    }
+    setIsOnline(navigator.onLine);
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
     setReady(true);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
   }, []);
+
+  const setWorkshop = (w: Filter) => {
+    setWorkshopState(w);
+    window.localStorage.setItem('dynamo-workshop', w);
+  };
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+    if (next) playSuccessChime();
+  };
 
   // Keyboard navigation & Command Palette listener
   useEffect(() => {
@@ -414,6 +446,12 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
           {/* Main Area */}
           <div className="min-w-0 flex-1">
+            {!isOnline && (
+              <div className="flex items-center justify-center gap-2 border-b border-warning/60 bg-warning/20 px-4 py-1.5 text-center font-mono text-xs font-bold text-warning">
+                <WifiOff size={13} />
+                <span>MẤT KẾT NỐI MẠNG NHÀ MÁY · ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (DỮ LIỆU ĐƯỢC LƯU CỤC BỘ)</span>
+              </div>
+            )}
             <header className="sticky top-0 z-20 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
               <div className="flex min-h-[58px] flex-wrap items-center gap-2.5 px-4 py-2 xl:gap-3.5 xl:px-6">
                 <Button
@@ -481,6 +519,17 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                   <span className="inline-block size-1.5 rounded-full fx-run-dot" aria-hidden />
                   <span className="font-mono tabular-nums">{timeLabel}</span>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8.5 w-8.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title={soundOn ? 'Tắt âm thanh hiệu ứng' : 'Bật âm thanh hiệu ứng (Web Audio)'}
+                  aria-label={soundOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
+                  onClick={toggleSound}
+                >
+                  {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                </Button>
 
                 <Button
                   variant="ghost"

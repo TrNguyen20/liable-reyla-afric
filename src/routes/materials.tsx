@@ -333,6 +333,27 @@ export function Materials() {
               <span>{pair.din}</span>
             </button>
           ))}
+        {/* Hardness Conversion Matrix Tool (ASTM E140 / ISO 18265) */}
+        <div className="mt-3.5 border-t border-border/60 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-bold text-foreground uppercase tracking-wider text-[10px]">
+              Quy đổi độ cứng tương đương (ASTM E140 / ISO 18265):
+            </span>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+              <span className="rounded-xs border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary font-bold">
+                60 HRC ≈ 697 HV ≈ 654 HB ≈ 2180 MPa
+              </span>
+              <span className="rounded-xs border border-border bg-secondary/50 px-2 py-0.5 text-muted-foreground">
+                50 HRC ≈ 513 HV ≈ 481 HB ≈ 1620 MPa
+              </span>
+              <span className="rounded-xs border border-border bg-secondary/50 px-2 py-0.5 text-muted-foreground">
+                40 HRC ≈ 392 HV ≈ 371 HB ≈ 1220 MPa
+              </span>
+              <span className="rounded-xs border border-border bg-secondary/50 px-2 py-0.5 text-muted-foreground">
+                30 HRC ≈ 302 HV ≈ 286 HB ≈ 940 MPa
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 

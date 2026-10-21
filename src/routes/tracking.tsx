@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleAlert,
   Columns3,
+  Copy,
   Download,
   GanttChart,
   PackageOpen,
@@ -16,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
+import { playAudioCue } from '@/lib/audio-cues';
 import { date, daysLate, money, number, type QTItem, type Status } from '@/lib/dynamo-data';
 import { formatVendorName } from '@/lib/dynamo-auth';
 import { isMaterialEquivalent } from '@/lib/materials-data';
@@ -286,6 +288,93 @@ function Tracking() {
 
   const tableRows = rows.slice(tablePage * pageSize, tablePage * pageSize + pageSize);
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+
+  const [selectedLots, setSelectedLots] = useState<Set<string>>(new Set());
+
+  const toggleSelectLot = (id: string) => {
+    setSelectedLots((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        playAudioCue('beep');
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllPage = () => {
+    const allPageSelected = tableRows.length > 0 && tableRows.every((r) => selectedLots.has(r.ID_Key));
+    setSelectedLots((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        tableRows.forEach((r) => next.delete(r.ID_Key));
+      } else {
+        tableRows.forEach((r) => next.add(r.ID_Key));
+        playAudioCue('beep');
+      }
+      return next;
+    });
+  };
+
+  const exportSelectedCsv = () => {
+    const selectedRows = rows.filter((r) => selectedLots.has(r.ID_Key));
+    if (!selectedRows.length) return;
+    const head = [
+      'ID_Key',
+      'So_DatHang',
+      'phong_sx',
+      'ma_hang',
+      'vat_lieu',
+      'do_cung',
+      'so_luong',
+      'kg_Lot',
+      'cty_QT',
+      'Logistics',
+      'QC',
+      'ngay_gui_QT',
+      'han_tra',
+      'Han_tra_uoc_tinh',
+      'Tre_ngay',
+    ];
+    const body = selectedRows.map((r) =>
+      [
+        r.ID_Key,
+        r.So_DatHang,
+        r.phong_sx,
+        r.ma_hang,
+        r.vat_lieu,
+        r.do_cung,
+        r.so_luong,
+        r.kg_Lot,
+        r.cty_QT,
+        logisticsOf(r),
+        qcOf(r),
+        r.ngay_gui_QT,
+        r.han_tra,
+        r.han_tra_est ? 1 : 0,
+        hasValidDue(r) && isOverdue(r) ? daysOver(r) : 0,
+      ].join(','),
+    );
+    const url = URL.createObjectURL(
+      new Blob(['\ufeff' + [head.join(','), ...body].join('\n')], { type: 'text/csv;charset=utf-8' }),
+    );
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `luan-chuyen-selected-${selectedRows.length}-lo.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    playAudioCue('success');
+  };
+
+  const copySelectedIds = () => {
+    const text = Array.from(selectedLots).join('\n');
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      playAudioCue('success');
+    }
+  };
 
   return (
     <>
@@ -861,6 +950,15 @@ function Tracking() {
             <table className="w-full min-w-[980px] text-left text-xs">
               <thead className="bg-secondary/70 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 <tr>
+                  <th className="w-10 px-3.5 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả trên trang này"
+                      checked={tableRows.length > 0 && tableRows.every((r) => selectedLots.has(r.ID_Key))}
+                      onChange={toggleSelectAllPage}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                    />
+                  </th>
                   {[
                     'Mã lô',
                     'Đơn hàng',
@@ -891,8 +989,19 @@ function Tracking() {
                     <tr
                       key={r.ID_Key}
                       onClick={() => setDetail(r)}
-                      className="cursor-pointer border-t border-border/70 transition-colors hover:bg-accent/40"
+                      className={`cursor-pointer border-t border-border/70 transition-colors ${
+                        selectedLots.has(r.ID_Key) ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
+                      }`}
                     >
+                      <td className="w-10 px-3.5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Chọn lô ${r.ID_Key}`}
+                          checked={selectedLots.has(r.ID_Key)}
+                          onChange={() => toggleSelectLot(r.ID_Key)}
+                          className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                        />
+                      </td>
                       <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-primary">{r.ID_Key}</td>
                       <td className="whitespace-nowrap px-3.5 py-3 font-mono text-muted-foreground">{r.So_DatHang}</td>
                       <td className="px-3.5 py-3 font-medium text-foreground">{r.phong_sx}</td>
@@ -946,7 +1055,7 @@ function Tracking() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={16} className="px-3.5 py-12 text-center text-xs text-muted-foreground">
+                    <td colSpan={17} className="px-3.5 py-12 text-center text-xs text-muted-foreground">
                       Không có lô hàng khớp bộ lọc
                     </td>
                   </tr>
@@ -1125,6 +1234,40 @@ function Tracking() {
             })()}
           </div>
         </div>
+      )}
+
+      {/* Floating Bulk Action Bar */}
+      {selectedLots.size > 0 && (
+        <aside
+          aria-label="Thao tác hàng loạt"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-primary/40 bg-card/95 px-5 py-3 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4"
+        >
+          <div className="flex items-center gap-2 pr-3 border-r border-border">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
+              {selectedLots.size}
+            </span>
+            <span className="text-xs font-semibold text-foreground">lô được chọn</span>
+          </div>
+          <button
+            onClick={exportSelectedCsv}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
+          >
+            <Download size={14} /> Xuất CSV đã chọn
+          </button>
+          <button
+            onClick={copySelectedIds}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
+          >
+            <Copy size={14} /> Copy mã lô
+          </button>
+          <button
+            onClick={() => setSelectedLots(new Set())}
+            className="ml-2 rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+            title="Bỏ chọn tất cả"
+          >
+            <X size={15} />
+          </button>
+        </aside>
       )}
 
       <p className="mt-5 flex items-center gap-1.5 text-[11px] text-muted-foreground">

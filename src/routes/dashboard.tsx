@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Boxes, CircleAlert, Clock3, Filter, PackageCheck, RotateCcw, Wallet } from 'lucide-react';
+import { ArrowRight, Boxes, CircleAlert, Clock3, FileText, Filter, PackageCheck, Printer, RotateCcw, Wallet, X } from 'lucide-react';
 import { useDynamo, PageHeading } from '@/components/dynamo-shell';
 import { JobTicketButton } from '@/components/job-ticket';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
+import { playAudioCue } from '@/lib/audio-cues';
 import { date, money, number, type QTItem } from '@/lib/dynamo-data';
-import { formatVendorName } from '@/lib/dynamo-auth';
+import { formatVendorName, type UserRole } from '@/lib/dynamo-auth';
 import { daysOver, hasValidDue, isDone, isDueSoon, isMissingDue, isOpen, isOverdue, logisticsOf, onTimeRate, qcOf, type Logistics, type QcState } from '@/lib/dynamo-rules';
 import { failedSyncIds } from '@/lib/dynamo-workflow';
 
@@ -61,16 +62,29 @@ function Dashboard() {
   const reset = () => { setPeriod('all'); setVendor('all'); setLogi('all'); setQc('all'); };
   const filtersOn = period !== 'all' || vendor !== 'all' || logi !== 'all' || qc !== 'all';
 
+  const [handoverOpen, setHandoverOpen] = useState(false);
+
   return <>
     <PageHeading
       eyebrow="TRUNG TÂM ĐIỀU HÀNH"
       title="Tổng quan luân chuyển QT"
       description={`${periodLabel} · ${workshop === 'Tất cả' ? 'Tất cả phân xưởng' : `Phân xưởng ${workshop}`}`}
       action={
-        <div className="flex items-center gap-2 rounded-md border border-border/80 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground shadow-2xs">
-          <span className="size-2 rounded-full bg-primary" />
-          <span>{sourceLabel}</span>
-          {syncedAt ? <span className="font-mono text-[11px] tabular-nums text-foreground/80">· {new Date(syncedAt).toLocaleString('vi-VN')}</span> : <span className="text-[11px] opacity-75">· Chưa đồng bộ</span>}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setHandoverOpen(true);
+              playAudioCue('beep');
+            }}
+            className="flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 cursor-pointer shadow-2xs"
+          >
+            <FileText size={14} /> In biên bản giao ca A4
+          </button>
+          <div className="flex items-center gap-2 rounded-md border border-border/80 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground shadow-2xs">
+            <span className="size-2 rounded-full bg-primary" />
+            <span>{sourceLabel}</span>
+            {syncedAt ? <span className="font-mono text-[11px] tabular-nums text-foreground/80">· {new Date(syncedAt).toLocaleString('vi-VN')}</span> : <span className="text-[11px] opacity-75">· Chưa đồng bộ</span>}
+          </div>
         </div>
       }
     />
@@ -222,6 +236,17 @@ function Dashboard() {
         </div>
       </>
     )}
+
+    {handoverOpen && (
+      <ShiftHandoverModal
+        onClose={() => setHandoverOpen(false)}
+        workshop={workshop}
+        openLots={open}
+        overdueLots={overdue}
+        otdRate={rate.pct}
+        role={role}
+      />
+    )}
   </>;
 }
 
@@ -368,6 +393,250 @@ export function StatusDot({ status }: { status: string }) {
       <i className={`size-1.5 rounded-full ${color}`} />
       {status}
     </span>
+  );
+}
+
+function ShiftHandoverModal({
+  onClose,
+  workshop,
+  openLots,
+  overdueLots,
+  otdRate,
+  role,
+}: {
+  onClose: () => void;
+  workshop: string;
+  openLots: QTItem[];
+  overdueLots: QTItem[];
+  otdRate: number;
+  role: UserRole;
+}) {
+  const [shift, setShift] = useState<'Ca 1 (06:00 - 14:00)' | 'Ca 2 (14:00 - 22:00)' | 'Ca 3 (22:00 - 06:00)'>('Ca 1 (06:00 - 14:00)');
+  const [giver, setGiver] = useState('');
+  const [receiver, setReceiver] = useState('');
+
+  const totalKg = openLots.reduce((a, r) => a + r.kg_Lot, 0);
+
+  const handlePrint = () => {
+    playAudioCue('success');
+    window.print();
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="mes-card max-h-[92vh] w-full max-w-4xl overflow-y-auto p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Toolbar (hidden during print) */}
+        <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileText size={18} />
+            </span>
+            <div>
+              <h2 className="text-base font-black text-foreground">Biên bản bàn giao ca sản xuất A4</h2>
+              <p className="text-xs text-muted-foreground">Chuẩn hóa thông tin ca trực theo tiêu chuẩn MES Dynamo</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 cursor-pointer"
+            >
+              <Printer size={15} /> In báo cáo (A4)
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+              aria-label="Đóng"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Input Controls for Shift Info (no-print) */}
+        <div className="no-print mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-lg border border-border bg-secondary/30 p-3 text-xs">
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Ca trực:</label>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value as any)}
+              className="w-full rounded border border-input bg-background px-2.5 py-1 text-xs text-foreground"
+            >
+              <option value="Ca 1 (06:00 - 14:00)">Ca 1 (06:00 - 14:00)</option>
+              <option value="Ca 2 (14:00 - 22:00)">Ca 2 (14:00 - 22:00)</option>
+              <option value="Ca 3 (22:00 - 06:00)">Ca 3 (22:00 - 06:00)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Người giao ca:</label>
+            <input
+              type="text"
+              value={giver}
+              onChange={(e) => setGiver(e.target.value)}
+              placeholder="VD: Nguyễn Văn A (Tổ trưởng)"
+              className="w-full rounded border border-input bg-background px-2.5 py-1 text-xs text-foreground"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Người nhận ca:</label>
+            <input
+              type="text"
+              value={receiver}
+              onChange={(e) => setReceiver(e.target.value)}
+              placeholder="VD: Trần Văn B (Tổ trưởng)"
+              className="w-full rounded border border-input bg-background px-2.5 py-1 text-xs text-foreground"
+            />
+          </div>
+        </div>
+
+        {/* Printable Sheet (single A4 layout) */}
+        <div className="printable-job-ticket border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 p-6 text-neutral-900 dark:text-neutral-100 rounded-sm font-sans text-xs">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b-2 border-neutral-800 pb-3 mb-4">
+            <div>
+              <p className="text-[11px] font-bold tracking-wider uppercase text-neutral-600 dark:text-neutral-400">
+                CÔNG TY TNHH DYNAMO VIỆT NAM · MES WORKSHOP
+              </p>
+              <h1 className="text-xl font-black tracking-tight text-neutral-900 dark:text-neutral-100 uppercase">
+                BIÊN BẢN BÀN GIAO CA SẢN XUẤT & ĐỐI TÁC QT
+              </h1>
+              <p className="text-[11px] text-neutral-500">
+                Phân xưởng: <b className="text-neutral-900 dark:text-neutral-100">{workshop}</b> · Thời gian lập: {new Date().toLocaleString('vi-VN')}
+              </p>
+            </div>
+            <div className="text-right font-mono">
+              <span className="inline-block rounded border border-neutral-800 px-2 py-0.5 text-xs font-black">
+                {shift}
+              </span>
+              <p className="text-[10px] text-neutral-500 mt-1">DYNAMO-SOP-MES-08</p>
+            </div>
+          </div>
+
+          {/* Handover Metadata Grid */}
+          <div className="grid grid-cols-4 gap-3 border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 p-3 mb-4 text-[11px]">
+            <div>
+              <span className="text-neutral-500 block">Tổng lô đang mở:</span>
+              <b className="font-mono text-base font-black">{number(openLots.length)} lô</b>
+            </div>
+            <div>
+              <span className="text-neutral-500 block">Tỷ lệ OTD đúng hạn:</span>
+              <b className={`font-mono text-base font-black ${otdRate >= 95 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {otdRate}%
+              </b>
+            </div>
+            <div>
+              <span className="text-neutral-500 block">Lô quá hạn cảnh báo:</span>
+              <b className={`font-mono text-base font-black ${overdueLots.length ? 'text-red-600' : 'text-emerald-600'}`}>
+                {overdueLots.length} lô
+              </b>
+            </div>
+            <div>
+              <span className="text-neutral-500 block">Tổng trọng lượng:</span>
+              <b className="font-mono text-base font-black">{number(totalKg, 1)} kg</b>
+            </div>
+          </div>
+
+          {/* Shift Personnel Info */}
+          <div className="grid grid-cols-2 gap-4 border-b border-neutral-300 dark:border-neutral-700 pb-3 mb-4 text-xs">
+            <div>
+              <span className="text-neutral-500">Bên giao ca: </span>
+              <b className="font-semibold">{giver || 'Chưa điền họ tên'}</b>
+            </div>
+            <div>
+              <span className="text-neutral-500">Bên nhận ca: </span>
+              <b className="font-semibold">{receiver || 'Chưa điền họ tên'}</b>
+            </div>
+          </div>
+
+          {/* Urgent / Overdue Lots Table */}
+          <div className="mb-4">
+            <h3 className="text-xs font-black tracking-wide uppercase mb-2 text-neutral-800 dark:text-neutral-200">
+              DANH SÁCH LÔ TRỌNG ĐIỂM / CẦN THEO DÕI ĐẶC BIỆT ({overdueLots.slice(0, 6).length} / {overdueLots.length})
+            </h3>
+            <table className="w-full text-left text-[11px] border border-neutral-300 dark:border-neutral-700">
+              <thead className="bg-neutral-100 dark:bg-neutral-800 font-bold uppercase text-[9px] text-neutral-600 dark:text-neutral-400">
+                <tr>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5">Mã lô</th>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5">Mã hàng</th>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5">Đơn hàng</th>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5">Đối tác QT</th>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5 text-right">SL (kg)</th>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5 text-right">Quá hạn</th>
+                  <th className="border-b border-neutral-300 dark:border-neutral-700 px-2 py-1.5">Ghi chú bàn giao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overdueLots.length ? (
+                  overdueLots.slice(0, 6).map((r) => (
+                    <tr key={r.ID_Key} className="border-b border-neutral-200 dark:border-neutral-800 last:border-b-0">
+                      <td className="px-2 py-1 font-mono font-bold text-primary">{r.ID_Key}</td>
+                      <td className="px-2 py-1 font-mono">{r.ma_hang}</td>
+                      <td className="px-2 py-1 font-mono text-neutral-500">{r.So_DatHang}</td>
+                      <td className="px-2 py-1">{formatVendorName(r.cty_QT, role)}</td>
+                      <td className="px-2 py-1 text-right font-mono tabular-nums">{number(r.kg_Lot, 1)}</td>
+                      <td className="px-2 py-1 text-right font-mono font-bold text-red-600 tabular-nums">
+                        {daysOver(r)} ngày
+                      </td>
+                      <td className="px-2 py-1 text-neutral-500 italic">Kiểm tra tiến độ giao hàng</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-2 py-3 text-center text-neutral-500 italic">
+                      Ca trực không có lô nào bị quá hạn. Tiến độ giao nhận đúng kế hoạch.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 4 Signatures Block */}
+          <div className="mt-8 grid grid-cols-4 gap-2 pt-2 text-center text-[11px]">
+            <div className="flex flex-col items-center">
+              <span className="font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                Người giao ca
+              </span>
+              <span className="text-[10px] text-neutral-400 italic">(Ký & ghi họ tên)</span>
+              <div className="h-16 w-full" />
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">{giver || '..............................'}</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                Người nhận ca
+              </span>
+              <span className="text-[10px] text-neutral-400 italic">(Ký & ghi họ tên)</span>
+              <div className="h-16 w-full" />
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">{receiver || '..............................'}</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                Trưởng ca QC / KCS
+              </span>
+              <span className="text-[10px] text-neutral-400 italic">(Xác nhận chất lượng)</span>
+              <div className="h-16 w-full" />
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">..............................</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                Quản đốc xưởng
+              </span>
+              <span className="text-[10px] text-neutral-400 italic">(Phê duyệt & lưu trữ)</span>
+              <div className="h-16 w-full" />
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">..............................</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
