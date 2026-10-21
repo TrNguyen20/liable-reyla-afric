@@ -6,15 +6,12 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
-  ClipboardList,
-  Command,
   DatabaseZap,
   LayoutDashboard,
   LogOut,
   Menu,
   Moon,
   Search,
-  ShieldCheck,
   Sun,
   Volume2,
   VolumeX,
@@ -22,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { isSoundEnabled, setSoundEnabled, playSuccessChime } from '@/lib/audio-cues';
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback, memo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { type QTItem, type Workshop } from '@/lib/dynamo-data';
 import logo from '@/assets/dynamo-logo.png';
@@ -59,8 +56,12 @@ type AppContextType = {
   loadError: string;
   applyDataset: (rows: QTItem[], label: string) => void;
   role: Role;
+  actualRole: Role;
+  impersonatedRole: Role | null;
+  setImpersonatedRole: (r: Role | null) => void;
   resetDataset: () => void;
   updateItem: (id: string, patch: Partial<QTItem>) => void;
+  bulkUpdateItems: (ids: string[], patch: Partial<QTItem>) => void;
 };
 
 // Keep one context instance across hot reloads; a re-created context leaves pages reading an empty provider.
@@ -74,19 +75,42 @@ export function useDynamo() {
 }
 
 const nav: {
-  to: '/dashboard' | '/orders' | '/tracking' | '/audit-costs' | '/materials' | '/sync';
+  to: '/tracking' | '/sync';
   label: string;
-  icon: typeof LayoutDashboard;
+  icon: typeof ArrowLeftRight | typeof DatabaseZap;
   section?: string;
   shortcut: string;
 }[] = [
-  { to: '/dashboard', label: 'TỔNG QUAN', icon: LayoutDashboard, section: 'ĐIỀU HÀNH', shortcut: '1' },
-  { to: '/orders', label: 'ĐƠN ĐẶT HÀNG', icon: ClipboardList, shortcut: '2' },
-  { to: '/tracking', label: 'LUÂN CHUYỂN QT', icon: ArrowLeftRight, shortcut: '3' },
-  { to: '/audit-costs', label: 'ĐỐI SOÁT CHI PHÍ', icon: ShieldCheck, section: 'KIỂM SOÁT', shortcut: '4' },
-  { to: '/materials', label: 'MÁC THÉP', icon: Boxes, shortcut: '5' },
-  { to: '/sync', label: 'NẠP CSV / ĐỒNG BỘ', icon: DatabaseZap, section: 'HỆ THỐNG', shortcut: '6' },
+  { to: '/tracking', label: 'LUÂN CHUYỂN QT', icon: ArrowLeftRight, section: 'ĐIỀU HÀNH', shortcut: '1' },
+  { to: '/sync', label: 'LIÊN KẾT GOOGLE SHEETS', icon: DatabaseZap, section: 'HỆ THỐNG', shortcut: '2' },
 ] as const;
+
+const LedClock = memo(function LedClock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const dateLabel = now.toLocaleDateString('vi-VN', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  const timeLabel = now.toLocaleTimeString('vi-VN', { hour12: false });
+
+  return (
+    <div className="led-clock flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
+      <span className="hidden text-[9px] font-semibold tracking-widest text-slate-400 sm:inline">
+        {dateLabel}
+      </span>
+      <span className="inline-block size-1.5 rounded-full fx-run-dot" aria-hidden />
+      <span className="font-mono tabular-nums">{timeLabel}</span>
+    </div>
+  );
+});
 
 export function DynamoShell({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
   const [workshop, setWorkshopState] = useState<Filter>('Tất cả');
@@ -96,10 +120,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
-  const [now, setNow] = useState<Date | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [user, setUser] = useState('Quản lý QT');
   const [role, setRole] = useState<Role>('admin');
+  const [impersonatedRole, setImpersonatedRole] = useState<Role | null>(null);
   const [ready, setReady] = useState(false);
   const [rawDataset, setDataset] = useState<QTItem[]>([]);
   const [sourceLabel, setSourceLabel] = useState(LIVE_LABEL);
@@ -108,25 +132,34 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   const [loadError, setLoadError] = useState('');
   const booted = useRef(false);
 
+  const effectiveRole = impersonatedRole ?? role;
   const isLive = rawDataset.length > 0;
 
-  const applyDataset = (rows: QTItem[], label: string) => {
+  const applyDataset = useCallback((rows: QTItem[], label: string) => {
     const stamp = new Date().toISOString();
     setDataset(rows);
     setSourceLabel(label);
     setSyncedAt(stamp);
     void saveDataset({ items: rows, label, syncedAt: stamp });
-  };
+  }, []);
 
-  const updateItem = (id: string, patch: Partial<QTItem>) =>
+  const updateItem = useCallback((id: string, patch: Partial<QTItem>) =>
     setDataset((prev) => {
       const next = prev.map((i) => (i.ID_Key === id ? { ...i, ...patch } : i));
       void saveDataset({ items: next, label: sourceLabel, syncedAt });
       return next;
-    });
+    }), [sourceLabel, syncedAt]);
+
+  const bulkUpdateItems = useCallback((ids: string[], patch: Partial<QTItem>) =>
+    setDataset((prev) => {
+      const idSet = new Set(ids);
+      const next = prev.map((i) => (idSet.has(i.ID_Key) ? { ...i, ...patch } : i));
+      void saveDataset({ items: next, label: sourceLabel, syncedAt });
+      return next;
+    }), [sourceLabel, syncedAt]);
 
   // Pull live rows through the server; the server scopes/masks them by the signed session role.
-  const pullLive = async () => {
+  const pullLive = useCallback(async () => {
     setLoading(true);
     setLoadError('');
     try {
@@ -137,18 +170,16 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     } finally {
       setLoading(false);
     }
-  };
+  }, [applyDataset]);
 
-  const resetDataset = () => {
+  const resetDataset = useCallback(() => {
     void clearDataset().then(pullLive);
-  };
+  }, [pullLive]);
 
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
     const saved = window.localStorage.getItem('dynamo-theme');
     const next = saved === 'dark' ? 'dark' : 'light';
     setTheme(next);
@@ -165,16 +196,15 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     window.addEventListener('offline', off);
     setReady(true);
     return () => {
-      clearInterval(id);
       window.removeEventListener('online', on);
       window.removeEventListener('offline', off);
     };
   }, []);
 
-  const setWorkshop = (w: Filter) => {
+  const setWorkshop = useCallback((w: Filter) => {
     setWorkshopState(w);
     window.localStorage.setItem('dynamo-workshop', w);
-  };
+  }, []);
 
   const toggleSound = () => {
     const next = !soundOn;
@@ -201,17 +231,13 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       ) {
         return;
       }
-      if (e.key >= '1' && e.key <= '6') {
-        const routes: ('/dashboard' | '/orders' | '/tracking' | '/audit-costs' | '/materials' | '/sync')[] = [
-          '/dashboard',
-          '/orders',
+      if (e.key >= '1' && e.key <= '2') {
+        const routes: ('/tracking' | '/sync')[] = [
           '/tracking',
-          '/audit-costs',
-          '/materials',
           '/sync',
         ];
         const targetRoute = routes[Number(e.key) - 1];
-        if (targetRoute && canAccessRoute(role, targetRoute)) {
+        if (targetRoute && canAccessRoute(effectiveRole, targetRoute)) {
           e.preventDefault();
           navigate({ to: targetRoute });
         }
@@ -219,7 +245,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [role, navigate]);
+  }, [effectiveRole, navigate]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -253,7 +279,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
         }
         if (!canAccessRoute(s.role, location.pathname)) {
           toast.error('Vai trò của bạn không có quyền truy cập trang này.');
-          navigate({ to: '/dashboard' });
+          navigate({ to: '/tracking' });
         }
       })
       .catch(() => {
@@ -264,7 +290,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     };
   }, [location.pathname, bare]);
 
-  const visibleNav = nav.filter((n) => canAccessRoute(role, n.to));
+  const visibleNav = nav.filter((n) => canAccessRoute(effectiveRole, n.to));
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -283,7 +309,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     });
   };
 
-  const vendor = getVendorScope(role);
+  const vendor = getVendorScope(effectiveRole);
   const scoped = useMemo(
     () => (vendor ? rawDataset.filter((i) => String(i.cty_QT).toUpperCase() === vendor) : rawDataset),
     [rawDataset, vendor],
@@ -300,31 +326,54 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   }, [scoped, workshop, search]);
 
   const current = nav.find((n) => n.to === location.pathname);
-  const dateLabel = now
-    ? now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '--/--/----';
-  const timeLabel = now ? now.toLocaleTimeString('vi-VN', { hour12: false }) : '--:--:--';
+
+  const contextValue = useMemo(
+    () => ({
+      workshop,
+      setWorkshop,
+      search,
+      setSearch,
+      filtered,
+      dataset,
+      sourceLabel,
+      syncedAt,
+      isLive,
+      loading,
+      loadError,
+      applyDataset,
+      resetDataset,
+      role: effectiveRole,
+      actualRole: role,
+      impersonatedRole,
+      setImpersonatedRole,
+      updateItem,
+      bulkUpdateItems,
+    }),
+    [
+      workshop,
+      setWorkshop,
+      search,
+      setSearch,
+      filtered,
+      dataset,
+      sourceLabel,
+      syncedAt,
+      isLive,
+      loading,
+      loadError,
+      applyDataset,
+      resetDataset,
+      effectiveRole,
+      role,
+      impersonatedRole,
+      setImpersonatedRole,
+      updateItem,
+      bulkUpdateItems,
+    ],
+  );
 
   return (
-    <AppContext.Provider
-      value={{
-        workshop,
-        setWorkshop,
-        search,
-        setSearch,
-        filtered,
-        dataset,
-        sourceLabel,
-        syncedAt,
-        isLive,
-        loading,
-        loadError,
-        applyDataset,
-        resetDataset,
-        role,
-        updateItem,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {bare ? (
         children
       ) : (
@@ -340,7 +389,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
             } ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}
           >
             <div className="flex h-[72px] items-center justify-between border-b border-sidebar-border px-5">
-              <Link to="/dashboard" className="flex items-center gap-3 overflow-hidden" aria-label="DYNAMO VIETNAM QT - MES">
+              <Link to="/tracking" className="flex items-center gap-3 overflow-hidden" aria-label="DYNAMO VIETNAM QT - MES">
                 {collapsed ? (
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-dynamo font-display text-lg font-black text-white">
                     D
@@ -404,11 +453,16 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                   <span className="block text-xs font-bold">{user}</span>
                   <span
                     className={`mt-0.5 inline-block rounded-sm px-1.5 py-0.5 text-[9px] font-bold tracking-wide ${roleBadge(
-                      role,
+                      effectiveRole,
                     )}`}
                   >
-                    {roleLabel(role).toUpperCase()}
+                    {roleLabel(effectiveRole).toUpperCase()}
                   </span>
+                  {impersonatedRole && (
+                    <span className="ml-1 inline-block text-[9px] text-warning font-mono">
+                      (GIẢ LẬP)
+                    </span>
+                  )}
                 </span>
               </div>
               <p
@@ -490,6 +544,51 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                   </kbd>
                 </button>
 
+                {/* Role Impersonation Switcher (Proposal 7 for Admin) */}
+                {role === 'admin' && (
+                  <div
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+                      impersonatedRole
+                        ? 'border-warning bg-warning/15 text-warning font-bold'
+                        : 'border-border/80 bg-secondary/70 text-foreground'
+                    }`}
+                    title="Chuyển đổi góc nhìn kiểm tra phân quyền (Proposal 7)"
+                  >
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden xl:inline">
+                      Góc nhìn:
+                    </span>
+                    <select
+                      value={impersonatedRole ?? 'admin'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setImpersonatedRole(val === 'admin' ? null : (val as Role));
+                        toast.info(
+                          val === 'admin'
+                            ? 'Đã quay lại góc nhìn Admin thực tế'
+                            : `Đang giả lập góc nhìn: ${roleLabel(val as Role)}`,
+                        );
+                      }}
+                      className="bg-transparent text-[11px] font-bold text-foreground outline-none cursor-pointer"
+                    >
+                      <option value="admin" className="bg-popover text-popover-foreground">🛡️ Admin (Toàn quyền)</option>
+                      <option value="leader" className="bg-popover text-popover-foreground">👷 Leader (Phân xưởng)</option>
+                      <option value="viewer" className="bg-popover text-popover-foreground">👁️ Viewer (Mã hóa đối tác)</option>
+                      <option value="qt_yamaichi" className="bg-popover text-popover-foreground">🏭 Đối tác YAMAICHI</option>
+                      <option value="qt_provision" className="bg-popover text-popover-foreground">🏭 Đối tác PROVISION</option>
+                    </select>
+                    {impersonatedRole && (
+                      <button
+                        type="button"
+                        onClick={() => setImpersonatedRole(null)}
+                        className="rounded bg-destructive/20 px-1 py-0.5 text-[10px] font-bold text-destructive hover:bg-destructive/30 cursor-pointer"
+                        title="Hủy giả lập"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Workshop Filter Selector */}
                 <div
                   className="flex items-center rounded-md border border-border/80 bg-secondary/70 p-0.5"
@@ -511,14 +610,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                   ))}
                 </div>
 
-                {/* Digital LED Real-time Clock */}
-                <div className="led-clock flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
-                  <span className="hidden text-[9px] font-semibold tracking-widest text-slate-400 sm:inline">
-                    {dateLabel}
-                  </span>
-                  <span className="inline-block size-1.5 rounded-full fx-run-dot" aria-hidden />
-                  <span className="font-mono tabular-nums">{timeLabel}</span>
-                </div>
+                {/* Digital LED Real-time Clock (Isolated Leaf Component) */}
+                <LedClock />
 
                 <Button
                   variant="ghost"

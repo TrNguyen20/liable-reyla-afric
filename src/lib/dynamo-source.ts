@@ -99,11 +99,12 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
     const don_vi_tinh = (r['don_vi_tinh'] ?? '').trim().toLowerCase() === 'kg' ? 'Kg' : 'pcs';
     const thanh_tien = num(r['thanh_tien']) || Math.round((don_vi_tinh === 'Kg' ? kg_Lot : so_luong) * don_gia);
     const raw = (r['TrangThai'] ?? '').trim();
+    const TrangThai: Status = statusMap[raw] ?? 'Đang tại Vendor';
     if (raw && !statusMap[raw]) unknownStatus.push(`${ID_Key}: "${raw}"`);
     if ((r['ngay_gui_QT'] && !toIsoDate(r['ngay_gui_QT'])) || (r['ngay_nhan_QT'] && !ngay_nhan)) badDates++;
     const srcDue = toIsoDate(r['han_tra']);
     if (!srcDue) estimatedDue++;
-    const TrangThai: Status = ngay_nhan ? 'Đã nhập kho' : (statusMap[raw] ?? 'Chờ xuất xưởng');
+    const ghi_chu = (r['ghi_chu'] ?? r['Ghi_chu'] ?? r['Ghi chú'] ?? r['GHI_CHU'] ?? r['note'] ?? r['Note'] ?? '').trim();
     items.push({
       ID_Key, phong_sx,
       doi_tuong_hang: (r['doi_tuong_hang'] ?? '').trim() || (phong_sx === 'MOLD' ? 'Khuôn' : 'Linh kiện khuôn'),
@@ -118,6 +119,7 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
       han_tra_est: !srcDue,
       ngay_nhan: ngay_nhan || undefined,
       cong_doan: (r['loai_hang'] ?? '').trim() || 'Nhiệt luyện',
+      ghi_chu: ghi_chu || undefined,
     });
   }
   return { items, total: rows.length, skipped, duplicates, unknownStatus, estimatedDue, badDates };

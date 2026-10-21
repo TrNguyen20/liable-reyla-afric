@@ -21,7 +21,7 @@ export const roleLabel = (role: Role) => {
 };
 export const roleBadge = (role: Role) => getVendorScope(role) ? 'bg-warning/20 text-warning' : role === 'admin' ? 'bg-dynamo/20 text-dynamo' : role === 'leader' ? 'bg-sidebar-primary/20 text-sidebar-primary' : 'bg-info/20 text-info';
 
-const RESTRICTED = ['/sync', '/audit-costs'];
+const RESTRICTED = ['/sync'];
 export const canAccessRoute = (role: Role, path: string) => {
   if (role === 'admin') return true;
   if (role === 'leader') return !path.startsWith('/sync');

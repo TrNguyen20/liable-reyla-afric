@@ -59,23 +59,39 @@ export function ShopfloorTelemetry() {
   }, [left, auto]);
 
   const m = useMemo(() => {
-    const open = filtered.filter(isOpen);
-    const kg = open.filter((r) => r.don_vi_tinh === 'Kg').reduce((a, r) => a + r.kg_Lot, 0);
-    const pcs = open.filter((r) => r.don_vi_tinh === 'pcs').reduce((a, r) => a + r.so_luong, 0);
+    let waiting = 0;
+    let atVendor = 0;
+    let stocked = 0;
+    let kg = 0;
+    let pcs = 0;
+    const wsMap: Record<string, number> = { PIN: 0, INSERT: 0, MOLD: 0 };
+
+    for (let i = 0; i < filtered.length; i++) {
+      const r = filtered[i];
+      if (r.TrangThai === 'Chờ xuất xưởng') waiting++;
+      else if (r.TrangThai === 'Đang tại Vendor') atVendor++;
+      else if (r.TrangThai === 'Đã nhập kho') stocked++;
+
+      if (isOpen(r)) {
+        if (r.don_vi_tinh === 'Kg') kg += r.kg_Lot;
+        else pcs += r.so_luong;
+        if (wsMap[r.phong_sx] !== undefined) wsMap[r.phong_sx]++;
+      }
+    }
+
     const ws = (['PIN', 'INSERT', 'MOLD'] as const).map((w) => ({
       w,
-      n: open.filter((r) => r.phong_sx === w).length,
+      n: wsMap[w] || 0,
     }));
-    const rateInfo = onTimeRate(filtered);
+
     return {
-      open: open.length,
+      open: waiting + atVendor,
       kg,
       pcs,
-      over: filtered.filter((r) => isOverdue(r)).length,
-      soon: filtered.filter((r) => isDueSoon(r)).length,
+      waiting,
+      atVendor,
+      stocked,
       ws,
-      otd: rateInfo.rate !== null ? Math.round(rateInfo.rate * 100) : null,
-      doneMeasurable: rateInfo.denominator,
     };
   }, [filtered]);
 
@@ -139,43 +155,17 @@ export function ShopfloorTelemetry() {
           </p>
         </div>
 
-        {/* Cột 3: Cảnh báo Andon & Đúng hạn (OTD) */}
+        {/* Cột 3: Tiến độ Luân chuyển thực tế */}
         <div className="flex items-center flex-wrap gap-1.5 px-4 py-2">
-          <Link
-            to="/tracking"
-            search={{ focus: 'overdue' }}
-            className={`flex items-center gap-1 rounded-sm border px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums transition-all ${
-              m.over > 0
-                ? 'border-destructive/60 bg-destructive/15 text-destructive andon-pulse hover:bg-destructive/25'
-                : 'border-border/60 text-muted-foreground hover:bg-background'
-            }`}
-          >
-            {m.over > 0 && <AlertTriangle size={11} className="shrink-0" />}
-            {m.over} quá hạn
-          </Link>
-          <Link
-            to="/tracking"
-            search={{ focus: 'due_soon' }}
-            className={`rounded-sm border px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums transition-all ${
-              m.soon > 0
-                ? 'border-warning/60 bg-warning/15 text-warning hover:bg-warning/25'
-                : 'border-border/60 text-muted-foreground hover:bg-background'
-            }`}
-          >
-            {m.soon} cận hạn 48h
-          </Link>
-          {m.otd !== null && (
-            <span
-              title={`Tỷ lệ đúng hạn dựa trên ${m.doneMeasurable} lô đã nhập kho`}
-              className={`rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums ${
-                m.otd >= 90
-                  ? 'border-primary/40 bg-primary/10 text-primary'
-                  : 'border-warning/40 bg-warning/10 text-warning'
-              }`}
-            >
-              {m.otd}% OTD
-            </span>
-          )}
+          <span className="rounded-sm border border-border/80 bg-background/80 px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-foreground">
+            {m.waiting} Chờ xuất
+          </span>
+          <span className="rounded-sm border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-primary">
+            {m.atVendor} Đang tại Vendor
+          </span>
+          <span className="rounded-sm border border-border/60 bg-secondary/80 px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums text-muted-foreground">
+            {m.stocked} Đã nhập kho
+          </span>
         </div>
 
         {/* Cột 4: Tải theo phân xưởng */}

@@ -1,35 +1,58 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
+import { JobTicketButton, BatchJobTicketModal } from '@/components/job-ticket';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
-import { JobTicketButton } from '@/components/job-ticket';
-import { auditFor, failedSyncIds } from '@/lib/dynamo-workflow';
+import { auditFor, failedSyncIds, appendAudit } from '@/lib/dynamo-workflow';
 import {
-  ArrowRight,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Check,
+  CheckCheck,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
-  Columns3,
   Copy,
   Download,
-  GanttChart,
+  Edit2,
+  FileText,
+  Filter,
+  Layers,
   PackageOpen,
-  Table2,
+  Printer,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Trash2,
+  Undo2,
   X,
+  Zap,
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PageHeading, useDynamo } from '@/components/dynamo-shell';
 import { playAudioCue } from '@/lib/audio-cues';
-import { date, daysLate, money, number, type QTItem, type Status } from '@/lib/dynamo-data';
-import { formatVendorName } from '@/lib/dynamo-auth';
+import { date, money, number, type QTItem, type Status, type Workshop, type Vendor } from '@/lib/dynamo-data';
+import { formatVendorName, canViewPricing } from '@/lib/dynamo-auth';
 import { isMaterialEquivalent } from '@/lib/materials-data';
-import { daysOver, hasValidDue, isDueSoon, isOverdue, logisticsOf, qcOf, type Logistics, type QcState } from '@/lib/dynamo-rules';
+import {
+  hasValidDue,
+  logisticsOf,
+  qcOf,
+  type Logistics,
+  type QcState,
+} from '@/lib/dynamo-rules';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/tracking')({
   head: () => ({
     meta: [
       { title: 'Luân chuyển QT | DYNAMO VIETNAM QT - MES' },
-      { name: 'description', content: 'Timeline giám sát lô gia công theo đơn hàng từ xuất xưởng đến nhập kho.' },
+      { name: 'description', content: 'Bảng theo dõi và điều độ luân chuyển gia công nhiệt luyện, xi mạ cho PIN, INSERT và MOLD.' },
       { property: 'og:title', content: 'Luân chuyển QT | DYNAMO VIETNAM QT - MES' },
-      { property: 'og:description', content: 'Theo dõi tiến độ và cảnh báo quá hạn gia công ngoài.' },
+      { property: 'og:description', content: 'Giám sát tiến độ, hạn trả và điều độ các lô hàng gia công nhiệt luyện, xi mạ.' },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary' },
     ],
@@ -41,256 +64,613 @@ export const Route = createFileRoute('/tracking')({
   component: Tracking,
 });
 
-type Priority = 'critical' | 'warning' | 'due_soon' | 'on_track' | 'done';
-const PRIORITIES: { key: Priority; label: string; dot: string; chip: string }[] = [
-  { key: 'critical', label: 'Quá hạn > 3 ngày', dot: 'bg-destructive', chip: 'border-destructive/60 bg-destructive/15 text-destructive' },
-  { key: 'warning', label: 'Trễ 1 – 3 ngày', dot: 'bg-warning', chip: 'border-warning/60 bg-warning/15 text-warning' },
-  { key: 'due_soon', label: 'Cận hạn trong 48h', dot: 'bg-info', chip: 'border-info/60 bg-info/15 text-info' },
-  { key: 'on_track', label: 'Đúng hạn (đang chạy)', dot: 'bg-primary', chip: 'border-primary/60 bg-primary/15 text-primary' },
-  { key: 'done', label: 'Đã nhập kho', dot: 'bg-muted-foreground', chip: 'border-border bg-secondary text-muted-foreground' },
-];
-
-type Focus = 'overdue' | 'due_soon' | 'est_due' | 'sync_failed' | 'no_qc' | 'qc_fail';
+type Focus = 'est_due' | 'sync_failed' | 'no_qc' | 'qc_fail';
 const FOCUS: { key: Focus; label: string; tone: string }[] = [
-  { key: 'overdue', label: 'Quá hạn', tone: 'border-destructive/60 bg-destructive/15 text-destructive' },
-  { key: 'due_soon', label: 'Cận hạn 48h', tone: 'border-warning/60 bg-warning/15 text-warning' },
   { key: 'est_due', label: 'Hạn trả ước tính', tone: 'border-border bg-secondary text-muted-foreground' },
   { key: 'sync_failed', label: 'Ghi Sheet lỗi', tone: 'border-warning/60 bg-warning/15 text-warning' },
   { key: 'no_qc', label: 'Nhập kho chưa QC', tone: 'border-info/60 bg-info/15 text-info' },
   { key: 'qc_fail', label: 'QC không đạt', tone: 'border-destructive/60 bg-destructive/15 text-destructive' },
 ];
 
-const PAGE_SIZES = [10, 30, 50, 100];
+const PAGE_SIZES = [30, 50, 100, 200];
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const DAY = 86400000;
 
-function priorityOf(row: QTItem): Priority {
-  if (row.TrangThai === 'Đã nhập kho') return 'done';
-  if (!hasValidDue(row)) return 'on_track';
-  const late = daysOver(row);
-  if (late > 3) return 'critical';
-  if (late > 0) return 'warning';
-  if (late >= -2) return 'due_soon';
-  return 'on_track';
+type SortField =
+  | 'ID_Key'
+  | 'So_DatHang'
+  | 'phong_sx'
+  | 'ma_hang'
+  | 'vat_lieu'
+  | 'do_cung'
+  | 'so_luong'
+  | 'kg_Lot'
+  | 'cty_QT'
+  | 'TrangThai'
+  | 'qc'
+  | 'ngay_gui_QT'
+  | 'han_tra'
+  | 'ghi_chu';
+
+type SortDirection = 'asc' | 'desc';
+
+interface TableFilterState {
+  idKeySearch: string;
+  orderSearch: string;
+  workshops: Workshop[];
+  itemSearch: string;
+  materials: string[];
+  hardnessSearch: string;
+  missingHardnessOnly: boolean;
+  qtyMin: string;
+  qtyMax: string;
+  kgMin: string;
+  kgMax: string;
+  vendors: string[];
+  logistics: Logistics[];
+  qcStates: QcState[];
+  sendFrom: string;
+  sendTo: string;
+  dueFrom: string;
+  dueTo: string;
+  missingDueOnly: boolean;
+  noteSearch: string;
+  hasNoteOnly: boolean;
 }
 
-const RANK: Record<Priority, number> = { critical: 0, warning: 1, due_soon: 2, on_track: 3, done: 4 };
+const defaultFilters: TableFilterState = {
+  idKeySearch: '',
+  orderSearch: '',
+  workshops: [],
+  itemSearch: '',
+  materials: [],
+  hardnessSearch: '',
+  missingHardnessOnly: false,
+  qtyMin: '',
+  qtyMax: '',
+  kgMin: '',
+  kgMax: '',
+  vendors: [],
+  logistics: [],
+  qcStates: [],
+  sendFrom: '',
+  sendTo: '',
+  dueFrom: '',
+  dueTo: '',
+  missingDueOnly: false,
+  noteSearch: '',
+  hasNoteOnly: false,
+};
+
+function HeaderSortControls({
+  field,
+  currentField,
+  currentDir,
+  onSort,
+  ascLabel = 'A → Z (Tăng dần)',
+  descLabel = 'Z → A (Giảm dần)',
+}: {
+  field: SortField;
+  currentField: SortField;
+  currentDir: SortDirection;
+  onSort: (field: SortField, dir: SortDirection) => void;
+  ascLabel?: string;
+  descLabel?: string;
+}) {
+  const isAsc = currentField === field && currentDir === 'asc';
+  const isDesc = currentField === field && currentDir === 'desc';
+
+  return (
+    <div className="border-b border-border/70 pb-2.5 mb-2.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+          Sắp xếp cột này:
+        </span>
+        {currentField === field && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-primary font-mono font-bold">
+            <Check size={11} className="stroke-[3]" /> Đang chọn
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => onSort(field, 'asc')}
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+            isAsc
+              ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
+              : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
+          }`}
+        >
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <ArrowUp size={13} className={isAsc ? 'text-primary stroke-[2.5]' : 'text-muted-foreground'} />
+            <span className="truncate">{ascLabel}</span>
+          </span>
+          {isAsc && <Check size={13} className="text-primary stroke-[2.5] shrink-0" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => onSort(field, 'desc')}
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+            isDesc
+              ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
+              : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
+          }`}
+        >
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <ArrowDown size={13} className={isDesc ? 'text-primary stroke-[2.5]' : 'text-muted-foreground'} />
+            <span className="truncate">{descLabel}</span>
+          </span>
+          {isDesc && <Check size={13} className="text-primary stroke-[2.5] shrink-0" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function HeaderFilterCell({
+  title,
+  field,
+  sortCol,
+  sortDir,
+  isFiltered,
+  children,
+  className = '',
+  stickyClass = '',
+  align = 'start',
+}: {
+  title: string;
+  field?: SortField;
+  sortCol: SortField;
+  sortDir: SortDirection;
+  isFiltered?: boolean;
+  children: React.ReactNode;
+  className?: string;
+  stickyClass?: string;
+  align?: 'start' | 'end' | 'center';
+}) {
+  const [open, setOpen] = useState(false);
+  const isSorted = field && sortCol === field;
+  return (
+    <th
+      className={`whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground ${stickyClass} ${className}`}
+    >
+      <div
+        className={`flex items-center gap-1 ${
+          align === 'end' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-between'
+        }`}
+      >
+        <span className="truncate">{title}</span>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`inline-flex size-5 shrink-0 items-center justify-center rounded transition-all cursor-pointer ${
+                isFiltered
+                  ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
+                  : isSorted
+                  ? 'bg-primary/20 text-primary border border-primary/40 font-bold'
+                  : 'text-muted-foreground/60 hover:bg-background/80 hover:text-foreground'
+              }`}
+              title={`Lọc & sắp xếp ${title}`}
+            >
+              {isSorted ? (
+                sortDir === 'asc' ? (
+                  <ArrowUp size={11} className="stroke-[2.5]" />
+                ) : (
+                  <ArrowDown size={11} className="stroke-[2.5]" />
+                )
+              ) : (
+                <Filter size={10} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.5]'} />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align={align === 'end' ? 'end' : 'start'}
+            sideOffset={6}
+            className="w-80 max-w-[92vw] p-3 text-xs bg-popover text-popover-foreground shadow-2xl border border-border rounded-lg z-50 font-sans normal-case tracking-normal"
+          >
+            {open && children}
+          </PopoverContent>
+        </Popover>
+      </div>
+    </th>
+  );
+}
 
 function Tracking() {
-  const { filtered: all, role } = useDynamo();
+  const { filtered: all, role, updateItem, bulkUpdateItems } = useDynamo();
+  const searchParams = Route.useSearch();
 
-  const search = Route.useSearch();
-  const [focus, setFocus] = useState<Focus | null>(search.focus ?? null);
-  const [materialFilter, setMaterialFilter] = useState<string | null>(search.material ?? null);
-  const [failed, setFailed] = useState<Set<string>>(new Set());
+  // Integrated Google Sheets Filter State
+  const [filters, setFilters] = useState<TableFilterState>(() => ({
+    ...defaultFilters,
+    materials: searchParams.material ? [searchParams.material] : [],
+    missingDueOnly: searchParams.focus === 'est_due',
+    qcStates: searchParams.focus === 'qc_fail' ? ['Không đạt'] : [],
+  }));
 
-  useEffect(() => {
-    const f = () => setFailed(failedSyncIds());
-    f();
-    window.addEventListener('dynamo-audit', f);
-    return () => window.removeEventListener('dynamo-audit', f);
-  }, []);
+  // Sorting state - default to newest sent date
+  const [sortCol, setSortCol] = useState<SortField>('ngay_gui_QT');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
-  useEffect(() => {
-    setFocus(search.focus ?? null);
-  }, [search.focus]);
+  // Search inside material popover
+  const [materialSearchText, setMaterialSearchText] = useState('');
 
-  useEffect(() => {
-    setMaterialFilter(search.material ?? null);
-  }, [search.material]);
-
-  const inFocus = (r: QTItem, f: Focus) =>
-    f === 'overdue'
-      ? isOverdue(r)
-      : f === 'due_soon'
-      ? isDueSoon(r)
-      : f === 'est_due'
-      ? !!r.han_tra_est && r.TrangThai !== 'Đã nhập kho'
-      : f === 'no_qc'
-      ? r.TrangThai === 'Đã nhập kho' && qcOf(r) !== 'Đạt'
-      : f === 'qc_fail'
-      ? qcOf(r) === 'Không đạt'
-      : failed.has(r.ID_Key);
-
-  const focusCounts = useMemo(
-    () =>
-      Object.fromEntries(FOCUS.map((f) => [f.key, all.filter((r) => inFocus(r, f.key)).length])) as Record<
-        Focus,
-        number
-      >,
-    [all, failed],
-  );
-
-  const filtered = useMemo(() => {
-    let list = focus ? all.filter((r) => inFocus(r, focus)) : all;
-    if (materialFilter) {
-      list = list.filter((r) => isMaterialEquivalent(r.vat_lieu, materialFilter));
-    }
-    return list;
-  }, [all, focus, failed, materialFilter]);
-
-  const [view, setView] = useState<'timeline' | 'kanban' | 'table'>('timeline');
-  const [orderLimit, setOrderLimit] = useState(30);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [detail, setDetail] = useState<QTItem | null>(null);
-  const [picked, setPicked] = useState<Priority[]>([]);
-  const [vendor, setVendor] = useState('all');
-  const [logi, setLogi] = useState<'all' | Logistics>('all');
-  const [qc, setQc] = useState<'all' | QcState>('all');
-  const [missDue, setMissDue] = useState(false);
-  const [sort, setSort] = useState<'priority' | 'han_tra' | 'ID_Key'>('priority');
-  const [dateField, setDateField] = useState<'ngay_gui_QT' | 'han_tra'>('ngay_gui_QT');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [pageSize, setPageSize] = useState(30);
-  const [shown, setShown] = useState<Record<string, number>>({});
+  // Pagination states
   const [tablePage, setTablePage] = useState(0);
-  const [range, setRange] = useState<'all' | 'today' | 'week' | 'this' | 'prev' | 'custom'>('all');
+  const [pageSize, setPageSize] = useState(30);
 
-  const enriched = useMemo(() => filtered.map((row) => ({ row, p: priorityOf(row) })), [filtered]);
-
-  const rows = useMemo(() => {
-    const set = new Set(picked);
-    return enriched
-      .filter(({ row, p }) => {
-        if (set.size && !set.has(p)) return false;
-        if (vendor !== 'all' && row.cty_QT !== vendor) return false;
-        if (logi !== 'all' && logisticsOf(row) !== logi) return false;
-        if (qc !== 'all' && qcOf(row) !== qc) return false;
-        if (missDue && hasValidDue(row)) return false;
-        const d = row[dateField];
-        if (from && d < from) return false;
-        if (to && d > to) return false;
-        return true;
-      })
-      .sort((a, b) =>
-        sort === 'ID_Key'
-          ? a.row.ID_Key.localeCompare(b.row.ID_Key)
-          : sort === 'han_tra'
-          ? a.row.han_tra.localeCompare(b.row.han_tra) || a.row.ID_Key.localeCompare(b.row.ID_Key)
-          : RANK[a.p] - RANK[b.p] || a.row.han_tra.localeCompare(b.row.han_tra),
-      )
-      .map((x) => x.row);
-  }, [enriched, picked, vendor, logi, qc, missDue, dateField, from, to, sort]);
-
-  const counts = useMemo(() => {
-    const map = { critical: 0, warning: 0, due_soon: 0, on_track: 0, done: 0 } as Record<Priority, number>;
-    for (const e of enriched) map[e.p]++;
-    return map;
-  }, [enriched]);
-
-  const vendors = useMemo(() => [...new Set(all.map((i) => String(i.cty_QT)))].sort(), [all]);
-  const lateCount = useMemo(() => rows.filter((r) => isOverdue(r)).length, [rows]);
-  const totalKg = useMemo(() => rows.reduce((a, i) => a + i.kg_Lot, 0), [rows]);
-
-  const toggle = (p: Priority) => {
-    setPicked((v) => (v.includes(p) ? v.filter((x) => x !== p) : [...v, p]));
-    setShown({});
-    setTablePage(0);
-  };
-
-  const reset = () => {
-    setPicked([]);
-    setVendor('all');
-    setLogi('all');
-    setQc('all');
-    setMissDue(false);
-    setMaterialFilter(null);
-    setSort('priority');
-    setFrom('');
-    setTo('');
-    setShown({});
-    setTablePage(0);
-  };
-
-  const preset = (kind: 'today' | 'week' | 'this' | 'prev' | 'all') => {
-    const now = new Date();
-    if (kind === 'all') {
-      setFrom('');
-      setTo('');
-    }
-    if (kind === 'today') {
-      const t = ymd(now);
-      setFrom(t);
-      setTo(t);
-    }
-    if (kind === 'week') {
-      setFrom(ymd(new Date(now.getTime() - 6 * DAY)));
-      setTo(ymd(now));
-    }
-    if (kind === 'this') {
-      setFrom(ymd(new Date(now.getFullYear(), now.getMonth(), 1)));
-      setTo(ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
-    }
-    if (kind === 'prev') {
-      setFrom(ymd(new Date(now.getFullYear(), now.getMonth() - 1, 1)));
-      setTo(ymd(new Date(now.getFullYear(), now.getMonth(), 0)));
-    }
-    setShown({});
-    setTablePage(0);
-  };
-
-  const shiftMonth = (dir: -1 | 1) => {
-    const base = from ? new Date(from + 'T00:00:00') : new Date();
-    const m = new Date(base.getFullYear(), base.getMonth() + dir, 1);
-    setFrom(ymd(m));
-    setTo(ymd(new Date(m.getFullYear(), m.getMonth() + 1, 0)));
-    setShown({});
-    setTablePage(0);
-  };
-
-  const exportCsv = () => {
-    const head = [
-      'ID_Key',
-      'So_DatHang',
-      'phong_sx',
-      'ma_hang',
-      'vat_lieu',
-      'do_cung',
-      'so_luong',
-      'kg_Lot',
-      'cty_QT',
-      'Logistics',
-      'QC',
-      'ngay_gui_QT',
-      'han_tra',
-      'Han_tra_uoc_tinh',
-      'Tre_ngay',
-    ];
-    const body = rows.map((r) =>
-      [
-        r.ID_Key,
-        r.So_DatHang,
-        r.phong_sx,
-        r.ma_hang,
-        r.vat_lieu,
-        r.do_cung,
-        r.so_luong,
-        r.kg_Lot,
-        r.cty_QT,
-        logisticsOf(r),
-        qcOf(r),
-        r.ngay_gui_QT,
-        r.han_tra,
-        r.han_tra_est ? 1 : 0,
-        hasValidDue(r) && isOverdue(r) ? daysOver(r) : 0,
-      ].join(','),
-    );
-    const url = URL.createObjectURL(
-      new Blob(['\ufeff' + [head.join(','), ...body].join('\n')], { type: 'text/csv;charset=utf-8' }),
-    );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'luan-chuyen-qt.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const tableRows = rows.slice(tablePage * pageSize, tablePage * pageSize + pageSize);
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-
+  // Selection states (for Bulk Actions)
   const [selectedLots, setSelectedLots] = useState<Set<string>>(new Set());
 
+  // Drawer / Modals states
+  const [detailLot, setDetailLot] = useState<QTItem | null>(null);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [batchPrintOpen, setBatchPrintOpen] = useState(false);
+
+  // Inline Quick-Edit State
+  type EditableField =
+    | 'ma_hang'
+    | 'vat_lieu'
+    | 'do_cung'
+    | 'so_luong'
+    | 'kg_Lot'
+    | 'cty_QT'
+    | 'ngay_gui_QT'
+    | 'han_tra'
+    | 'logistics'
+    | 'qc'
+    | 'ghi_chu';
+  const [editingCell, setEditingCell] = useState<{ id: string; field: EditableField } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [savedCellKey, setSavedCellKey] = useState<string | null>(null);
+
+  const handleSort = (field: SortField, dir: SortDirection) => {
+    setSortCol(field);
+    setSortDir(dir);
+    setTablePage(0);
+    playAudioCue('beep');
+  };
+
+  const toggleInArray = <T,>(arr: T[], item: T): T[] => {
+    return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
+  };
+
+  const setDatePreset = (
+    field: 'send' | 'due',
+    preset: 'today' | '7days' | 'this_month' | 'prev_month' | 'all',
+  ) => {
+    const now = new Date();
+    if (preset === 'all') {
+      if (field === 'send') setFilters((f) => ({ ...f, sendFrom: '', sendTo: '' }));
+      else setFilters((f) => ({ ...f, dueFrom: '', dueTo: '' }));
+    } else if (preset === 'today') {
+      const t = ymd(now);
+      if (field === 'send') setFilters((f) => ({ ...f, sendFrom: t, sendTo: t }));
+      else setFilters((f) => ({ ...f, dueFrom: t, dueTo: t }));
+    } else if (preset === '7days') {
+      if (field === 'send') {
+        setFilters((f) => ({ ...f, sendFrom: ymd(new Date(now.getTime() - 6 * DAY)), sendTo: ymd(now) }));
+      } else {
+        setFilters((f) => ({ ...f, dueFrom: ymd(now), dueTo: ymd(new Date(now.getTime() + 7 * DAY)) }));
+      }
+    } else if (preset === 'this_month') {
+      const fDate = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
+      const tDate = ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      if (field === 'send') setFilters((f) => ({ ...f, sendFrom: fDate, sendTo: tDate }));
+      else setFilters((f) => ({ ...f, dueFrom: fDate, dueTo: tDate }));
+    } else if (preset === 'prev_month') {
+      const fDate = ymd(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+      const tDate = ymd(new Date(now.getFullYear(), now.getMonth(), 0));
+      if (field === 'send') setFilters((f) => ({ ...f, sendFrom: fDate, sendTo: tDate }));
+      else setFilters((f) => ({ ...f, dueFrom: fDate, dueTo: tDate }));
+    }
+    setTablePage(0);
+    playAudioCue('beep');
+  };
+
+  // Distinct values extracted from dataset
+  const allMaterials = useMemo(() => {
+    const set = new Set<string>();
+    all.forEach((i) => {
+      if (i.vat_lieu && i.vat_lieu !== '—') set.add(i.vat_lieu);
+    });
+    return Array.from(set).sort();
+  }, [all]);
+
+  const allVendors = useMemo(() => {
+    const set = new Set<string>();
+    all.forEach((i) => {
+      if (i.cty_QT) set.add(String(i.cty_QT));
+    });
+    return Array.from(set).sort();
+  }, [all]);
+
+  const workshops = useMemo(() => [...new Set(all.map((i) => i.phong_sx))].sort(), [all]);
+
+  // Single-pass O(N) aggregation: computes all badge counts across 25,638 items in ~3ms
+  const counts = useMemo(() => {
+    const ws: Record<string, number> = {};
+    const mat: Record<string, number> = {};
+    const ven: Record<string, number> = {};
+    const log: Record<string, number> = {};
+    const qc: Record<string, number> = {};
+
+    for (let i = 0; i < all.length; i++) {
+      const it = all[i];
+      ws[it.phong_sx] = (ws[it.phong_sx] || 0) + 1;
+      const v = String(it.cty_QT);
+      ven[v] = (ven[v] || 0) + 1;
+      const m = it.vat_lieu || '—';
+      mat[m] = (mat[m] || 0) + 1;
+      const l = logisticsOf(it);
+      log[l] = (log[l] || 0) + 1;
+      const q = qcOf(it);
+      qc[q] = (qc[q] || 0) + 1;
+    }
+    return { ws, mat, ven, log, qc };
+  }, [all]);
+
+  // Comprehensive table filtering and sorting
+  const rows = useMemo(() => {
+    return all
+      .filter((row) => {
+        // 1. ID_Key
+        if (filters.idKeySearch && !row.ID_Key.toLowerCase().includes(filters.idKeySearch.toLowerCase())) {
+          return false;
+        }
+        // 2. So_DatHang
+        if (filters.orderSearch && !row.So_DatHang.toLowerCase().includes(filters.orderSearch.toLowerCase())) {
+          return false;
+        }
+        // 3. phong_sx
+        if (filters.workshops.length > 0 && !filters.workshops.includes(row.phong_sx as Workshop)) {
+          return false;
+        }
+        // 4. ma_hang
+        if (filters.itemSearch && !row.ma_hang.toLowerCase().includes(filters.itemSearch.toLowerCase())) {
+          return false;
+        }
+        // 5. vat_lieu
+        if (filters.materials.length > 0) {
+          const matches = filters.materials.some((m) => isMaterialEquivalent(row.vat_lieu, m));
+          if (!matches) return false;
+        }
+        // 6. do_cung
+        if (filters.missingHardnessOnly && row.do_cung && row.do_cung !== '—') {
+          return false;
+        }
+        if (filters.hardnessSearch && !row.do_cung.toLowerCase().includes(filters.hardnessSearch.toLowerCase())) {
+          return false;
+        }
+        // 7. so_luong
+        if (filters.qtyMin && row.so_luong < Number(filters.qtyMin)) return false;
+        if (filters.qtyMax && row.so_luong > Number(filters.qtyMax)) return false;
+        // 8. kg_Lot
+        if (filters.kgMin && row.kg_Lot < Number(filters.kgMin)) return false;
+        if (filters.kgMax && row.kg_Lot > Number(filters.kgMax)) return false;
+        // 9. cty_QT
+        if (filters.vendors.length > 0 && !filters.vendors.includes(String(row.cty_QT))) {
+          return false;
+        }
+        // 10. Logistics
+        if (filters.logistics.length > 0 && !filters.logistics.includes(logisticsOf(row))) {
+          return false;
+        }
+        // 11. QC
+        if (filters.qcStates.length > 0 && !filters.qcStates.includes(qcOf(row))) {
+          return false;
+        }
+        // 12. ngay_gui_QT
+        if (filters.sendFrom && row.ngay_gui_QT < filters.sendFrom) return false;
+        if (filters.sendTo && row.ngay_gui_QT > filters.sendTo) return false;
+        // 13. han_tra
+        if (filters.missingDueOnly && hasValidDue(row)) return false;
+        if (filters.dueFrom && row.han_tra < filters.dueFrom) return false;
+        if (filters.dueTo && row.han_tra > filters.dueTo) return false;
+        // 14. ghi_chu
+        if (filters.noteSearch && !(row.ghi_chu ?? '').toLowerCase().includes(filters.noteSearch.toLowerCase())) {
+          return false;
+        }
+        if (filters.hasNoteOnly && !row.ghi_chu) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        let cmp = 0;
+        switch (sortCol) {
+          case 'ID_Key':
+            cmp = a.ID_Key.localeCompare(b.ID_Key);
+            break;
+          case 'So_DatHang':
+            cmp = a.So_DatHang.localeCompare(b.So_DatHang);
+            break;
+          case 'phong_sx':
+            cmp = a.phong_sx.localeCompare(b.phong_sx);
+            break;
+          case 'ma_hang':
+            cmp = a.ma_hang.localeCompare(b.ma_hang);
+            break;
+          case 'vat_lieu':
+            cmp = a.vat_lieu.localeCompare(b.vat_lieu);
+            break;
+          case 'do_cung':
+            cmp = a.do_cung.localeCompare(b.do_cung);
+            break;
+          case 'so_luong':
+            cmp = a.so_luong - b.so_luong;
+            break;
+          case 'kg_Lot':
+            cmp = a.kg_Lot - b.kg_Lot;
+            break;
+          case 'cty_QT':
+            cmp = String(a.cty_QT).localeCompare(String(b.cty_QT));
+            break;
+          case 'TrangThai':
+            cmp = a.TrangThai.localeCompare(b.TrangThai);
+            break;
+          case 'qc':
+            cmp = qcOf(a).localeCompare(qcOf(b));
+            break;
+          case 'han_tra':
+            cmp = a.han_tra.localeCompare(b.han_tra);
+            break;
+          case 'ghi_chu':
+            cmp = (a.ghi_chu ?? '').localeCompare(b.ghi_chu ?? '');
+            break;
+          case 'ngay_gui_QT':
+          default:
+            cmp = a.ngay_gui_QT.localeCompare(b.ngay_gui_QT) || a.han_tra.localeCompare(b.han_tra);
+            break;
+        }
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+  }, [all, filters, sortCol, sortDir]);
+
+  // Đề xuất 3: Danh sách các bộ lọc đang kích hoạt để tạo thanh pill tóm tắt 1-chạm
+  const activeFilters = useMemo(() => {
+    const list: { key: string; label: string; onClear: () => void }[] = [];
+    if (filters.idKeySearch) {
+      list.push({
+        key: 'idKey',
+        label: `Lô: "${filters.idKeySearch}"`,
+        onClear: () => setFilters((f) => ({ ...f, idKeySearch: '' })),
+      });
+    }
+    if (filters.orderSearch) {
+      list.push({
+        key: 'order',
+        label: `Đơn: "${filters.orderSearch}"`,
+        onClear: () => setFilters((f) => ({ ...f, orderSearch: '' })),
+      });
+    }
+    if (filters.workshops.length) {
+      list.push({
+        key: 'workshops',
+        label: `Xưởng: ${filters.workshops.join(', ')}`,
+        onClear: () => setFilters((f) => ({ ...f, workshops: [] })),
+      });
+    }
+    if (filters.itemSearch) {
+      list.push({
+        key: 'item',
+        label: `Mã hàng: "${filters.itemSearch}"`,
+        onClear: () => setFilters((f) => ({ ...f, itemSearch: '' })),
+      });
+    }
+    if (filters.materials.length) {
+      list.push({
+        key: 'materials',
+        label: `Vật liệu (${filters.materials.length}): ${filters.materials.slice(0, 2).join(', ')}${
+          filters.materials.length > 2 ? '…' : ''
+        }`,
+        onClear: () => setFilters((f) => ({ ...f, materials: [] })),
+      });
+    }
+    if (filters.hardnessSearch) {
+      list.push({
+        key: 'hardness',
+        label: `Độ cứng: "${filters.hardnessSearch}"`,
+        onClear: () => setFilters((f) => ({ ...f, hardnessSearch: '' })),
+      });
+    }
+    if (filters.missingHardnessOnly) {
+      list.push({
+        key: 'missingHardness',
+        label: `Chưa có độ cứng`,
+        onClear: () => setFilters((f) => ({ ...f, missingHardnessOnly: false })),
+      });
+    }
+    if (filters.qtyMin || filters.qtyMax) {
+      list.push({
+        key: 'qty',
+        label: `SL: ${filters.qtyMin || '0'} → ${filters.qtyMax || '∞'}`,
+        onClear: () => setFilters((f) => ({ ...f, qtyMin: '', qtyMax: '' })),
+      });
+    }
+    if (filters.kgMin || filters.kgMax) {
+      list.push({
+        key: 'kg',
+        label: `Kg: ${filters.kgMin || '0'} → ${filters.kgMax || '∞'}`,
+        onClear: () => setFilters((f) => ({ ...f, kgMin: '', kgMax: '' })),
+      });
+    }
+    if (filters.vendors.length) {
+      list.push({
+        key: 'vendors',
+        label: `Đối tác: ${filters.vendors.map((v) => formatVendorName(v, role)).join(', ')}`,
+        onClear: () => setFilters((f) => ({ ...f, vendors: [] })),
+      });
+    }
+    if (filters.logistics.length) {
+      list.push({
+        key: 'logistics',
+        label: `Logistics: ${filters.logistics.join(', ')}`,
+        onClear: () => setFilters((f) => ({ ...f, logistics: [] })),
+      });
+    }
+    if (filters.qcStates.length) {
+      list.push({
+        key: 'qc',
+        label: `QC: ${filters.qcStates.join(', ')}`,
+        onClear: () => setFilters((f) => ({ ...f, qcStates: [] })),
+      });
+    }
+    if (filters.sendFrom || filters.sendTo) {
+      list.push({
+        key: 'sendDate',
+        label: `Gửi: ${filters.sendFrom || '…'} → ${filters.sendTo || '…'}`,
+        onClear: () => setFilters((f) => ({ ...f, sendFrom: '', sendTo: '' })),
+      });
+    }
+    if (filters.missingDueOnly) {
+      list.push({
+        key: 'missingDue',
+        label: `Thiếu hạn trả`,
+        onClear: () => setFilters((f) => ({ ...f, missingDueOnly: false })),
+      });
+    }
+    if (filters.dueFrom || filters.dueTo) {
+      list.push({
+        key: 'dueDate',
+        label: `Hạn: ${filters.dueFrom || '…'} → ${filters.dueTo || '…'}`,
+        onClear: () => setFilters((f) => ({ ...f, dueFrom: '', dueTo: '' })),
+      });
+    }
+    if (filters.noteSearch) {
+      list.push({
+        key: 'note',
+        label: `Ghi chú: "${filters.noteSearch}"`,
+        onClear: () => setFilters((f) => ({ ...f, noteSearch: '' })),
+      });
+    }
+    if (filters.hasNoteOnly) {
+      list.push({
+        key: 'hasNote',
+        label: 'Có ghi chú',
+        onClear: () => setFilters((f) => ({ ...f, hasNoteOnly: false })),
+      });
+    }
+    return list;
+  }, [filters, role]);
+
+  const totalKg = useMemo(() => rows.reduce((a, i) => a + i.kg_Lot, 0), [rows]);
+
+  const resetAllFilters = () => {
+    setFilters(defaultFilters);
+    setSortCol('ngay_gui_QT');
+    setSortDir('desc');
+    setTablePage(0);
+    playAudioCue('success');
+    toast.info('Đã xóa toàn bộ bộ lọc trên bảng.');
+  };
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const tableRows = rows.slice(tablePage * pageSize, tablePage * pageSize + pageSize);
+
+  // Checkbox selection
   const toggleSelectLot = (id: string) => {
     setSelectedLots((prev) => {
       const next = new Set(prev);
@@ -318,27 +698,26 @@ function Tracking() {
     });
   };
 
-  const exportSelectedCsv = () => {
-    const selectedRows = rows.filter((r) => selectedLots.has(r.ID_Key));
-    if (!selectedRows.length) return;
+  const exportCsv = (selectedOnly = false) => {
+    const targetRows = selectedOnly ? rows.filter((r) => selectedLots.has(r.ID_Key)) : rows;
+    if (!targetRows.length) return;
     const head = [
-      'ID_Key',
-      'So_DatHang',
-      'phong_sx',
-      'ma_hang',
-      'vat_lieu',
-      'do_cung',
-      'so_luong',
-      'kg_Lot',
-      'cty_QT',
+      'Mã lô (ID_Key)',
+      'Số đặt hàng (PO)',
+      'Phân xưởng',
+      'Mã hàng',
+      'Vật liệu',
+      'Độ cứng',
+      'Số lượng',
+      'Trọng lượng (kg)',
+      'Đối tác gia công',
       'Logistics',
       'QC',
-      'ngay_gui_QT',
-      'han_tra',
-      'Han_tra_uoc_tinh',
-      'Tre_ngay',
+      'Ngày gửi',
+      'Hạn trả',
+      'Ghi chú',
     ];
-    const body = selectedRows.map((r) =>
+    const body = targetRows.map((r) =>
       [
         r.ID_Key,
         r.So_DatHang,
@@ -348,13 +727,12 @@ function Tracking() {
         r.do_cung,
         r.so_luong,
         r.kg_Lot,
-        r.cty_QT,
+        formatVendorName(r.cty_QT, role),
         logisticsOf(r),
         qcOf(r),
-        r.ngay_gui_QT,
-        r.han_tra,
-        r.han_tra_est ? 1 : 0,
-        hasValidDue(r) && isOverdue(r) ? daysOver(r) : 0,
+        date(r.ngay_gui_QT),
+        date(r.han_tra),
+        `"${(r.ghi_chu ?? '').replace(/"/g, '""')}"`,
       ].join(','),
     );
     const url = URL.createObjectURL(
@@ -362,7 +740,7 @@ function Tracking() {
     );
     const a = document.createElement('a');
     a.href = url;
-    a.download = `luan-chuyen-selected-${selectedRows.length}-lo.csv`;
+    a.download = selectedOnly ? `luan-chuyen-qt-${targetRows.length}-lo.csv` : 'luan-chuyen-qt-toan-bo.csv';
     a.click();
     URL.revokeObjectURL(url);
     playAudioCue('success');
@@ -373,584 +751,294 @@ function Tracking() {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text);
       playAudioCue('success');
+      toast.success(`Đã sao chép ${selectedLots.size} mã lô vào bộ nhớ tạm!`);
     }
   };
+
+  // Inline Quick-Edit Handlers: All authenticated roles (viewer, qt_<vendor>, leader, admin) can edit operational fields
+  const canEdit = true;
+  const isAdmin = role === 'admin';
+
+  const getInitialValue = (item: QTItem, field: EditableField): string => {
+    switch (field) {
+      case 'ma_hang':
+        return item.ma_hang;
+      case 'vat_lieu':
+        return item.vat_lieu;
+      case 'do_cung':
+        return item.do_cung;
+      case 'so_luong':
+        return String(item.so_luong);
+      case 'kg_Lot':
+        return String(item.kg_Lot);
+      case 'cty_QT':
+        return item.cty_QT;
+      case 'ngay_gui_QT':
+        return item.ngay_gui_QT;
+      case 'han_tra':
+        return item.han_tra;
+      case 'ghi_chu':
+        return item.ghi_chu ?? '';
+      case 'logistics':
+        return item.TrangThai;
+      case 'qc':
+        return qcOf(item);
+      default:
+        return '';
+    }
+  };
+
+  const startInlineEdit = (id: string, field: EditableField, initialVal: string) => {
+    if (!canEdit) return;
+    if (field === 'cty_QT' && !isAdmin) return;
+    setEditingCell({ id, field });
+    setEditValue(initialVal);
+  };
+
+  const navigateCell = (
+    currentId: string,
+    currentField: EditableField,
+    direction: 'next-row' | 'prev-row' | 'next-col' | 'prev-col',
+  ) => {
+    const EDITABLE_FIELDS: EditableField[] = [
+      'ma_hang',
+      'vat_lieu',
+      'do_cung',
+      'so_luong',
+      'kg_Lot',
+      ...(isAdmin ? (['cty_QT'] as EditableField[]) : []),
+      'ngay_gui_QT',
+      'han_tra',
+      'ghi_chu',
+    ];
+
+    const currentRowIdx = tableRows.findIndex((r) => r.ID_Key === currentId);
+    if (currentRowIdx === -1) {
+      setEditingCell(null);
+      return;
+    }
+
+    if (direction === 'next-row') {
+      const nextRow = tableRows[currentRowIdx + 1];
+      if (nextRow) {
+        startInlineEdit(nextRow.ID_Key, currentField, getInitialValue(nextRow, currentField));
+      } else {
+        setEditingCell(null);
+      }
+    } else if (direction === 'prev-row') {
+      const prevRow = tableRows[currentRowIdx - 1];
+      if (prevRow) {
+        startInlineEdit(prevRow.ID_Key, currentField, getInitialValue(prevRow, currentField));
+      } else {
+        setEditingCell(null);
+      }
+    } else if (direction === 'next-col') {
+      const currentColIdx = EDITABLE_FIELDS.indexOf(currentField);
+      if (currentColIdx !== -1 && currentColIdx + 1 < EDITABLE_FIELDS.length) {
+        const nextField = EDITABLE_FIELDS[currentColIdx + 1]!;
+        const row = tableRows[currentRowIdx]!;
+        startInlineEdit(row.ID_Key, nextField, getInitialValue(row, nextField));
+      } else if (currentRowIdx + 1 < tableRows.length) {
+        const nextRow = tableRows[currentRowIdx + 1]!;
+        const firstField = EDITABLE_FIELDS[0]!;
+        startInlineEdit(nextRow.ID_Key, firstField, getInitialValue(nextRow, firstField));
+      } else {
+        setEditingCell(null);
+      }
+    } else if (direction === 'prev-col') {
+      const currentColIdx = EDITABLE_FIELDS.indexOf(currentField);
+      if (currentColIdx > 0) {
+        const prevField = EDITABLE_FIELDS[currentColIdx - 1]!;
+        const row = tableRows[currentRowIdx]!;
+        startInlineEdit(row.ID_Key, prevField, getInitialValue(row, prevField));
+      } else if (currentRowIdx > 0) {
+        const prevRow = tableRows[currentRowIdx - 1]!;
+        const lastField = EDITABLE_FIELDS[EDITABLE_FIELDS.length - 1]!;
+        startInlineEdit(prevRow.ID_Key, lastField, getInitialValue(prevRow, lastField));
+      } else {
+        setEditingCell(null);
+      }
+    }
+  };
+
+  const saveInlineEdit = (
+    item: QTItem,
+    navigateDir?: 'next-row' | 'prev-row' | 'next-col' | 'prev-col',
+  ) => {
+    if (!editingCell || !canEdit) return;
+    const { field, id } = editingCell;
+    const patch: Partial<QTItem> = {};
+    if (field === 'ma_hang') {
+      if (!editValue.trim()) {
+        toast.error('Mã hàng không được để trống.');
+        return;
+      }
+      patch.ma_hang = editValue.trim();
+    } else if (field === 'vat_lieu') {
+      patch.vat_lieu = editValue.trim() || '—';
+    } else if (field === 'do_cung') {
+      patch.do_cung = editValue.trim() || '—';
+    } else if (field === 'so_luong') {
+      const num = Number(editValue);
+      if (isNaN(num) || num <= 0) {
+        toast.error('Số lượng phải là số nguyên dương.');
+        return;
+      }
+      patch.so_luong = num;
+    } else if (field === 'kg_Lot') {
+      const kg = Number(editValue);
+      if (isNaN(kg) || kg <= 0) {
+        toast.error('Khối lượng kg phải lớn hơn 0.');
+        return;
+      }
+      patch.kg_Lot = kg;
+    } else if (field === 'cty_QT') {
+      patch.cty_QT = editValue as any;
+    } else if (field === 'ngay_gui_QT') {
+      patch.ngay_gui_QT = editValue.trim();
+    } else if (field === 'han_tra') {
+      patch.han_tra = editValue.trim();
+      patch.han_tra_est = false;
+    } else if (field === 'logistics') {
+      patch.TrangThai = editValue as Status;
+    } else if (field === 'ghi_chu') {
+      patch.ghi_chu = editValue.trim() || undefined;
+    }
+
+    updateItem(item.ID_Key, patch);
+    appendAudit({
+      ID_Key: item.ID_Key,
+      user: role,
+      role,
+      from: String((item as any)[field] ?? ''),
+      to: editValue,
+      changes: { [field]: [String((item as any)[field] ?? ''), editValue] },
+      result: 'ok',
+    });
+
+    setSavedCellKey(`${id}-${field}`);
+    setTimeout(() => {
+      setSavedCellKey((curr) => (curr === `${id}-${field}` ? null : curr));
+    }, 1200);
+
+    playAudioCue('success');
+    toast.success(`Đã cập nhật ${field === 'ghi_chu' ? 'ghi chú' : field} cho lô ${item.ID_Key}`);
+
+    if (navigateDir) {
+      navigateCell(id, field, navigateDir);
+    } else {
+      setEditingCell(null);
+    }
+  };
+
+  const handleCellKeyDown = (e: React.KeyboardEvent, item: QTItem) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveInlineEdit(item, e.shiftKey ? 'prev-row' : 'next-row');
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      saveInlineEdit(item, e.shiftKey ? 'prev-col' : 'next-col');
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setEditingCell(null);
+    }
+  };
+
+  const selectedRowsList = useMemo(() => rows.filter((r) => selectedLots.has(r.ID_Key)), [rows, selectedLots]);
 
   return (
     <>
       <PageHeading
-        eyebrow="GIÁM SÁT / LUÂN CHUYỂN"
-        title="Theo dõi luân chuyển"
-        description="Tiến độ từng lô hàng từ phân xưởng qua đối tác gia công đến nhập kho."
+        eyebrow="DYNAMO VIETNAM QT - MES"
+        title="LUÂN CHUYỂN QT"
+        description="Giám sát tiến độ, hạn trả và điều độ các lô hàng gia công nhiệt luyện, xi mạ theo phân xưởng."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-2 border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive rounded-md">
-              <CircleAlert size={15} />
-              {number(lateCount)} lô quá hạn
+            <span className="flex items-center gap-1.5 border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary rounded-md">
+              <Layers size={14} />
+              {number(rows.length)} lô đang quản lý
             </span>
-            <div className="flex rounded-md border border-border overflow-hidden bg-card">
-              <button
-                type="button"
-                onClick={() => setView('timeline')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  view === 'timeline'
-                    ? 'bg-primary text-primary-foreground font-bold'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <GanttChart size={14} /> Timeline
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('kanban')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors border-l border-r border-border ${
-                  view === 'kanban'
-                    ? 'bg-primary text-primary-foreground font-bold'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <Columns3 size={14} /> Kanban
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('table')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  view === 'table'
-                    ? 'bg-primary text-primary-foreground font-bold'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <Table2 size={14} /> Bảng
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => exportCsv(false)}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-colors cursor-pointer"
+            >
+              <Download size={13} /> Xuất CSV
+            </button>
           </div>
         }
       />
 
-      {/* Focus chips */}
-      <div className="mb-3.5 flex flex-wrap items-center gap-2 text-[11px]">
-        <span className="font-bold uppercase tracking-wider text-muted-foreground">Cần xử lý:</span>
-        {FOCUS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => {
-              setFocus((v) => (v === f.key ? null : f.key));
-              setShown({});
-              setTablePage(0);
-            }}
-            aria-pressed={focus === f.key}
-            className={`rounded-sm border px-2.5 py-1 text-xs font-semibold transition-all ${f.tone} ${
-              focus === f.key ? 'ring-2 ring-primary ring-offset-1' : 'opacity-90 hover:opacity-100'
-            }`}
-          >
-            {f.label} <b className="ml-1 font-mono tabular-nums">{number(focusCounts[f.key])}</b>
-          </button>
-        ))}
-        {focus && (
-          <button
-            onClick={() => setFocus(null)}
-            className="flex items-center gap-1 text-xs text-muted-foreground underline hover:text-foreground"
-          >
-            <X size={12} /> Bỏ lọc
-          </button>
-        )}
-        {materialFilter && (
-          <div className="flex items-center gap-1.5 rounded-sm border border-primary/50 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-            <span>
-              Mác thép: <b>{materialFilter}</b>
+      {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
+      {activeFilters.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-2.5 text-xs shadow-2xs animate-in fade-in">
+          <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
+            <Filter size={13} />
+            Đang lọc ({activeFilters.length}):
+          </span>
+          {activeFilters.map((af) => (
+            <span
+              key={af.key}
+              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-card px-2.5 py-1 text-[11px] font-medium text-foreground shadow-2xs"
+            >
+              <span>{af.label}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  af.onClear();
+                  setTablePage(0);
+                  playAudioCue('beep');
+                }}
+                className="text-muted-foreground hover:text-destructive cursor-pointer rounded-xs"
+                title="Bỏ tiêu chí này"
+              >
+                <X size={12} />
+              </button>
             </span>
-            <button
-              onClick={() => setMaterialFilter(null)}
-              className="ml-1 rounded p-0.5 hover:bg-primary/20 text-primary"
-              aria-label="Bỏ lọc mác thép"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Filter toolbar */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/80 p-3 shadow-2xs">
-        <details className="relative">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-[11px] font-semibold text-foreground">
-            Ưu tiên: <b>{picked.length ? `${picked.length} đã chọn` : 'Tất cả'}</b>
-            <ChevronRight size={12} className="rotate-90 text-muted-foreground" />
-          </summary>
-          <div className="absolute left-0 z-30 mt-1 w-64 rounded-md border border-border bg-popover p-1.5 shadow-lg">
-            {PRIORITIES.map((p) => (
-              <label
-                key={p.key}
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] hover:bg-accent"
-              >
-                <input
-                  type="checkbox"
-                  checked={picked.includes(p.key)}
-                  onChange={() => toggle(p.key)}
-                  className="rounded"
-                />
-                <span className={`size-2 rounded-full ${p.dot}`} />
-                <span>{p.label}</span>
-                <b className="ml-auto font-mono tabular-nums text-foreground">{number(counts[p.key])}</b>
-              </label>
-            ))}
-          </div>
-        </details>
-
-        <select
-          value={dateField}
-          onChange={(e) => {
-            setDateField(e.target.value as 'ngay_gui_QT' | 'han_tra');
-            setShown({});
-            setTablePage(0);
-          }}
-          className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none"
-        >
-          <option value="ngay_gui_QT">Theo ngày gửi QT</option>
-          <option value="han_tra">Theo hạn trả</option>
-        </select>
-
-        <select
-          value={range}
-          onChange={(e) => {
-            const v = e.target.value as typeof range;
-            setRange(v);
-            if (v !== 'custom') preset(v);
-          }}
-          className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none"
-        >
-          <option value="all">Thời gian: Tất cả</option>
-          <option value="today">Hôm nay</option>
-          <option value="week">7 ngày qua</option>
-          <option value="this">Tháng này</option>
-          <option value="prev">Tháng trước</option>
-          <option value="custom">Tùy chọn ngày…</option>
-        </select>
-
-        {range === 'custom' && (
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => shiftMonth(-1)}
-              aria-label="Tháng trước"
-              className="rounded border border-input bg-background p-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
-                setShown({});
-                setTablePage(0);
-              }}
-              className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground"
-            />
-            <span className="text-[11px] text-muted-foreground">→</span>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
-                setShown({});
-                setTablePage(0);
-              }}
-              className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground"
-            />
-            <button
-              onClick={() => shiftMonth(1)}
-              aria-label="Tháng sau"
-              className="rounded border border-input bg-background p-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        )}
-
-        <select
-          aria-label="Vendor"
-          value={vendor}
-          onChange={(e) => {
-            setVendor(e.target.value);
-            setShown({});
-            setTablePage(0);
-          }}
-          className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none"
-        >
-          <option value="all">Tất cả đối tác</option>
-          {vendors.map((v) => (
-            <option key={v} value={v}>
-              {formatVendorName(v, role)}
-            </option>
           ))}
-        </select>
-
-        <select
-          aria-label="Logistics"
-          value={logi}
-          onChange={(e) => {
-            setLogi(e.target.value as Logistics);
-            setShown({});
-            setTablePage(0);
-          }}
-          className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none"
-        >
-          <option value="all">Logistics: Tất cả</option>
-          {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map((l) => (
-            <option key={l}>{l}</option>
-          ))}
-        </select>
-
-        <select
-          aria-label="QC"
-          value={qc}
-          onChange={(e) => {
-            setQc(e.target.value as QcState);
-            setShown({});
-            setTablePage(0);
-          }}
-          className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none"
-        >
-          <option value="all">QC: Tất cả</option>
-          {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => (
-            <option key={q}>{q}</option>
-          ))}
-        </select>
-
-        <label className="flex items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1.5 text-[11px] font-medium text-foreground">
-          <input
-            type="checkbox"
-            checked={missDue}
-            onChange={(e) => {
-              setMissDue(e.target.checked);
-              setTablePage(0);
-            }}
-          />
-          <span>Thiếu hạn trả</span>
-        </label>
-
-        <select
-          aria-label="Sắp xếp"
-          value={sort}
-          onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="rounded-md border border-input bg-background px-2 py-1.5 text-[11px] text-foreground outline-none"
-        >
-          <option value="priority">Sắp xếp: Mức ưu tiên</option>
-          <option value="han_tra">Sắp xếp: Hạn trả</option>
-          <option value="ID_Key">Sắp xếp: Mã lô</option>
-        </select>
-
-        {(picked.length > 0 || from || to || vendor !== 'all' || logi !== 'all' || qc !== 'all' || missDue) && (
           <button
-            onClick={() => {
-              reset();
-              setRange('all');
-            }}
-            className="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold text-primary hover:underline"
+            type="button"
+            onClick={resetAllFilters}
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
+            title="Xóa toàn bộ các bộ lọc trên bảng"
           >
-            <X size={12} /> Xóa lọc
+            <Trash2 size={12} />
+            Xóa tất cả lọc
           </button>
-        )}
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span className="font-mono tabular-nums text-foreground">
-          {number(rows.length)} / {number(filtered.length)} lô khớp
-        </span>
-        <span className="size-1 rounded-full bg-border" />
-        <span className="font-mono tabular-nums text-foreground">{number(totalKg, 1)} kg tổng khối lượng</span>
-        <span className="size-1 rounded-full bg-border" />
-        <span>Phân xưởng: {all.length ? [...new Set(all.map((i) => i.phong_sx))].join(', ') : '—'}</span>
-      </div>
-
-      {/* View 1: Timeline / Gantt Chart */}
-      {view === 'timeline' ? (
-        (() => {
-          const groups: { id: string; lots: QTItem[] }[] = [];
-          const idx = new Map<string, number>();
-          for (const r of rows) {
-            const k = idx.get(r.So_DatHang);
-            if (k === undefined) {
-              idx.set(r.So_DatHang, groups.length);
-              groups.push({ id: r.So_DatHang, lots: [r] });
-            } else groups[k]!.lots.push(r);
-          }
-          const visible = groups.slice(0, orderLimit);
-          const today = ymd(new Date());
-          let min = today,
-            max = today;
-          for (const g of visible)
-            for (const l of g.lots) {
-              if (l.ngay_gui_QT < min) min = l.ngay_gui_QT;
-              const e = l.ngay_nhan ?? l.han_tra;
-              if (e > max) max = e;
-              if (l.han_tra > max) max = l.han_tra;
-            }
-          const t0 = new Date(min + 'T00:00:00').getTime();
-          const span = Math.max(DAY, new Date(max + 'T00:00:00').getTime() + DAY - t0);
-          const pos = (d: string) => ((new Date(d + 'T00:00:00').getTime() - t0) / span) * 100;
-          const ticks = Array.from({ length: 6 }, (_, k) => ymd(new Date(t0 + (span * k) / 5)));
-          const barColor: Record<Priority, string> = {
-            critical: 'bg-destructive',
-            warning: 'bg-warning',
-            due_soon: 'bg-info',
-            on_track: 'bg-primary/80',
-            done: 'bg-muted-foreground/60',
-          };
-          return (
-            <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
-              <div className="grid grid-cols-[minmax(240px,320px)_1fr] border-b border-border bg-secondary/80 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                <div className="px-4 py-2.5">ĐƠN HÀNG / LÔ GIA CÔNG</div>
-                <div className="relative h-8">
-                  {ticks.map((t, k) => (
-                    <span
-                      key={k}
-                      className="absolute top-2 -translate-x-1/2 font-mono text-[10px] tabular-nums"
-                      style={{ left: `${Math.min(96, Math.max(4, k * 20))}%` }}
-                    >
-                      {date(t)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              {visible.length ? (
-                visible.map((g) => {
-                  const open = !collapsed[g.id];
-                  const late = g.lots.filter((l) => isOverdue(l)).length;
-                  return (
-                    <div key={g.id} className="border-b border-border/70 last:border-b-0">
-                      <button
-                        onClick={() => setCollapsed((c) => ({ ...c, [g.id]: open }))}
-                        className="grid w-full grid-cols-[minmax(240px,320px)_1fr] bg-secondary/40 text-left transition-colors hover:bg-secondary/70"
-                      >
-                        <span className="flex items-center gap-2 px-4 py-2.5">
-                          <ChevronRight
-                            size={14}
-                            className={`text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
-                          />
-                          <b className="font-mono text-xs font-bold text-primary">{g.id}</b>
-                          <span className="text-[11px] text-muted-foreground">
-                            {g.lots.length} lô · {formatVendorName(g.lots[0]?.cty_QT, role)}
-                          </span>
-                        </span>
-                        <span className="flex items-center px-4 text-[11px]">
-                          {late > 0 && <b className="font-mono tabular-nums text-destructive">{late} lô trễ hạn</b>}
-                        </span>
-                      </button>
-                      {open &&
-                        g.lots.slice(0, 50).map((l) => {
-                          const p = priorityOf(l);
-                          const end = l.ngay_nhan ?? (today > l.ngay_gui_QT ? today : l.ngay_gui_QT);
-                          const left = pos(l.ngay_gui_QT);
-                          const width = Math.max(1, pos(end) + (DAY / span) * 100 - left);
-                          return (
-                            <button
-                              key={l.ID_Key}
-                              onClick={() => setDetail(l)}
-                              className="grid w-full grid-cols-[minmax(240px,320px)_1fr] border-t border-border/50 text-left transition-colors hover:bg-accent/40"
-                            >
-                              <span className="min-w-0 px-4 py-2 pl-9">
-                                <span className="block truncate font-mono text-[11px] font-bold text-foreground">
-                                  {l.ma_hang}
-                                </span>
-                                <span className="block truncate text-[10px] text-muted-foreground">
-                                  {l.ID_Key} · {l.phong_sx} · {l.vat_lieu} · {logisticsOf(l)}
-                                  {qcOf(l) !== 'Chưa kiểm tra' ? ` · QC: ${qcOf(l)}` : ''}
-                                  {l.han_tra_est ? ' · Hạn ước tính' : ''}
-                                </span>
-                              </span>
-                              <span className="relative my-2 mr-4 h-6">
-                                <span
-                                  className="absolute inset-y-0 w-0.5 bg-destructive/70"
-                                  style={{ left: `${pos(today)}%` }}
-                                  title="Hôm nay"
-                                />
-                                <span
-                                  className="absolute inset-y-0 w-0.5 border-l border-dashed border-muted-foreground/60"
-                                  style={{ left: `${pos(l.han_tra) + (DAY / span) * 100}%` }}
-                                  title={`Hạn trả ${date(l.han_tra)}`}
-                                />
-                                <span
-                                  className={`absolute top-1 flex h-4.5 items-center overflow-hidden rounded-xs px-1.5 font-mono text-[9px] font-bold tabular-nums text-primary-foreground ${
-                                    barColor[p]
-                                  } ${p === 'critical' ? 'animate-pulse' : ''}`}
-                                  style={{ left: `${left}%`, width: `${width}%` }}
-                                >
-                                  {isOverdue(l) ? `Trễ ${daysOver(l)}d` : ''}
-                                </span>
-                              </span>
-                            </button>
-                          );
-                        })}
-                      {open && g.lots.length > 50 && (
-                        <p className="px-9 py-2 font-mono text-[10px] text-muted-foreground">
-                          +{g.lots.length - 50} lô khác — chuyển sang chế độ Bảng để xem toàn bộ
-                        </p>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex min-h-36 flex-col items-center justify-center gap-2 p-8 text-muted-foreground">
-                  <PackageOpen size={24} className="opacity-40" />
-                  <p className="text-xs">Không có lô hàng khớp bộ lọc</p>
-                </div>
-              )}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 p-3 text-[11px] text-muted-foreground">
-                <span className="flex flex-wrap items-center gap-3">
-                  {PRIORITIES.map((p) => (
-                    <span key={p.key} className="flex items-center gap-1.5">
-                      <span className={`size-2 rounded-full ${p.dot}`} />
-                      <span>{p.label}</span>
-                    </span>
-                  ))}
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-3 w-0.5 bg-destructive" />
-                    <span>Hôm nay</span>
-                  </span>
-                </span>
-                {groups.length > visible.length && (
-                  <button
-                    onClick={() => setOrderLimit((n) => n + pageSize)}
-                    className="rounded-md border border-border px-3 py-1 font-semibold text-primary transition-colors hover:bg-primary/10"
-                  >
-                    Đang xem {number(visible.length)} / {number(groups.length)} đơn — Tải thêm {pageSize} đơn
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })()
-      ) : view === 'kanban' ? (
-        /* View 2: Redesigned Kanban Board (Industrial Flight Strip) */
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Kiểm tra QC', 'Đã nhập kho'] as Status[]).map((status) => {
-            const colRows = rows.filter((r) => r.TrangThai === status);
-            const colKg = colRows.reduce((a, r) => a + r.kg_Lot, 0);
-            const colLate = colRows.filter((r) => isOverdue(r)).length;
-            const statusTone =
-              status === 'Đã nhập kho'
-                ? 'border-t-muted-foreground'
-                : status === 'Kiểm tra QC'
-                ? 'border-t-info'
-                : status === 'Đang tại Vendor'
-                ? 'border-t-primary'
-                : 'border-t-warning';
-
-            return (
-              <div
-                key={status}
-                className={`flex flex-col rounded-lg border border-border bg-card/60 shadow-2xs border-t-3 ${statusTone}`}
-              >
-                {/* Column Header */}
-                <div className="flex items-center justify-between border-b border-border bg-secondary/50 px-3.5 py-2.5">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`size-2 rounded-full ${
-                          status === 'Đã nhập kho'
-                            ? 'bg-muted-foreground'
-                            : status === 'Kiểm tra QC'
-                            ? 'bg-info'
-                            : status === 'Đang tại Vendor'
-                            ? 'bg-primary'
-                            : 'bg-warning'
-                        }`}
-                      />
-                      <h3 className="font-extrabold text-xs uppercase tracking-wide text-foreground">{status}</h3>
-                    </div>
-                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground tabular-nums">
-                      {colRows.length} lô · {number(colKg, 1)} kg
-                    </p>
-                  </div>
-                  {colLate > 0 && (
-                    <span className="rounded-xs bg-destructive/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-destructive andon-pulse">
-                      {colLate} trễ
-                    </span>
-                  )}
-                </div>
-
-                {/* Cards Container */}
-                <div className="flex-1 space-y-2.5 p-2.5 max-h-[640px] overflow-y-auto">
-                  {colRows.slice(0, 40).map((r) => {
-                    const late = isOverdue(r);
-                    const soon = isDueSoon(r);
-                    return (
-                      <div
-                        key={r.ID_Key}
-                        onClick={() => setDetail(r)}
-                        className={`group cursor-pointer rounded-md border p-3 transition-all hover:border-primary/80 hover:shadow-xs ${
-                          late
-                            ? 'border-destructive/60 bg-destructive/5'
-                            : soon
-                            ? 'border-warning/60 bg-warning/5'
-                            : 'border-border bg-background'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1 mb-1.5">
-                          <span className="font-mono text-[10px] font-extrabold text-primary px-1.5 py-0.5 rounded bg-primary/10">
-                            {r.ID_Key}
-                          </span>
-                          <span className="rounded-xs bg-secondary px-1.5 py-0.5 font-mono text-[9px] font-bold text-muted-foreground">
-                            {r.phong_sx}
-                          </span>
-                        </div>
-
-                        <p className="font-mono text-xs font-black text-foreground truncate group-hover:text-primary">
-                          {r.ma_hang}
-                        </p>
-
-                        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                          <span className="truncate max-w-[130px]">
-                            {r.vat_lieu} · {r.do_cung}
-                          </span>
-                          <span className="font-mono tabular-nums font-semibold text-foreground">
-                            {number(r.kg_Lot, 1)} kg
-                          </span>
-                        </div>
-
-                        <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[10px]">
-                          <span className="truncate max-w-[120px] text-muted-foreground">
-                            {formatVendorName(r.cty_QT, role)}
-                          </span>
-                          {late ? (
-                            <span className="font-mono font-bold text-destructive text-[10px]">
-                              Trễ {daysOver(r)}d
-                            </span>
-                          ) : soon ? (
-                            <span className="font-mono font-bold text-warning text-[10px]">Cận 48h</span>
-                          ) : (
-                            <span className="font-mono text-muted-foreground text-[10px]">
-                              {r.han_tra ? date(r.han_tra) : '—'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {colRows.length > 40 && (
-                    <p className="text-center font-mono text-[10px] text-muted-foreground py-2">
-                      +{colRows.length - 40} lô khác — lọc thêm hoặc chuyển chế độ Bảng
-                    </p>
-                  )}
-                  {!colRows.length && (
-                    <div className="py-12 text-center text-[11px] text-muted-foreground/60 italic">
-                      Không có lô hàng ở công đoạn này
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
-      ) : (
-        /* View 3: Data Table View */
-        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-xs">
-              <thead className="bg-secondary/70 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="w-10 px-3.5 py-3 text-center">
+      )}
+
+      {/* KPI Summary Line */}
+      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs text-muted-foreground font-medium">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="font-mono tabular-nums text-foreground font-bold">
+            {number(rows.length)} / {number(all.length)} lô khớp
+          </span>
+          <span className="text-border">·</span>
+          <span className="font-mono tabular-nums text-foreground font-bold">
+            {number(totalKg, 1)} kg tổng khối lượng
+          </span>
+          <span className="text-border">·</span>
+          <span>
+            Phân xưởng: <b className="text-foreground">{workshops.join(', ')}</b>
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className="text-muted-foreground">
+            💡 Bấm icon phễu <b>[▾]</b> ở đầu mỗi cột để lọc và sắp xếp như Google Sheets
+          </span>
+        </div>
+      </div>
+
+      {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) */}
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
+        <div className="overflow-x-auto max-h-[750px]">
+          <table className="w-full min-w-[1300px] text-left text-xs border-collapse">
+            <thead className="sticky top-0 z-20 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs">
+              <tr>
+                {/* Column 1: Checkbox (Sticky left-0) */}
+                <th className="sticky left-0 z-30 w-10 px-3 py-2.5 text-center bg-secondary">
+                  <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
                       aria-label="Chọn tất cả trên trang này"
@@ -958,122 +1046,1452 @@ function Tracking() {
                       onChange={toggleSelectAllPage}
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
                     />
-                  </th>
-                  {[
-                    'Mã lô',
-                    'Đơn hàng',
-                    'Xưởng',
-                    'Mã hàng',
-                    'Vật liệu',
-                    'Độ cứng',
-                    'SL',
-                    'Kg',
-                    'Đối tác',
-                    'Logistics',
-                    'QC',
-                    'Ngày gửi',
-                    'Hạn trả',
-                    'Cảnh báo',
-                    'Trễ',
-                    'Phiếu A4',
-                  ].map((h) => (
-                    <th key={h} className="whitespace-nowrap px-3.5 py-3">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tableRows.length ? (
-                  tableRows.map((r) => (
+                  </div>
+                </th>
+
+                {/* Column 2: Mã lô (Sticky left-10) */}
+                <HeaderFilterCell
+                  title="MÃ LÔ"
+                  field="ID_Key"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.idKeySearch}
+                  stickyClass="sticky left-10 z-30 bg-secondary"
+                >
+                  <HeaderSortControls
+                    field="ID_Key"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Tìm kiếm mã lô:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="VD: Q2605..."
+                        value={filters.idKeySearch}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, idKeySearch: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                        autoFocus
+                      />
+                      {filters.idKeySearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters((f) => ({ ...f, idKeySearch: '' }));
+                            setTablePage(0);
+                          }}
+                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {filters.idKeySearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilters((f) => ({ ...f, idKeySearch: '' }));
+                        setTablePage(0);
+                      }}
+                      className="mt-2.5 w-full text-center text-[11px] font-bold text-destructive hover:underline cursor-pointer"
+                    >
+                      Xóa lọc mã lô
+                    </button>
+                  )}
+                </HeaderFilterCell>
+
+                {/* Column 3: Đơn hàng */}
+                <HeaderFilterCell
+                  title="ĐƠN HÀNG"
+                  field="So_DatHang"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.orderSearch}
+                >
+                  <HeaderSortControls
+                    field="So_DatHang"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Tìm số đơn hàng (PO):
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="VD: QT260515..."
+                        value={filters.orderSearch}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, orderSearch: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                      />
+                      {filters.orderSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters((f) => ({ ...f, orderSearch: '' }));
+                            setTablePage(0);
+                          }}
+                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 4: Xưởng */}
+                <HeaderFilterCell
+                  title="XƯỞNG"
+                  field="phong_sx"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={filters.workshops.length > 0}
+                >
+                  <HeaderSortControls
+                    field="phong_sx"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Chọn phân xưởng:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters((f) => ({
+                            ...f,
+                            workshops: f.workshops.length === workshops.length ? [] : [...workshops],
+                          }));
+                          setTablePage(0);
+                        }}
+                        className="text-[10px] text-primary hover:underline cursor-pointer"
+                      >
+                        {filters.workshops.length === workshops.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {workshops.map((w) => {
+                        const count = counts.ws[w] || 0;
+                        return (
+                          <label
+                            key={w}
+                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={filters.workshops.includes(w)}
+                                onChange={() => {
+                                  setFilters((f) => ({ ...f, workshops: toggleInArray(f.workshops, w) }));
+                                  setTablePage(0);
+                                }}
+                                className="rounded text-primary focus:ring-primary accent-primary"
+                              />
+                              <span className="font-bold">{w}</span>
+                            </span>
+                            <span className="font-mono text-muted-foreground">{count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 5: Mã hàng */}
+                <HeaderFilterCell
+                  title="MÃ HÀNG"
+                  field="ma_hang"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.itemSearch}
+                >
+                  <HeaderSortControls
+                    field="ma_hang"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Tìm mã linh kiện:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="VD: 9075-P3..."
+                        value={filters.itemSearch}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, itemSearch: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                      />
+                      {filters.itemSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters((f) => ({ ...f, itemSearch: '' }));
+                            setTablePage(0);
+                          }}
+                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 6: Vật liệu */}
+                <HeaderFilterCell
+                  title="VẬT LIỆU"
+                  field="vat_lieu"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={filters.materials.length > 0}
+                >
+                  <HeaderSortControls
+                    field="vat_lieu"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Mác thép ({allMaterials.length}):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters((f) => ({
+                            ...f,
+                            materials: f.materials.length === allMaterials.length ? [] : [...allMaterials],
+                          }));
+                          setTablePage(0);
+                        }}
+                        className="text-[10px] text-primary hover:underline cursor-pointer"
+                      >
+                        {filters.materials.length === allMaterials.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Tìm mác thép..."
+                      value={materialSearchText}
+                      onChange={(e) => setMaterialSearchText(e.target.value)}
+                      className="w-full rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground outline-none"
+                    />
+                    <div className="max-h-44 overflow-y-auto space-y-1">
+                      {allMaterials
+                        .filter((m) => m.toLowerCase().includes(materialSearchText.toLowerCase()))
+                        .map((m) => {
+                          const count = counts.mat[m] || 0;
+                          return (
+                            <label
+                              key={m}
+                              className="flex items-center justify-between rounded px-2 py-1 hover:bg-secondary cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={filters.materials.includes(m)}
+                                  onChange={() => {
+                                    setFilters((f) => ({ ...f, materials: toggleInArray(f.materials, m) }));
+                                    setTablePage(0);
+                                  }}
+                                  className="rounded text-primary focus:ring-primary accent-primary"
+                                />
+                                <span className="font-mono">{m}</span>
+                              </span>
+                              <span className="font-mono text-muted-foreground">{count}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 7: Độ cứng */}
+                <HeaderFilterCell
+                  title="ĐỘ CỨNG"
+                  field="do_cung"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.hardnessSearch || filters.missingHardnessOnly}
+                >
+                  <HeaderSortControls
+                    field="do_cung"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Tìm độ cứng yêu cầu:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="VD: 58-62, 44±1..."
+                      value={filters.hardnessSearch}
+                      onChange={(e) => {
+                        setFilters((f) => ({ ...f, hardnessSearch: e.target.value }));
+                        setTablePage(0);
+                      }}
+                      className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                    />
+                    <label className="flex items-center gap-2 rounded px-1 py-1 hover:bg-secondary cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.missingHardnessOnly}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, missingHardnessOnly: e.target.checked }));
+                          setTablePage(0);
+                        }}
+                        className="rounded text-primary focus:ring-primary accent-primary"
+                      />
+                      <span>Chỉ xem chưa có độ cứng (—)</span>
+                    </label>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 8: SL */}
+                <HeaderFilterCell
+                  title="SL"
+                  field="so_luong"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.qtyMin || !!filters.qtyMax}
+                  align="end"
+                >
+                  <HeaderSortControls
+                    field="so_luong"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    ascLabel="Nhỏ nhất → Lớn nhất"
+                    descLabel="Lớn nhất → Nhỏ nhất"
+                  />
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Khoảng số lượng (pcs):
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        placeholder="Từ (Min)"
+                        value={filters.qtyMin}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, qtyMin: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                      />
+                      <span>→</span>
+                      <input
+                        type="number"
+                        placeholder="Đến (Max)"
+                        value={filters.qtyMax}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, qtyMax: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                      />
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 9: Kg */}
+                <HeaderFilterCell
+                  title="KG"
+                  field="kg_Lot"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.kgMin || !!filters.kgMax}
+                  align="end"
+                >
+                  <HeaderSortControls
+                    field="kg_Lot"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    ascLabel="Nhẹ nhất → Nặng nhất"
+                    descLabel="Nặng nhất → Nhẹ nhất"
+                  />
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Khoảng khối lượng (kg):
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Min kg"
+                        value={filters.kgMin}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, kgMin: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                      />
+                      <span>→</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Max kg"
+                        value={filters.kgMax}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, kgMax: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                      />
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 10: Đối tác */}
+                <HeaderFilterCell
+                  title="ĐỐI TÁC"
+                  field="cty_QT"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={filters.vendors.length > 0}
+                >
+                  <HeaderSortControls
+                    field="cty_QT"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Nhà thầu gia công:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters((f) => ({
+                            ...f,
+                            vendors: f.vendors.length === allVendors.length ? [] : [...allVendors],
+                          }));
+                          setTablePage(0);
+                        }}
+                        className="text-[10px] text-primary hover:underline cursor-pointer"
+                      >
+                        {filters.vendors.length === allVendors.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {allVendors.map((v) => {
+                        const count = counts.ven[v] || 0;
+                        return (
+                          <label
+                            key={v}
+                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={filters.vendors.includes(v)}
+                                onChange={() => {
+                                  setFilters((f) => ({ ...f, vendors: toggleInArray(f.vendors, v) }));
+                                  setTablePage(0);
+                                }}
+                                className="rounded text-primary focus:ring-primary accent-primary"
+                              />
+                              <span className="font-semibold">{formatVendorName(v, role)}</span>
+                            </span>
+                            <span className="font-mono text-muted-foreground">{count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 11: Logistics */}
+                <HeaderFilterCell
+                  title="LOGISTICS"
+                  field="TrangThai"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={filters.logistics.length > 0}
+                >
+                  <HeaderSortControls
+                    field="TrangThai"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Trạng thái luân chuyển:
+                    </span>
+                    <div className="space-y-1">
+                      {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map((l) => {
+                        const count = counts.log[l] || 0;
+                        return (
+                          <label
+                            key={l}
+                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={filters.logistics.includes(l)}
+                                onChange={() => {
+                                  setFilters((f) => ({ ...f, logistics: toggleInArray(f.logistics, l) }));
+                                  setTablePage(0);
+                                }}
+                                className="rounded text-primary focus:ring-primary accent-primary"
+                              />
+                              <span>{l}</span>
+                            </span>
+                            <span className="font-mono text-muted-foreground">{count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 12: QC */}
+                <HeaderFilterCell
+                  title="QC"
+                  field="qc"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={filters.qcStates.length > 0}
+                >
+                  <HeaderSortControls
+                    field="qc"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Trạng thái kiểm tra QC:
+                    </span>
+                    <div className="space-y-1">
+                      {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => {
+                        const count = counts.qc[q] || 0;
+                        return (
+                          <label
+                            key={q}
+                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={filters.qcStates.includes(q)}
+                                onChange={() => {
+                                  setFilters((f) => ({ ...f, qcStates: toggleInArray(f.qcStates, q) }));
+                                  setTablePage(0);
+                                }}
+                                className="rounded text-primary focus:ring-primary accent-primary"
+                              />
+                              <span
+                                className={`font-semibold ${
+                                  q === 'Đạt'
+                                    ? 'text-primary'
+                                    : q === 'Không đạt'
+                                    ? 'text-destructive'
+                                    : 'text-foreground'
+                                }`}
+                              >
+                                {q}
+                              </span>
+                            </span>
+                            <span className="font-mono text-muted-foreground">{count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 13: Ngày gửi */}
+                <HeaderFilterCell
+                  title="NGÀY GỬI"
+                  field="ngay_gui_QT"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.sendFrom || !!filters.sendTo}
+                >
+                  <HeaderSortControls
+                    field="ngay_gui_QT"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    ascLabel="Cũ nhất → Mới nhất"
+                    descLabel="Mới nhất → Cũ nhất"
+                  />
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Khoảng ngày gửi QT:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={filters.sendFrom}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, sendFrom: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                      />
+                      <input
+                        type="date"
+                        value={filters.sendTo}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, sendTo: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 gap-1 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('send', 'today')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        Hôm nay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('send', '7days')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        7 ngày
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('send', 'this_month')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        Tháng này
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('send', 'all')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        Tất cả
+                      </button>
+                    </div>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 14: Hạn trả */}
+                <HeaderFilterCell
+                  title="HẠN TRẢ"
+                  field="han_tra"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.dueFrom || !!filters.dueTo || filters.missingDueOnly}
+                >
+                  <HeaderSortControls
+                    field="han_tra"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    ascLabel="Gần nhất → Xa nhất"
+                    descLabel="Xa nhất → Gần nhất"
+                  />
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Khoảng hạn trả:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={filters.dueFrom}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, dueFrom: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                      />
+                      <input
+                        type="date"
+                        value={filters.dueTo}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, dueTo: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 gap-1 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('due', 'today')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        Hôm nay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('due', '7days')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        7 ngày tới
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('due', 'this_month')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        Tháng này
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('due', 'all')}
+                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      >
+                        Tất cả
+                      </button>
+                    </div>
+                    <label className="flex items-center gap-2 rounded border border-warning/30 bg-warning/10 p-2 text-warning cursor-pointer mt-1">
+                      <input
+                        type="checkbox"
+                        checked={filters.missingDueOnly}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, missingDueOnly: e.target.checked }));
+                          setTablePage(0);
+                        }}
+                        className="rounded text-warning focus:ring-warning accent-warning"
+                      />
+                      <span className="font-bold text-[11px]">Chỉ xem lô thiếu hạn trả</span>
+                    </label>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 15: Ghi chú */}
+                <HeaderFilterCell
+                  title="GHI CHÚ"
+                  field="ghi_chu"
+                  sortCol={sortCol}
+                  sortDir={sortDir}
+                  isFiltered={!!filters.noteSearch || filters.hasNoteOnly}
+                >
+                  <HeaderSortControls
+                    field="ghi_chu"
+                    currentField={sortCol}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    ascLabel="A → Z (Theo ghi chú)"
+                    descLabel="Z → A (Theo ghi chú)"
+                  />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Tìm kiếm ghi chú:
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Nội dung ghi chú..."
+                        value={filters.noteSearch}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, noteSearch: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+                      />
+                      {filters.noteSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters((f) => ({ ...f, noteSearch: '' }));
+                            setTablePage(0);
+                          }}
+                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                    <label className="flex items-center gap-2 rounded px-1 py-1 hover:bg-secondary cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.hasNoteOnly}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, hasNoteOnly: e.target.checked }));
+                          setTablePage(0);
+                        }}
+                        className="rounded text-primary focus:ring-primary accent-primary"
+                      />
+                      <span className="text-[11px]">Chỉ xem lô có ghi chú</span>
+                    </label>
+                  </div>
+                </HeaderFilterCell>
+
+                {/* Column 16: Phiếu A4 */}
+                <th className="whitespace-nowrap px-3 py-2.5 text-center bg-secondary font-bold uppercase tracking-wider text-muted-foreground">
+                  PHIẾU A4
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/70">
+              {tableRows.length ? (
+                tableRows.map((r) => {
+                  const isSelected = selectedLots.has(r.ID_Key);
+
+                  return (
                     <tr
                       key={r.ID_Key}
-                      onClick={() => setDetail(r)}
-                      className={`cursor-pointer border-t border-border/70 transition-colors ${
-                        selectedLots.has(r.ID_Key) ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
+                      className={`group transition-colors ${
+                        isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
                       }`}
                     >
-                      <td className="w-10 px-3.5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {/* 1. Checkbox */}
+                      <td className="sticky left-0 z-10 w-10 px-3 py-2.5 text-center bg-card group-hover:bg-accent/30">
                         <input
                           type="checkbox"
                           aria-label={`Chọn lô ${r.ID_Key}`}
-                          checked={selectedLots.has(r.ID_Key)}
+                          checked={isSelected}
                           onChange={() => toggleSelectLot(r.ID_Key)}
                           className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
                         />
                       </td>
-                      <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-primary">{r.ID_Key}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3 font-mono text-muted-foreground">{r.So_DatHang}</td>
-                      <td className="px-3.5 py-3 font-medium text-foreground">{r.phong_sx}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-foreground">{r.ma_hang}</td>
-                      <td className="px-3.5 py-3 text-foreground">{r.vat_lieu}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3 font-mono text-muted-foreground">{r.do_cung}</td>
-                      <td className="px-3.5 py-3 text-right font-mono tabular-nums text-foreground">
-                        {number(r.so_luong)}
+
+                      {/* 2. Mã lô (Green clickable link -> opens drawer) */}
+                      <td className="sticky left-10 z-10 whitespace-nowrap px-3.5 py-2.5 bg-card group-hover:bg-accent/30">
+                        <button
+                          type="button"
+                          onClick={() => setDetailLot(r)}
+                          className="font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                          title="Bấm để xem chi tiết & lịch sử lô"
+                        >
+                          {r.ID_Key}
+                        </button>
                       </td>
-                      <td className="px-3.5 py-3 text-right font-mono tabular-nums text-foreground">
-                        {number(r.kg_Lot, 1)}
+
+                      {/* 3. Đơn hàng */}
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-muted-foreground">
+                        {r.So_DatHang}
                       </td>
-                      <td className="px-3.5 py-3 font-medium text-foreground">{formatVendorName(r.cty_QT, role)}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3">{logisticsOf(r)}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3">{qcOf(r)}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3 font-mono tabular-nums text-muted-foreground">
-                        {date(r.ngay_gui_QT)}
+
+                      {/* 4. Xưởng */}
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-bold text-foreground">
+                        {r.phong_sx}
                       </td>
-                      <td className="whitespace-nowrap px-3.5 py-3 font-mono tabular-nums">
-                        {date(r.han_tra)}
-                        {r.han_tra_est && (
-                          <span className="ml-1 text-[9px] text-warning" title="Hạn trả ước tính">
-                            +7d
-                          </span>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-3.5 py-3">
-                        {!hasValidDue(r) && r.TrangThai !== 'Đã nhập kho' ? (
-                          <span className="rounded-xs bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning">
-                            Thiếu hạn
-                          </span>
-                        ) : qcOf(r) === 'Không đạt' ? (
-                          <span className="rounded-xs bg-destructive/15 px-1.5 py-0.5 text-[10px] font-bold text-destructive">
-                            QC lỗi
-                          </span>
-                        ) : r.TrangThai === 'Đã nhập kho' && qcOf(r) !== 'Đạt' ? (
-                          <span className="rounded-xs bg-info/15 px-1.5 py-0.5 text-[10px] font-bold text-info">
-                            Chưa QC
-                          </span>
+
+                      {/* 5. Mã hàng (Inline Quick-Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-ma_hang` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'ma_hang' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 w-28 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs font-bold text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
                         ) : (
-                          '—'
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
+                            className="flex items-center gap-1 group/edit cursor-pointer"
+                            title={canEdit ? 'Click đúp để sửa mã hàng' : undefined}
+                          >
+                            <span>{r.ma_hang}</span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
+                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
-                      <td className="px-3.5 py-3 font-mono tabular-nums">
-                        {isOverdue(r) ? <b className="font-bold text-destructive">{daysOver(r)} ngày</b> : '—'}
+
+                      {/* 6. Vật liệu (Inline Quick-Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 w-24 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
+                            className="flex items-center gap-1 group/edit cursor-pointer"
+                            title={canEdit ? 'Click đúp để sửa mác thép' : undefined}
+                          >
+                            <span>{r.vat_lieu}</span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
+                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
+
+                      {/* 7. Độ cứng (Inline Quick-Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono text-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-do_cung` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 w-20 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
+                            className="flex items-center gap-1.5 group/edit cursor-pointer"
+                            title="Click đúp để sửa nhanh độ cứng"
+                          >
+                            <span>{r.do_cung || '—'}</span>
+                            <button
+                              type="button"
+                              onClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
+                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                            >
+                              <Edit2 size={11} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 8. SL (Inline Quick-Edit) */}
+                      {/* 8. Số lượng (Inline Quick-Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-so_luong` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <input
+                              type="number"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 w-20 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-right text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
+                            className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                            title={canEdit ? 'Click đúp để sửa số lượng' : undefined}
+                          >
+                            <span>{number(r.so_luong)}</span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
+                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 9. Kg (Inline Quick-Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-kg_Lot` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 w-20 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-right text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
+                            className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                            title={canEdit ? 'Click đúp để sửa khối lượng kg' : undefined}
+                          >
+                            <span>{number(r.kg_Lot, 1)}</span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
+                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 10. Đối tác (Partner Privacy Masking & Admin Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {isAdmin && editingCell?.id === r.ID_Key && editingCell.field === 'cty_QT' ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 rounded border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs"
+                              autoFocus
+                            >
+                              <option value="YAMAICHI">YAMAICHI</option>
+                              <option value="PROVISION">PROVISION</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => isAdmin && startInlineEdit(r.ID_Key, 'cty_QT', String(r.cty_QT))}
+                            className="flex items-center gap-1 group/edit cursor-pointer"
+                            title={isAdmin ? 'Click đúp để đổi đối tác gia công' : undefined}
+                          >
+                            <span>{formatVendorName(r.cty_QT, role)}</span>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'cty_QT', String(r.cty_QT))}
+                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 11. Logistics (Inline Quick-Edit Dropdown) */}
+                      <td className="whitespace-nowrap px-3.5 py-2.5">
+                        <select
+                          value={r.TrangThai}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as Status;
+                            updateItem(r.ID_Key, { TrangThai: newStatus });
+                            appendAudit({
+                              ID_Key: r.ID_Key,
+                              user: role,
+                              role,
+                              from: r.TrangThai,
+                              to: newStatus,
+                              changes: { TrangThai: [r.TrangThai, newStatus] },
+                              result: 'ok',
+                            });
+                            toast.success(`Đã chuyển lô ${r.ID_Key} sang: ${newStatus}`);
+                            playAudioCue('success');
+                          }}
+                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${
+                            r.TrangThai === 'Đã nhập kho'
+                              ? 'border-border bg-secondary text-muted-foreground'
+                              : r.TrangThai === 'Đang tại Vendor'
+                              ? 'border-primary/40 bg-primary/10 text-primary'
+                              : 'border-warning/40 bg-warning/10 text-warning'
+                          }`}
+                        >
+                          {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Status[]).map((s) => (
+                            <option key={s} value={s} className="bg-popover text-popover-foreground">
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* 12. QC (Inline Quick-Edit) */}
+                      <td className="whitespace-nowrap px-3.5 py-2.5">
+                        <select
+                          value={qcOf(r)}
+                          onChange={(e) => {
+                            const newQc = e.target.value as QcState;
+                            const isPassed = newQc === 'Đạt';
+                            updateItem(r.ID_Key, {
+                              TrangThai: isPassed ? 'Đã nhập kho' : r.TrangThai,
+                            });
+                            appendAudit({
+                              ID_Key: r.ID_Key,
+                              user: role,
+                              role,
+                              from: qcOf(r),
+                              to: newQc,
+                              changes: { QC: [qcOf(r), newQc] },
+                              result: 'ok',
+                            });
+                            toast.success(`Cập nhật QC lô ${r.ID_Key}: ${newQc}`);
+                            playAudioCue('success');
+                          }}
+                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${
+                            qcOf(r) === 'Đạt'
+                              ? 'border-primary/40 bg-primary/10 text-primary'
+                              : qcOf(r) === 'Không đạt'
+                              ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                              : 'border-border bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => (
+                            <option key={q} value={q} className="bg-popover text-popover-foreground">
+                              {q}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* 13. Ngày gửi (Inline Quick-Edit) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums text-muted-foreground transition-all ${
+                          savedCellKey === `${r.ID_Key}-ngay_gui_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 rounded border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => canEdit && startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
+                            className="flex items-center gap-1 group/edit cursor-pointer"
+                            title={canEdit ? 'Click đúp để sửa ngày gửi' : undefined}
+                          >
+                            <span>{date(r.ngay_gui_QT)}</span>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
+                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 14. Hạn trả (Inline Quick-Edit Date) */}
+                      <td
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums transition-all ${
+                          savedCellKey === `${r.ID_Key}-han_tra` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'han_tra' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 rounded border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
+                            className="flex items-center gap-1 group/edit cursor-pointer"
+                            title="Click đúp để sửa hạn trả"
+                          >
+                            <span>{date(r.han_tra)}</span>
+                            {r.han_tra_est && (
+                              <span className="text-[9px] text-warning font-sans" title="Hạn ước tính +7d">
+                                (+7d)
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
+                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                            >
+                              <Edit2 size={11} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 15. Ghi chú (Inline Quick-Edit & Comment cho mọi role) */}
+                      <td
+                        className={`min-w-[160px] max-w-[260px] px-3.5 py-2 text-xs transition-all ${
+                          savedCellKey === `${r.ID_Key}-ghi_chu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        }`}
+                      >
+                        {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editValue}
+                              placeholder="Nhập ghi chú cho lô..."
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-7 w-full rounded border-2 border-primary bg-background px-2 text-xs text-foreground outline-none shadow-xs"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveInlineEdit(r)}
+                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer shrink-0"
+                              title="Lưu (Enter)"
+                            >
+                              <Check size={13} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCell(null)}
+                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer shrink-0"
+                              title="Hủy (Esc)"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
+                            className="flex items-center justify-between gap-1 group/edit cursor-pointer py-0.5"
+                            title="Click đúp để viết hoặc chỉnh sửa ghi chú"
+                          >
+                            <span className={`truncate text-xs ${r.ghi_chu ? 'text-foreground' : 'text-muted-foreground/60 italic'}`}>
+                              {r.ghi_chu || '+ Thêm ghi chú...'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
+                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1"
+                              title="Sửa ghi chú"
+                            >
+                              <Edit2 size={11} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 16. Phiếu A4 */}
+                      <td className="whitespace-nowrap px-3.5 py-2.5 text-center">
                         <JobTicketButton item={r} role={role} variant="icon" />
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={17} className="px-3.5 py-12 text-center text-xs text-muted-foreground">
-                      Không có lô hàng khớp bộ lọc
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 p-3 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-2 font-mono tabular-nums">
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={16} className="px-4 py-16 text-center text-xs text-muted-foreground">
+                    <PackageOpen size={32} className="mx-auto mb-2 opacity-40" />
+                    <p className="font-semibold text-foreground">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
+                    <p className="mt-1 text-muted-foreground">Hãy thử chọn lại tiêu chí tìm kiếm hoặc xóa các điều kiện lọc.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination & Export Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 p-3 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-mono tabular-nums text-foreground">
               Đang xem {number(rows.length ? tablePage * pageSize + 1 : 0)} –{' '}
               {number(Math.min((tablePage + 1) * pageSize, rows.length))} / {number(rows.length)} lô
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span>Hiển thị:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
                   setTablePage(0);
                 }}
-                className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground"
+                className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
               >
                 {PAGE_SIZES.map((n) => (
                   <option key={n} value={n}>
@@ -1081,166 +2499,45 @@ function Tracking() {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={exportCsv}
-                className="flex items-center gap-1.5 rounded border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-accent"
-              >
-                <Download size={13} /> Xuất CSV
-              </button>
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={tablePage === 0}
-                onClick={() => setTablePage((p) => p - 1)}
-                className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-accent"
-              >
-                Trang trước
-              </button>
-              <span className="font-mono tabular-nums">
-                Trang {tablePage + 1} / {number(totalPages)}
-              </span>
-              <button
-                disabled={tablePage + 1 >= totalPages}
-                onClick={() => setTablePage((p) => p + 1)}
-                className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-accent"
-              >
-                Trang sau
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => exportCsv(false)}
+              className="flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-secondary cursor-pointer"
+            >
+              <Download size={13} /> Xuất CSV toàn bộ
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={tablePage === 0}
+              onClick={() => setTablePage((p) => Math.max(0, p - 1))}
+              className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-secondary cursor-pointer"
+            >
+              Trang trước
+            </button>
+            <span className="font-mono tabular-nums text-foreground font-bold">
+              Trang {tablePage + 1} / {number(totalPages)}
+            </span>
+            <button
+              type="button"
+              disabled={tablePage + 1 >= totalPages}
+              onClick={() => setTablePage((p) => Math.min(totalPages - 1, p + 1))}
+              className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-secondary cursor-pointer"
+            >
+              Trang sau
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Lot detail drawer / modal */}
-      {detail && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
-          onClick={() => setDetail(null)}
-        >
-          <div
-            className="mes-card max-h-[90vh] w-full max-w-xl overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {(() => {
-              const live = all.find((i) => i.ID_Key === detail.ID_Key) ?? detail;
-              const log = auditFor(live.ID_Key);
-              const late = isOverdue(live);
-              return (
-                <>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="font-mono text-xs font-bold text-primary">{live.ID_Key}</span>
-                      <h3 className="mt-1 font-mono text-lg font-black text-foreground">{live.ma_hang}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Đơn hàng: <b className="text-foreground">{live.So_DatHang}</b> · Phân xưởng {live.phong_sx}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setDetail(null)}
-                      className="rounded p-1 text-muted-foreground hover:bg-accent"
-                      aria-label="Đóng chi tiết"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 rounded border border-border bg-secondary/30 p-3 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Vật liệu / Độ cứng:</span>
-                      <p className="font-semibold text-foreground">
-                        {live.vat_lieu} · {live.do_cung}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Kích thước SP:</span>
-                      <p className="font-mono text-foreground">{live.Kich_Thuoc_SP || '—'}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Số lượng / Khối lượng:</span>
-                      <p className="font-mono font-bold text-foreground">
-                        {number(live.so_luong)} {live.don_vi_tinh} · {number(live.kg_Lot, 1)} kg
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Đơn vị gia công:</span>
-                      <p className="font-semibold text-foreground">{formatVendorName(live.cty_QT, role)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Ngày gửi QT:</span>
-                      <p className="font-mono text-foreground">{date(live.ngay_gui_QT)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Hạn trả:</span>
-                      <p className="font-mono font-bold text-foreground">
-                        {date(live.han_tra)}
-                        {live.han_tra_est && <span className="ml-1 text-[10px] text-warning">(Ước tính +7d)</span>}
-                        {late && (
-                          <span className="ml-1 font-bold text-destructive">
-                            — Trễ {daysOver(live)} ngày
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  {live.han_tra_est && (
-                    <p className="mt-3 text-[11px] text-warning">
-                      Hạn trả là ước tính (+7 ngày sau ngày gửi) do nguồn dữ liệu chưa có cột hạn trả chính thức.
-                    </p>
-                  )}
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-                    <span className="text-xs font-bold text-foreground">
-                      Trạng thái hiện tại: <b className="text-primary">{live.TrangThai}</b>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <JobTicketButton item={live} role={role} variant="button" />
-                      <LotUpdateButton key={live.TrangThai + (live.ngay_nhan ?? '')} item={live} />
-                    </div>
-                  </div>
-                  <h4 className="mt-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Lịch sử thay đổi
-                  </h4>
-                  {log.length ? (
-                    <ol className="mt-2 max-h-44 space-y-2 overflow-y-auto rounded border border-border/60 bg-background/50 p-2.5 text-[11px]">
-                      {log.map((e) => (
-                        <li key={e.id} className="border-l-2 border-primary/50 pl-2">
-                          <b className="font-mono tabular-nums">{new Date(e.at).toLocaleString('vi-VN')}</b> · {e.user}{' '}
-                          ({e.role}) —{' '}
-                          {e.result === 'ok' ? (
-                            <span className="font-bold text-primary">Đã ghi Sheet</span>
-                          ) : (
-                            <span className="font-bold text-destructive">Lỗi: {e.error}</span>
-                          )}
-                          <br />
-                          {Object.entries(e.changes)
-                            .map(([k, [a, b]]) => `${k}: ${a || '—'} → ${b || '—'}`)
-                            .join('; ')}
-                          {e.reason && (
-                            <>
-                              <br />
-                              Lý do: {e.reason}
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Chưa có thay đổi nào được ghi nhận cho lô này.
-                    </p>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Floating Bulk Action Bar */}
+      {/* Proposal 2 & 5: Floating Bulk Action Bar */}
       {selectedLots.size > 0 && (
         <aside
           aria-label="Thao tác hàng loạt"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-primary/40 bg-card/95 px-5 py-3 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2.5 rounded-xl border border-primary/40 bg-card/95 px-5 py-3 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4"
         >
           <div className="flex items-center gap-2 pr-3 border-r border-border">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
@@ -1248,32 +2545,808 @@ function Tracking() {
             </span>
             <span className="text-xs font-semibold text-foreground">lô được chọn</span>
           </div>
+
           <button
-            onClick={exportSelectedCsv}
+            type="button"
+            onClick={() => setBulkEditOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+          >
+            <Zap size={14} /> Sửa hàng loạt
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBatchPrintOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
           >
-            <Download size={14} /> Xuất CSV đã chọn
+            <Printer size={14} /> In phiếu A4 hàng loạt
           </button>
+
           <button
+            type="button"
+            onClick={() => exportCsv(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
+          >
+            <Download size={14} /> Xuất CSV ({selectedLots.size})
+          </button>
+
+          <button
+            type="button"
             onClick={copySelectedIds}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
           >
             <Copy size={14} /> Copy mã lô
           </button>
+
           <button
+            type="button"
             onClick={() => setSelectedLots(new Set())}
             className="ml-2 rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
             title="Bỏ chọn tất cả"
           >
-            <X size={15} />
+            <X size={16} />
           </button>
         </aside>
       )}
 
-      <p className="mt-5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <ArrowRight size={13} className="text-primary" /> Dữ liệu phản ánh nguồn đã áp dụng trong mục Đồng bộ; bảng
-        tính gốc Google Sheets không bị ghi đè trực tiếp ngoài luồng cập nhật.
-      </p>
+      {/* Proposal 2: Smart Bulk Edit Modal */}
+      {bulkEditOpen && (
+        <BulkEditDialog
+          items={selectedRowsList}
+          role={role}
+          onClose={() => setBulkEditOpen(false)}
+          onApply={(patch, reason) => {
+            const ids = selectedRowsList.map((r) => r.ID_Key);
+            bulkUpdateItems(ids, patch);
+            ids.forEach((id) => {
+              appendAudit({
+                ID_Key: id,
+                user: role,
+                role,
+                from: 'Hàng loạt',
+                to: 'Cập nhật hàng loạt',
+                changes: patch as any,
+                reason,
+                result: 'ok',
+              });
+            });
+            toast.success(`Đã cập nhật hàng loạt cho ${ids.length} lô hàng!`);
+            playAudioCue('success');
+            setBulkEditOpen(false);
+            setSelectedLots(new Set());
+          }}
+        />
+      )}
+
+      {/* Proposal 5: Batch A4 Job Ticket Modal */}
+      {batchPrintOpen && (
+        <BatchJobTicketModal
+          items={selectedRowsList}
+          role={role}
+          open={batchPrintOpen}
+          onOpenChange={setBatchPrintOpen}
+        />
+      )}
+
+      {/* Proposal 1: Lot Detail Drawer (Slide-over) */}
+      {detailLot && (
+        <LotDetailDrawer
+          item={detailLot}
+          role={role}
+          onClose={() => setDetailLot(null)}
+          onUpdate={(patch) => {
+            updateItem(detailLot.ID_Key, patch);
+            setDetailLot((prev) => (prev ? { ...prev, ...patch } : null));
+          }}
+        />
+      )}
     </>
+  );
+}
+
+// Proposal 2: Bulk Edit Dialog Component
+function BulkEditDialog({
+  items,
+  role,
+  onClose,
+  onApply,
+}: {
+  items: QTItem[];
+  role: string;
+  onClose: () => void;
+  onApply: (patch: Partial<QTItem>, reason: string) => void;
+}) {
+  const isAdmin = role === 'admin';
+  const [updateLogi, setUpdateLogi] = useState(false);
+  const [logiVal, setLogiVal] = useState<Status>('Đang tại Vendor');
+
+  const [updateDue, setUpdateDue] = useState(false);
+  const [dueMode, setDueMode] = useState<'add3' | 'add7' | 'custom'>('add7');
+  const [customDue, setCustomDue] = useState('');
+
+  const [updateHrc, setUpdateHrc] = useState(false);
+  const [hrcVal, setHrcVal] = useState('');
+
+  const [updateVendor, setUpdateVendor] = useState(false);
+  const [vendorVal, setVendorVal] = useState<Vendor>('YAMAICHI');
+
+  const [updateSendDate, setUpdateSendDate] = useState(false);
+  const [sendDateVal, setSendDateVal] = useState('');
+
+  const [updateMaterial, setUpdateMaterial] = useState(false);
+  const [materialVal, setMaterialVal] = useState('');
+
+  const [reason, setReason] = useState('');
+
+  const handleConfirm = () => {
+    const patch: Partial<QTItem> = {};
+    if (updateLogi) patch.TrangThai = logiVal;
+    if (updateHrc && hrcVal.trim()) patch.do_cung = hrcVal.trim();
+    if (updateVendor) patch.cty_QT = vendorVal;
+    if (updateSendDate && sendDateVal) patch.ngay_gui_QT = sendDateVal;
+    if (updateMaterial && materialVal.trim()) patch.vat_lieu = materialVal.trim();
+    if (updateDue) {
+      if (dueMode === 'custom' && customDue) {
+        patch.han_tra = customDue;
+        patch.han_tra_est = false;
+      } else {
+        const days = dueMode === 'add3' ? 3 : 7;
+        const now = new Date();
+        patch.han_tra = ymd(new Date(now.getTime() + days * DAY));
+        patch.han_tra_est = false;
+      }
+    }
+    onApply(patch, reason || 'Cập nhật hàng loạt từ bảng luân chuyển');
+  };
+
+  const hasAnyChange =
+    updateLogi || updateDue || updateHrc || updateVendor || updateSendDate || updateMaterial;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="mes-card w-full max-w-xl overflow-hidden rounded-xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b pb-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded bg-primary/10 text-primary">
+              <Zap size={16} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-foreground">Sửa hàng loạt ({items.length} lô)</h2>
+              <p className="text-xs text-muted-foreground">Cập nhật đồng bộ các thông số cho toàn bộ lô được chọn</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:bg-secondary">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-3.5 text-xs">
+          {/* Option 1: Logistics */}
+          <div className="rounded border p-3 bg-secondary/20">
+            <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={updateLogi}
+                onChange={(e) => setUpdateLogi(e.target.checked)}
+                className="rounded text-primary focus:ring-primary accent-primary"
+              />
+              <span>Chuyển trạng thái Logistics</span>
+            </label>
+            {updateLogi && (
+              <select
+                value={logiVal}
+                onChange={(e) => setLogiVal(e.target.value as Status)}
+                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold"
+              >
+                <option value="Chờ xuất xưởng">Chờ xuất xưởng</option>
+                <option value="Đang tại Vendor">Đang tại Vendor</option>
+                <option value="Đã nhập kho">Đã nhập kho</option>
+              </select>
+            )}
+          </div>
+
+          {/* Option 2: Hạn trả */}
+          <div className="rounded border p-3 bg-secondary/20">
+            <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={updateDue}
+                onChange={(e) => setUpdateDue(e.target.checked)}
+                className="rounded text-primary focus:ring-primary accent-primary"
+              />
+              <span>Gia hạn / Cập nhật hạn trả hàng loạt</span>
+            </label>
+            {updateDue && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDueMode('add3')}
+                    className={`flex-1 rounded border px-2 py-1 text-xs ${
+                      dueMode === 'add3' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                    }`}
+                  >
+                    +3 Ngày
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDueMode('add7')}
+                    className={`flex-1 rounded border px-2 py-1 text-xs ${
+                      dueMode === 'add7' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                    }`}
+                  >
+                    +7 Ngày
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDueMode('custom')}
+                    className={`flex-1 rounded border px-2 py-1 text-xs ${
+                      dueMode === 'custom' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                    }`}
+                  >
+                    Ngày cụ thể
+                  </button>
+                </div>
+                {dueMode === 'custom' && (
+                  <input
+                    type="date"
+                    value={customDue}
+                    onChange={(e) => setCustomDue(e.target.value)}
+                    className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Option 3: Độ cứng */}
+          <div className="rounded border p-3 bg-secondary/20">
+            <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={updateHrc}
+                onChange={(e) => setUpdateHrc(e.target.checked)}
+                className="rounded text-primary focus:ring-primary accent-primary"
+              />
+              <span>Cập nhật độ cứng thực tế</span>
+            </label>
+            {updateHrc && (
+              <input
+                type="text"
+                placeholder="VD: 58-62 HRC hoặc 44±1"
+                value={hrcVal}
+                onChange={(e) => setHrcVal(e.target.value)}
+                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
+              />
+            )}
+          </div>
+
+          {/* Option 4: Đối tác QT (Admin only) */}
+          {isAdmin && (
+            <div className="rounded border p-3 bg-secondary/20">
+              <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={updateVendor}
+                  onChange={(e) => setUpdateVendor(e.target.checked)}
+                  className="rounded text-primary focus:ring-primary accent-primary"
+                />
+                <span>Chuyển đối tác gia công ngoài (Admin)</span>
+              </label>
+              {updateVendor && (
+                <select
+                  value={vendorVal}
+                  onChange={(e) => setVendorVal(e.target.value as Vendor)}
+                  className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold"
+                >
+                  <option value="YAMAICHI">YAMAICHI</option>
+                  <option value="PROVISION">PROVISION</option>
+                </select>
+              )}
+            </div>
+          )}
+
+          {/* Option 5: Ngày gửi QT */}
+          <div className="rounded border p-3 bg-secondary/20">
+            <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={updateSendDate}
+                onChange={(e) => setUpdateSendDate(e.target.checked)}
+                className="rounded text-primary focus:ring-primary accent-primary"
+              />
+              <span>Điều chỉnh ngày gửi QT</span>
+            </label>
+            {updateSendDate && (
+              <input
+                type="date"
+                value={sendDateVal}
+                onChange={(e) => setSendDateVal(e.target.value)}
+                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
+              />
+            )}
+          </div>
+
+          {/* Option 6: Mác thép / Vật liệu */}
+          <div className="rounded border p-3 bg-secondary/20">
+            <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={updateMaterial}
+                onChange={(e) => setUpdateMaterial(e.target.checked)}
+                className="rounded text-primary focus:ring-primary accent-primary"
+              />
+              <span>Cập nhật mác thép / vật liệu</span>
+            </label>
+            {updateMaterial && (
+              <input
+                type="text"
+                placeholder="VD: DAC, SKD61, NAK80..."
+                value={materialVal}
+                onChange={(e) => setMaterialVal(e.target.value)}
+                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
+              />
+            )}
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="block text-muted-foreground font-semibold mb-1">
+              Lý do điều chỉnh (lưu vào Audit Trail):
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="VD: Gia hạn do đối tác quá tải lò; Chuyển xưởng hàng loạt ca sáng..."
+              className="w-full h-14 rounded border border-input bg-background p-2 text-xs text-foreground"
+            />
+          </div>
+
+          {/* Preview list */}
+          <div className="rounded bg-muted/40 p-2.5">
+            <p className="font-bold text-[11px] text-muted-foreground mb-1">
+              DANH SÁCH {items.length} LÔ BỊ TÁC ĐỘNG:
+            </p>
+            <div className="max-h-20 overflow-y-auto space-y-1 font-mono text-[10px]">
+              {items.map((it) => (
+                <div key={it.ID_Key} className="flex justify-between">
+                  <span className="font-bold text-primary">{it.ID_Key}</span>
+                  <span>{it.ma_hang}</span>
+                  <span className="text-muted-foreground">{it.phong_sx}</span>
+                  <span>{it.TrangThai}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t pt-4 mt-5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary cursor-pointer"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            type="button"
+            disabled={!hasAnyChange}
+            onClick={handleConfirm}
+            className="rounded bg-primary px-5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 cursor-pointer shadow-xs"
+          >
+            Xác nhận áp dụng ({items.length} lô)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Proposal 1: Lot Detail Drawer Component with Full Edit Capabilities
+function LotDetailDrawer({
+  item,
+  role,
+  onClose,
+  onUpdate,
+}: {
+  item: QTItem;
+  role: string;
+  onClose: () => void;
+  onUpdate: (patch: Partial<QTItem>) => void;
+}) {
+  const canEdit = true;
+  const isAdmin = role === 'admin';
+  const auditLogs = auditFor(item.ID_Key);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({
+    ma_hang: item.ma_hang,
+    So_DatHang: item.So_DatHang,
+    vat_lieu: item.vat_lieu,
+    do_cung: item.do_cung === '—' ? '' : item.do_cung,
+    so_luong: item.so_luong,
+    kg_Lot: item.kg_Lot,
+    cty_QT: item.cty_QT,
+    ngay_gui_QT: item.ngay_gui_QT,
+    han_tra: item.han_tra,
+    Kich_Thuoc_SP: item.Kich_Thuoc_SP || '',
+    TrangThai: item.TrangThai,
+  });
+  const [editReason, setEditReason] = useState('');
+
+  const handleSave = () => {
+    if (!form.ma_hang.trim()) {
+      toast.error('Mã hàng không được để trống.');
+      return;
+    }
+    const patch: Partial<QTItem> = {
+      ma_hang: form.ma_hang.trim(),
+      So_DatHang: form.So_DatHang.trim(),
+      vat_lieu: form.vat_lieu.trim() || '—',
+      do_cung: form.do_cung.trim() || '—',
+      so_luong: Math.max(1, Number(form.so_luong) || item.so_luong),
+      kg_Lot: Math.max(0.1, Number(form.kg_Lot) || item.kg_Lot),
+      cty_QT: form.cty_QT,
+      ngay_gui_QT: form.ngay_gui_QT,
+      han_tra: form.han_tra,
+      han_tra_est: false,
+      Kich_Thuoc_SP: form.Kich_Thuoc_SP.trim(),
+      TrangThai: form.TrangThai,
+    };
+
+    onUpdate(patch);
+    appendAudit({
+      ID_Key: item.ID_Key,
+      user: role,
+      role,
+      from: 'Chi tiết lô',
+      to: 'Cập nhật trực tiếp',
+      changes: patch as any,
+      reason: editReason || 'Chỉnh sửa thông số lô từ bảng chi tiết',
+      result: 'ok',
+    });
+    toast.success(`Đã lưu thay đổi cho lô ${item.ID_Key}`);
+    playAudioCue('success');
+    setIsEditing(false);
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-end bg-overlay backdrop-blur-xs"
+      onClick={onClose}
+    >
+      <div
+        className="h-full w-full max-w-lg bg-card border-l border-border p-6 shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-border pb-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-black text-primary px-2 py-0.5 rounded bg-primary/10">
+                  {item.ID_Key}
+                </span>
+                <span className="rounded bg-secondary px-2 py-0.5 font-bold text-[10px] text-muted-foreground">
+                  Phân xưởng {item.phong_sx}
+                </span>
+              </div>
+              <h2 className="mt-2 font-mono text-xl font-black text-foreground">{item.ma_hang}</h2>
+              <p className="text-xs text-muted-foreground font-mono">Đơn hàng: {item.So_DatHang}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`rounded px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer border ${
+                    isEditing
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-secondary hover:bg-muted text-foreground'
+                  }`}
+                >
+                  {isEditing ? 'Hủy sửa' : '✏️ Sửa lô này'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* If Editing Mode */}
+          {isEditing ? (
+            <div className="space-y-3 rounded-lg border border-primary/30 bg-secondary/20 p-4 text-xs mb-4">
+              <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-1.5">
+                <Edit2 size={14} className="text-primary" /> Chỉnh sửa thông số lô {item.ID_Key}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Mã hàng:
+                  </label>
+                  <input
+                    type="text"
+                    value={form.ma_hang}
+                    onChange={(e) => setForm({ ...form, ma_hang: e.target.value })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs font-bold text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Số đơn hàng:
+                  </label>
+                  <input
+                    type="text"
+                    value={form.So_DatHang}
+                    onChange={(e) => setForm({ ...form, So_DatHang: e.target.value })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Mác thép / Vật liệu:
+                  </label>
+                  <input
+                    type="text"
+                    value={form.vat_lieu}
+                    onChange={(e) => setForm({ ...form, vat_lieu: e.target.value })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Độ cứng yêu cầu:
+                  </label>
+                  <input
+                    type="text"
+                    value={form.do_cung}
+                    onChange={(e) => setForm({ ...form, do_cung: e.target.value })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Số lượng xuất:
+                  </label>
+                  <input
+                    type="number"
+                    value={form.so_luong}
+                    onChange={(e) => setForm({ ...form, so_luong: Number(e.target.value) })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Khối lượng (kg):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={form.kg_Lot}
+                    onChange={(e) => setForm({ ...form, kg_Lot: Number(e.target.value) })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                  />
+                </div>
+                {isAdmin && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                      Đơn vị gia công:
+                    </label>
+                    <select
+                      value={form.cty_QT}
+                      onChange={(e) => setForm({ ...form, cty_QT: e.target.value as Vendor })}
+                      className="w-full rounded border border-input bg-background px-2 py-1.5 text-xs text-foreground font-semibold"
+                    >
+                      <option value="YAMAICHI">YAMAICHI</option>
+                      <option value="PROVISION">PROVISION</option>
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Trạng thái luân chuyển:
+                  </label>
+                  <select
+                    value={form.TrangThai}
+                    onChange={(e) => setForm({ ...form, TrangThai: e.target.value as Status })}
+                    className="w-full rounded border border-input bg-background px-2 py-1.5 text-xs text-foreground font-semibold"
+                  >
+                    <option value="Chờ xuất xưởng">Chờ xuất xưởng</option>
+                    <option value="Đang tại Vendor">Đang tại Vendor</option>
+                    <option value="Đã nhập kho">Đã nhập kho</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Ngày gửi QT:
+                  </label>
+                  <input
+                    type="date"
+                    value={form.ngay_gui_QT}
+                    onChange={(e) => setForm({ ...form, ngay_gui_QT: e.target.value })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                    Hạn trả gia công:
+                  </label>
+                  <input
+                    type="date"
+                    value={form.han_tra}
+                    onChange={(e) => setForm({ ...form, han_tra: e.target.value })}
+                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                  Kích thước sản phẩm:
+                </label>
+                <input
+                  type="text"
+                  value={form.Kich_Thuoc_SP}
+                  placeholder="VD: Ø30x120, 45x60x12..."
+                  onChange={(e) => setForm({ ...form, Kich_Thuoc_SP: e.target.value })}
+                  className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                  Lý do thay đổi:
+                </label>
+                <input
+                  type="text"
+                  value={editReason}
+                  placeholder="VD: Cập nhật mã hàng thực tế xưởng..."
+                  onChange={(e) => setEditReason(e.target.value)}
+                  className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="rounded border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="rounded bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+                >
+                  Lưu thay đổi lô này
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Technical Specs Grid */}
+              <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-secondary/30 p-3.5 text-xs mb-4">
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Mác thép / Vật liệu:
+                  </span>
+                  <p className="font-mono font-bold text-foreground text-sm">{item.vat_lieu}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Độ cứng yêu cầu:
+                  </span>
+                  <p className="font-mono font-black text-destructive text-sm">{item.do_cung}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Số lượng xuất:
+                  </span>
+                  <p className="font-mono font-bold text-foreground">
+                    {number(item.so_luong)} {item.don_vi_tinh}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Trọng lượng lô:
+                  </span>
+                  <p className="font-mono font-bold text-foreground">{number(item.kg_Lot, 1)} kg</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Kích thước SP:
+                  </span>
+                  <p className="font-mono text-foreground">{item.Kich_Thuoc_SP || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Đơn vị nhận gia công:
+                  </span>
+                  <p className="font-semibold text-foreground">{formatVendorName(item.cty_QT, role as any)}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Ngày gửi xuất xưởng:
+                  </span>
+                  <p className="font-mono text-foreground">{date(item.ngay_gui_QT)}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                    Hạn trả:
+                  </span>
+                  <p className="font-mono font-bold text-foreground">
+                    {date(item.han_tra)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Current Status Banner */}
+              <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3 mb-4">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                    Trạng thái luân chuyển:
+                  </span>
+                  <p className="font-bold text-foreground text-sm">{item.TrangThai}</p>
+                </div>
+                <LotUpdateButton item={item} />
+              </div>
+            </>
+          )}
+
+          {/* Audit History */}
+          <div>
+            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-2">
+              NHẬT KÝ THAY ĐỔI & AUDIT TRAIL ({auditLogs.length})
+            </h3>
+            {auditLogs.length ? (
+              <div className="max-h-44 overflow-y-auto space-y-2 rounded border border-border p-2.5 text-[11px]">
+                {auditLogs.map((log) => (
+                  <div key={log.id} className="border-l-2 border-primary pl-2.5 py-1">
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {new Date(log.at).toLocaleString('vi-VN')} · {log.user} ({log.role})
+                    </p>
+                    <p className="font-medium text-foreground">
+                      {Object.entries(log.changes)
+                        .map(([k, [oldV, newV]]) => `${k}: "${oldV}" → "${newV}"`)
+                        .join('; ')}
+                    </p>
+                    {log.reason && <p className="text-muted-foreground italic">Lý do: {log.reason}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic p-2 border rounded">
+                Chưa có thay đổi nào được ghi nhận cho lô này.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between border-t border-border pt-4 mt-6">
+          <JobTicketButton item={item} role={role as any} variant="button" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
