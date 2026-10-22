@@ -116,40 +116,41 @@ export type ColumnKey =
 const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 44,
   ID_Key: 140,
-  So_DatHang: 130,
-  phong_sx: 100,
-  ma_hang: 160,
-  vat_lieu: 135,
+  So_DatHang: 140,
+  phong_sx: 90,
+  ma_hang: 145,
+  vat_lieu: 120,
   do_cung: 115,
-  so_luong: 95,
-  kg_Lot: 95,
-  cty_QT: 135,
+  so_luong: 85,
+  kg_Lot: 85,
+  cty_QT: 130,
   TrangThai: 145,
-  qc: 115,
-  ngay_gui_QT: 120,
+  qc: 140,
+  ngay_gui_QT: 125,
   han_tra: 125,
-  ghi_chu: 260,
-  ticket: 95,
+  ghi_chu: 240,
+  ticket: 90,
 };
 
 // Minimum content-aware widths: prevents columns from collapsing below title/icon/cell content
+// Calibrated so that when collapsed to minimum, every column retains an even ~12px padding
 const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 44,
-  ID_Key: 115,
-  So_DatHang: 125,
-  phong_sx: 95,
-  ma_hang: 145,
-  vat_lieu: 115,
+  ID_Key: 120,
+  So_DatHang: 130,
+  phong_sx: 85,
+  ma_hang: 125,
+  vat_lieu: 105,
   do_cung: 105,
-  so_luong: 90,
-  kg_Lot: 90,
-  cty_QT: 120,
-  TrangThai: 140,
-  qc: 110,
+  so_luong: 75,
+  kg_Lot: 75,
+  cty_QT: 115,
+  TrangThai: 135,
+  qc: 130,
   ngay_gui_QT: 115,
-  han_tra: 120,
-  ghi_chu: 160,
-  ticket: 90,
+  han_tra: 115,
+  ghi_chu: 150,
+  ticket: 80,
 };
 
 interface TableFilterState {
@@ -279,6 +280,7 @@ function HeaderFilterCell({
   onResetWidth,
   stickyLeft,
   isStickyLast = false,
+  onDirectSort,
 }: {
   title: string;
   field?: SortField;
@@ -294,12 +296,24 @@ function HeaderFilterCell({
   onResetWidth?: () => void;
   stickyLeft?: number;
   isStickyLast?: boolean;
+  onDirectSort?: (field: SortField) => void;
 }) {
   const [open, setOpen] = useState(false);
   const isSorted = field && sortCol === field;
+  const isSticky = stickyLeft !== undefined || stickyClass.includes('sticky');
+
+  const handleTitleClick = (e: React.MouseEvent) => {
+    if (field && onDirectSort) {
+      e.stopPropagation();
+      onDirectSort(field);
+    }
+  };
+
   return (
     <th
-      className={`relative whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground ${stickyClass} ${className} ${
+      className={`relative whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground select-none ${
+        isSticky ? 'sticky top-0 z-30 bg-secondary' : 'bg-secondary'
+      } ${stickyClass} ${className} ${
         isStickyLast
           ? 'border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
           : ''
@@ -310,33 +324,55 @@ function HeaderFilterCell({
       }}
     >
       <div
-        className={`flex items-center gap-1 ${
+        className={`flex items-center gap-1.5 ${
           align === 'end' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-between'
         }`}
       >
-        <span className="truncate">{title}</span>
+        <button
+          type="button"
+          onClick={handleTitleClick}
+          className="flex items-center gap-1 text-left group/th cursor-pointer hover:text-foreground transition-colors outline-none truncate"
+          title={
+            field
+              ? `Nhấp để sắp xếp: ${
+                  isSorted
+                    ? sortDir === 'asc'
+                      ? 'Tăng dần → Giảm dần'
+                      : 'Giảm dần → Mặc định'
+                    : 'A → Z (Tăng dần)'
+                }`
+              : undefined
+          }
+        >
+          <span className="truncate">{title}</span>
+          {field && (
+            <span className="inline-flex items-center">
+              {isSorted ? (
+                sortDir === 'asc' ? (
+                  <ArrowUp size={12} className="text-primary stroke-[3] shrink-0" />
+                ) : (
+                  <ArrowDown size={12} className="text-primary stroke-[3] shrink-0" />
+                )
+              ) : (
+                <ArrowUpDown size={11} className="text-muted-foreground/30 group-hover/th:text-primary group-hover/th:opacity-100 opacity-0 transition-all shrink-0" />
+              )}
+            </span>
+          )}
+        </button>
+
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
+              onClick={(e) => e.stopPropagation()}
               className={`inline-flex size-5 shrink-0 items-center justify-center rounded transition-all cursor-pointer ${
                 isFiltered
                   ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
-                  : isSorted
-                  ? 'bg-primary/20 text-primary border border-primary/40 font-bold'
                   : 'text-muted-foreground/60 hover:bg-background/80 hover:text-foreground'
               }`}
-              title={`Lọc & sắp xếp ${title}`}
+              title={`Mở bộ lọc ${title}`}
             >
-              {isSorted ? (
-                sortDir === 'asc' ? (
-                  <ArrowUp size={11} className="stroke-[2.5]" />
-                ) : (
-                  <ArrowDown size={11} className="stroke-[2.5]" />
-                )
-              ) : (
-                <Filter size={10} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.5]'} />
-              )}
+              <Filter size={10} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.5]'} />
             </button>
           </PopoverTrigger>
           <PopoverContent
@@ -489,6 +525,21 @@ function Tracking() {
   const handleSort = (field: SortField, dir: SortDirection) => {
     setSortCol(field);
     setSortDir(dir);
+    setTablePage(0);
+    playAudioCue('beep');
+  };
+
+  const handleToggleSort = (field: SortField) => {
+    if (sortCol !== field) {
+      setSortCol(field);
+      setSortDir('asc');
+    } else if (sortDir === 'asc') {
+      setSortDir('desc');
+    } else {
+      // Bấm lần 3: Khôi phục sắp xếp mặc định theo ngày gửi mới nhất
+      setSortCol('ngay_gui_QT');
+      setSortDir('desc');
+    }
     setTablePage(0);
     playAudioCue('beep');
   };
@@ -1289,9 +1340,9 @@ function Tracking() {
             </colgroup>
             <thead className="sticky top-0 z-10 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs">
               <tr>
-                {/* Column 1: Checkbox (Sticky left-0) */}
+                {/* Column 1: Checkbox (Sticky top-0 left-0) */}
                 <th
-                  className="sticky left-0 z-20 px-3 py-2.5 text-center bg-secondary relative border-r border-border/50"
+                  className="sticky top-0 left-0 z-30 px-3 py-2.5 text-center bg-secondary relative border-r border-border/50 select-none"
                   style={{ width: `${colWidths.checkbox}px`, minWidth: `${colWidths.checkbox}px`, maxWidth: `${colWidths.checkbox}px` }}
                 >
                   <div className="flex items-center justify-center">
@@ -1314,17 +1365,18 @@ function Tracking() {
                   </div>
                 </th>
 
-                {/* Column 2: Mã lô (Sticky left-[checkbox]) */}
+                {/* Column 2: Mã lô (Sticky top-0 left-[checkbox]) */}
                 <HeaderFilterCell
                   title="MÃ LÔ"
                   field="ID_Key"
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.idKeySearch}
-                  stickyClass="sticky z-20 bg-secondary"
+                  stickyClass="sticky top-0 z-30 bg-secondary"
                   stickyLeft={colWidths.checkbox}
                   width={colWidths.ID_Key}
                   isStickyLast={true}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'ID_Key')}
                   onResetWidth={() => handleResetColWidth('ID_Key')}
                 >
@@ -1386,6 +1438,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.orderSearch}
                   width={colWidths.So_DatHang}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'So_DatHang')}
                   onResetWidth={() => handleResetColWidth('So_DatHang')}
                 >
@@ -1434,6 +1487,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={filters.workshops.length > 0}
                   width={colWidths.phong_sx}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'phong_sx')}
                   onResetWidth={() => handleResetColWidth('phong_sx')}
                 >
@@ -1498,6 +1552,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.itemSearch}
                   width={colWidths.ma_hang}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'ma_hang')}
                   onResetWidth={() => handleResetColWidth('ma_hang')}
                 >
@@ -1546,6 +1601,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={filters.materials.length > 0}
                   width={colWidths.vat_lieu}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'vat_lieu')}
                   onResetWidth={() => handleResetColWidth('vat_lieu')}
                 >
@@ -1619,6 +1675,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.hardnessSearch || filters.missingHardnessOnly}
                   width={colWidths.do_cung}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'do_cung')}
                   onResetWidth={() => handleResetColWidth('do_cung')}
                 >
@@ -1666,6 +1723,7 @@ function Tracking() {
                   isFiltered={!!filters.qtyMin || !!filters.qtyMax}
                   align="end"
                   width={colWidths.so_luong}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'so_luong')}
                   onResetWidth={() => handleResetColWidth('so_luong')}
                 >
@@ -1716,6 +1774,7 @@ function Tracking() {
                   isFiltered={!!filters.kgMin || !!filters.kgMax}
                   align="end"
                   width={colWidths.kg_Lot}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'kg_Lot')}
                   onResetWidth={() => handleResetColWidth('kg_Lot')}
                 >
@@ -1767,6 +1826,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={filters.vendors.length > 0}
                   width={colWidths.cty_QT}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'cty_QT')}
                   onResetWidth={() => handleResetColWidth('cty_QT')}
                 >
@@ -1831,6 +1891,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={filters.logistics.length > 0}
                   width={colWidths.TrangThai}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'TrangThai')}
                   onResetWidth={() => handleResetColWidth('TrangThai')}
                 >
@@ -1880,6 +1941,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={filters.qcStates.length > 0}
                   width={colWidths.qc}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'qc')}
                   onResetWidth={() => handleResetColWidth('qc')}
                 >
@@ -1938,6 +2000,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.sendFrom || !!filters.sendTo}
                   width={colWidths.ngay_gui_QT}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'ngay_gui_QT')}
                   onResetWidth={() => handleResetColWidth('ngay_gui_QT')}
                 >
@@ -2014,6 +2077,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.dueFrom || !!filters.dueTo || filters.missingDueOnly}
                   width={colWidths.han_tra}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'han_tra')}
                   onResetWidth={() => handleResetColWidth('han_tra')}
                 >
@@ -2102,6 +2166,7 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.noteSearch || filters.hasNoteOnly}
                   width={colWidths.ghi_chu}
+                  onDirectSort={handleToggleSort}
                   onResize={(e) => handleResizeStart(e, 'ghi_chu')}
                   onResetWidth={() => handleResetColWidth('ghi_chu')}
                 >
@@ -2189,8 +2254,10 @@ function Tracking() {
                     >
                       {/* 1. Checkbox */}
                       <td
-                        className={`sticky left-0 z-10 px-3 py-2.5 text-center transition-colors border-r border-border/40 ${
-                          isSelected ? 'bg-primary/15 group-hover:bg-primary/20' : 'bg-card group-hover:bg-accent/30'
+                        className={`sticky left-0 z-20 px-3 py-2.5 text-center transition-colors border-r border-border/40 bg-card relative ${
+                          isSelected
+                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
+                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                         }`}
                         style={{
                           width: `${colWidths.checkbox}px`,
@@ -2198,19 +2265,23 @@ function Tracking() {
                           maxWidth: `${colWidths.checkbox}px`,
                         }}
                       >
-                        <input
-                          type="checkbox"
-                          aria-label={`Chọn lô ${r.ID_Key}`}
-                          checked={isSelected}
-                          onChange={() => toggleSelectLot(r.ID_Key)}
-                          className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
-                        />
+                        <div className="relative z-10 flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            aria-label={`Chọn lô ${r.ID_Key}`}
+                            checked={isSelected}
+                            onChange={() => toggleSelectLot(r.ID_Key)}
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                          />
+                        </div>
                       </td>
 
                       {/* 2. Mã lô (Green clickable link -> opens drawer) */}
                       <td
-                        className={`sticky z-10 whitespace-nowrap px-3.5 py-2.5 transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] ${
-                          isSelected ? 'bg-primary/15 group-hover:bg-primary/20' : 'bg-card group-hover:bg-accent/30'
+                        className={`sticky z-20 whitespace-nowrap px-3.5 py-2.5 transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative ${
+                          isSelected
+                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
+                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                         }`}
                         style={{
                           left: `${colWidths.checkbox}px`,
@@ -2222,7 +2293,7 @@ function Tracking() {
                         <button
                           type="button"
                           onClick={() => setDetailLot(r)}
-                          className="font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                          className="relative z-10 font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
                           title="Bấm để xem chi tiết & lịch sử lô"
                         >
                           {r.ID_Key}
