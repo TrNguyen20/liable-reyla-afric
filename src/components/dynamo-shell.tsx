@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  Search,
   Sun,
   Volume2,
   VolumeX,
@@ -530,19 +529,6 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                     </div>
                   </div>
                 </div>
-
-                {/* Quick Command Bar Trigger */}
-                <button
-                  type="button"
-                  onClick={() => setPaletteOpen(true)}
-                  className="relative order-last flex h-8.5 w-full items-center justify-between rounded-md border border-input bg-secondary/60 pl-8 pr-2.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-background sm:order-none sm:w-56 xl:w-68"
-                >
-                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <span className="truncate">{search ? `Lọc: "${search}"` : 'Tìm kiếm nhanh lô hàng...'}</span>
-                  <kbd className="pointer-events-none rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[9px] font-bold text-foreground">
-                    ⌘K
-                  </kbd>
-                </button>
 
                 {/* Role Impersonation Switcher (Proposal 7 for Admin) */}
                 {role === 'admin' && (
