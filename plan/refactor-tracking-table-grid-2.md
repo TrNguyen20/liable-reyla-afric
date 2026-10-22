@@ -29,7 +29,7 @@ Kế hoạch này giải quyết triệt để 5 vấn đề cốt lõi về gia
 - **CON-001**: Bảo toàn đầy đủ các tính năng lọc nâng cao hiện có (tìm kiếm chuỗi, checkbox đa chọn, khoảng ngày, lọc rỗng).
 - **CON-002**: Không làm tăng bundle size, tuân thủ bảng màu chuẩn Dynamo MES và giữ tốc độ cuộn mượt mà 60fps.
 - **GUD-001**: Tôn trọng nguyên tắc thiết kế công thái học: thông tin nhận diện (Mã lô) phải luôn neo giữ chắc chắn, không bị xáo trộn thị giác khi di chuột hoặc cuộn ngang/dọc.
-- **PAT-001**: Stacking Context phân cấp chuẩn: `thead non-sticky th` z-10, `tbody sticky td` z-20, `thead sticky th` z-30, `popover/dropdown` z-50.
+- **PAT-001**: Stacking Context phân cấp chuẩn bất biến: `thead non-sticky th` z-40, `tbody sticky td` z-20, `thead sticky th` (Checkbox & Mã lô) z-50, `popover/dropdown` z-50 (Portal). Đảm bảo `50 > 40 > 20 > 0`, triệt tiêu hoàn toàn nguy cơ che lấp khi cuộn 2 chiều.
 
 ## 2. Implementation Steps
 

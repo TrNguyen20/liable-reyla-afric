@@ -311,8 +311,8 @@ function HeaderFilterCell({
 
   return (
     <th
-      className={`relative whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground select-none ${
-        isSticky ? 'sticky top-0 z-30 bg-secondary' : 'bg-secondary'
+      className={`whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground select-none ${
+        isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
       } ${stickyClass} ${className} ${
         isStickyLast
           ? 'border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
@@ -321,6 +321,7 @@ function HeaderFilterCell({
       style={{
         ...(width !== undefined ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : {}),
         ...(stickyLeft !== undefined ? { left: `${stickyLeft}px` } : {}),
+        ...(isSticky ? { position: 'sticky', top: 0, zIndex: 50 } : {}),
       }}
     >
       <div
@@ -386,15 +387,18 @@ function HeaderFilterCell({
       </div>
       {onResize && (
         <div
+          role="separator"
+          tabIndex={-1}
+          aria-orientation="vertical"
           onMouseDown={onResize}
           onDoubleClick={(e) => {
             e.stopPropagation();
             onResetWidth?.();
           }}
-          className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize select-none touch-none group/resizer flex items-center justify-end z-20"
-          title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để reset)"
+          className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
+          title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)"
         >
-          <div className="w-[1.5px] h-4 rounded-full bg-border group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
+          <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
         </div>
       )}
     </th>
@@ -1310,7 +1314,7 @@ function Tracking() {
       </div>
 
       {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
+      <div className="isolate overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
         <div className="overflow-x-auto max-h-[750px]">
           <table
             className="text-left text-xs border-collapse"
@@ -1338,12 +1342,23 @@ function Tracking() {
               <col style={{ width: `${colWidths.ghi_chu}px` }} />
               <col style={{ width: `${colWidths.ticket}px` }} />
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs">
+            <thead
+              className="sticky top-0 z-40 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs"
+              style={{ position: 'sticky', top: 0, zIndex: 40 }}
+            >
               <tr>
                 {/* Column 1: Checkbox (Sticky top-0 left-0) */}
                 <th
-                  className="sticky top-0 left-0 z-30 px-3 py-2.5 text-center bg-secondary relative border-r border-border/50 select-none"
-                  style={{ width: `${colWidths.checkbox}px`, minWidth: `${colWidths.checkbox}px`, maxWidth: `${colWidths.checkbox}px` }}
+                  className="sticky top-0 left-0 z-50 px-3 py-2.5 text-center bg-secondary border-r border-border/50 select-none"
+                  style={{
+                    position: 'sticky',
+                    top: 0,
+                    left: 0,
+                    zIndex: 50,
+                    width: `${colWidths.checkbox}px`,
+                    minWidth: `${colWidths.checkbox}px`,
+                    maxWidth: `${colWidths.checkbox}px`,
+                  }}
                 >
                   <div className="flex items-center justify-center">
                     <input
@@ -1356,12 +1371,15 @@ function Tracking() {
                     />
                   </div>
                   <div
+                    role="separator"
+                    tabIndex={-1}
+                    aria-orientation="vertical"
                     onMouseDown={(e) => handleResizeStart(e, 'checkbox')}
                     onDoubleClick={() => handleResetColWidth('checkbox')}
-                    className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize select-none touch-none group/resizer flex items-center justify-end z-20"
-                    title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để reset)"
+                    className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
+                    title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)"
                   >
-                    <div className="w-[1.5px] h-4 rounded-full bg-border group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
+                    <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
                   </div>
                 </th>
 
@@ -1372,7 +1390,7 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.idKeySearch}
-                  stickyClass="sticky top-0 z-30 bg-secondary"
+                  stickyClass="sticky top-0 z-50 bg-secondary"
                   stickyLeft={colWidths.checkbox}
                   width={colWidths.ID_Key}
                   isStickyLast={true}
@@ -2234,9 +2252,9 @@ function Tracking() {
                     title="Kéo để chỉnh độ rộng cột (Click đúp để khôi phục mặc định)"
                     onMouseDown={(e) => handleResizeStart(e, 'ticket')}
                     onDoubleClick={() => handleResetColWidth('ticket')}
-                    className="group/resizer absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-20 flex items-center justify-center hover:bg-primary/20 active:bg-primary transition-colors select-none"
+                    className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
                   >
-                    <div className="w-[1.5px] h-3.5 bg-border/60 group-hover/resizer:bg-primary group-hover/resizer:h-full transition-all" />
+                    <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
                   </div>
                 </th>
               </tr>
@@ -2260,6 +2278,9 @@ function Tracking() {
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                         }`}
                         style={{
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 20,
                           width: `${colWidths.checkbox}px`,
                           minWidth: `${colWidths.checkbox}px`,
                           maxWidth: `${colWidths.checkbox}px`,
@@ -2284,7 +2305,9 @@ function Tracking() {
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                         }`}
                         style={{
+                          position: 'sticky',
                           left: `${colWidths.checkbox}px`,
+                          zIndex: 20,
                           width: `${colWidths.ID_Key}px`,
                           minWidth: `${colWidths.ID_Key}px`,
                           maxWidth: `${colWidths.ID_Key}px`,
