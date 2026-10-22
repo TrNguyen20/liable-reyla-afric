@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { JobTicketButton, BatchJobTicketModal } from '@/components/job-ticket';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
 import { auditFor, failedSyncIds, appendAudit } from '@/lib/dynamo-workflow';
@@ -23,6 +23,7 @@ import {
   PackageOpen,
   Printer,
   RefreshCw,
+  RotateCcw,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -93,6 +94,63 @@ type SortField =
   | 'ghi_chu';
 
 type SortDirection = 'asc' | 'desc';
+
+export type ColumnKey =
+  | 'checkbox'
+  | 'ID_Key'
+  | 'So_DatHang'
+  | 'phong_sx'
+  | 'ma_hang'
+  | 'vat_lieu'
+  | 'do_cung'
+  | 'so_luong'
+  | 'kg_Lot'
+  | 'cty_QT'
+  | 'TrangThai'
+  | 'qc'
+  | 'ngay_gui_QT'
+  | 'han_tra'
+  | 'ghi_chu'
+  | 'ticket';
+
+const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
+  checkbox: 44,
+  ID_Key: 140,
+  So_DatHang: 130,
+  phong_sx: 100,
+  ma_hang: 160,
+  vat_lieu: 135,
+  do_cung: 115,
+  so_luong: 95,
+  kg_Lot: 95,
+  cty_QT: 135,
+  TrangThai: 145,
+  qc: 115,
+  ngay_gui_QT: 120,
+  han_tra: 125,
+  ghi_chu: 260,
+  ticket: 95,
+};
+
+// Minimum content-aware widths: prevents columns from collapsing below title/icon/cell content
+const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
+  checkbox: 44,
+  ID_Key: 115,
+  So_DatHang: 125,
+  phong_sx: 95,
+  ma_hang: 145,
+  vat_lieu: 115,
+  do_cung: 105,
+  so_luong: 90,
+  kg_Lot: 90,
+  cty_QT: 120,
+  TrangThai: 140,
+  qc: 110,
+  ngay_gui_QT: 115,
+  han_tra: 120,
+  ghi_chu: 160,
+  ticket: 90,
+};
 
 interface TableFilterState {
   idKeySearch: string;
@@ -176,11 +234,10 @@ function HeaderSortControls({
         <button
           type="button"
           onClick={() => onSort(field, 'asc')}
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-            isAsc
-              ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
-              : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
-          }`}
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${isAsc
+            ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
+            : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
+            }`}
         >
           <span className="flex items-center gap-2 whitespace-nowrap">
             <ArrowUp size={13} className={isAsc ? 'text-primary stroke-[2.5]' : 'text-muted-foreground'} />
@@ -191,11 +248,10 @@ function HeaderSortControls({
         <button
           type="button"
           onClick={() => onSort(field, 'desc')}
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-            isDesc
-              ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
-              : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
-          }`}
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${isDesc
+            ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
+            : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
+            }`}
         >
           <span className="flex items-center gap-2 whitespace-nowrap">
             <ArrowDown size={13} className={isDesc ? 'text-primary stroke-[2.5]' : 'text-muted-foreground'} />
@@ -218,6 +274,11 @@ function HeaderFilterCell({
   className = '',
   stickyClass = '',
   align = 'start',
+  width,
+  onResize,
+  onResetWidth,
+  stickyLeft,
+  isStickyLast = false,
 }: {
   title: string;
   field?: SortField;
@@ -228,12 +289,25 @@ function HeaderFilterCell({
   className?: string;
   stickyClass?: string;
   align?: 'start' | 'end' | 'center';
+  width?: number;
+  onResize?: (e: React.MouseEvent) => void;
+  onResetWidth?: () => void;
+  stickyLeft?: number;
+  isStickyLast?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const isSorted = field && sortCol === field;
   return (
     <th
-      className={`whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground ${stickyClass} ${className}`}
+      className={`relative whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground ${stickyClass} ${className} ${
+        isStickyLast
+          ? 'border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
+          : ''
+      }`}
+      style={{
+        ...(width !== undefined ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : {}),
+        ...(stickyLeft !== undefined ? { left: `${stickyLeft}px` } : {}),
+      }}
     >
       <div
         className={`flex items-center gap-1 ${
@@ -274,6 +348,19 @@ function HeaderFilterCell({
           </PopoverContent>
         </Popover>
       </div>
+      {onResize && (
+        <div
+          onMouseDown={onResize}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            onResetWidth?.();
+          }}
+          className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize select-none touch-none group/resizer flex items-center justify-end z-20"
+          title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để reset)"
+        >
+          <div className="w-[1.5px] h-4 rounded-full bg-border group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
+        </div>
+      )}
     </th>
   );
 }
@@ -281,6 +368,79 @@ function HeaderFilterCell({
 function Tracking() {
   const { filtered: all, role, updateItem, bulkUpdateItems } = useDynamo();
   const searchParams = Route.useSearch();
+
+  // Column Resizing state with localStorage persistence and MIN_COL_WIDTHS content clamping
+  const [colWidths, setColWidths] = useState<Record<ColumnKey, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('dynamo-tracking-col-widths');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const validated: Record<string, number> = {};
+          (Object.keys(DEFAULT_COL_WIDTHS) as ColumnKey[]).forEach((k) => {
+            validated[k] = Math.max(MIN_COL_WIDTHS[k], Number(parsed[k]) || DEFAULT_COL_WIDTHS[k]);
+          });
+          return validated as Record<ColumnKey, number>;
+        }
+      } catch {}
+    }
+    return DEFAULT_COL_WIDTHS;
+  });
+
+  const handleResizeStart = (e: React.MouseEvent, colKey: ColumnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = colWidths[colKey] ?? DEFAULT_COL_WIDTHS[colKey];
+    const minW = MIN_COL_WIDTHS[colKey];
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      // HARD CLAMP: stops precisely at the minimum width needed by the column content
+      const newWidth = Math.max(minW, Math.round(startWidth + deltaX));
+      setColWidths((prev) => ({ ...prev, [colKey]: newWidth }));
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.classList.remove('select-none', 'cursor-col-resize');
+      setColWidths((curr) => {
+        try {
+          window.localStorage.setItem('dynamo-tracking-col-widths', JSON.stringify(curr));
+        } catch {}
+        return curr;
+      });
+    };
+
+    document.body.classList.add('select-none', 'cursor-col-resize');
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const handleResetColWidth = (colKey: ColumnKey) => {
+    setColWidths((prev) => {
+      const next = { ...prev, [colKey]: DEFAULT_COL_WIDTHS[colKey] };
+      try {
+        window.localStorage.setItem('dynamo-tracking-col-widths', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleResetAllColWidths = () => {
+    setColWidths(DEFAULT_COL_WIDTHS);
+    try {
+      window.localStorage.removeItem('dynamo-tracking-col-widths');
+    } catch {}
+    toast.success('Đã khôi phục kích thước cột mặc định.');
+    playAudioCue('pop');
+  };
+
+  const totalTableWidth = useMemo(
+    () => Object.values(colWidths).reduce((a, b) => a + b, 0),
+    [colWidths],
+  );
 
   // Integrated Google Sheets Filter State
   const [filters, setFilters] = useState<TableFilterState>(() => ({
@@ -563,9 +723,8 @@ function Tracking() {
     if (filters.materials.length) {
       list.push({
         key: 'materials',
-        label: `Vật liệu (${filters.materials.length}): ${filters.materials.slice(0, 2).join(', ')}${
-          filters.materials.length > 2 ? '…' : ''
-        }`,
+        label: `Vật liệu (${filters.materials.length}): ${filters.materials.slice(0, 2).join(', ')}${filters.materials.length > 2 ? '…' : ''
+          }`,
         onClear: () => setFilters((f) => ({ ...f, materials: [] })),
       });
     }
@@ -670,6 +829,35 @@ function Tracking() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const tableRows = rows.slice(tablePage * pageSize, tablePage * pageSize + pageSize);
 
+  // Checkbox indeterminate ref & selection state indicators
+  const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
+  const isAllPageSelected = useMemo(
+    () => tableRows.length > 0 && tableRows.every((r) => selectedLots.has(r.ID_Key)),
+    [tableRows, selectedLots],
+  );
+  const isSomePageSelected = useMemo(
+    () => tableRows.some((r) => selectedLots.has(r.ID_Key)),
+    [tableRows, selectedLots],
+  );
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = isSomePageSelected && !isAllPageSelected;
+    }
+  }, [isSomePageSelected, isAllPageSelected]);
+
+  // Global Escape key listener to clear selection
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedLots.size > 0 && !editingCell) {
+        setSelectedLots(new Set());
+        playAudioCue('pop');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectedLots.size, editingCell]);
+
   // Checkbox selection
   const toggleSelectLot = (id: string) => {
     setSelectedLots((prev) => {
@@ -685,10 +873,9 @@ function Tracking() {
   };
 
   const toggleSelectAllPage = () => {
-    const allPageSelected = tableRows.length > 0 && tableRows.every((r) => selectedLots.has(r.ID_Key));
     setSelectedLots((prev) => {
       const next = new Set(prev);
-      if (allPageSelected) {
+      if (isAllPageSelected) {
         tableRows.forEach((r) => next.delete(r.ID_Key));
       } else {
         tableRows.forEach((r) => next.add(r.ID_Key));
@@ -867,6 +1054,25 @@ function Tracking() {
   ) => {
     if (!editingCell || !canEdit) return;
     const { field, id } = editingCell;
+
+    // Smart check: nếu nội dung không đổi so với ban đầu, chuyển ô/thoát mà không báo toast hay âm thanh
+    const initial = getInitialValue(item, field);
+    let isUnchanged = false;
+    if (field === 'so_luong' || field === 'kg_Lot') {
+      isUnchanged = Number(editValue) === Number(initial);
+    } else {
+      isUnchanged = editValue.trim() === initial.trim();
+    }
+
+    if (isUnchanged) {
+      if (navigateDir) {
+        navigateCell(id, field, navigateDir);
+      } else {
+        setEditingCell(null);
+      }
+      return;
+    }
+
     const patch: Partial<QTItem> = {};
     if (field === 'ma_hang') {
       if (!editValue.trim()) {
@@ -933,6 +1139,9 @@ function Tracking() {
 
   const handleCellKeyDown = (e: React.KeyboardEvent, item: QTItem) => {
     if (e.key === 'Enter') {
+      if (editingCell?.field === 'ghi_chu' && e.shiftKey) {
+        return; // Cho phép bấm Shift+Enter để xuống dòng khi soạn thảo ghi chú
+      }
       e.preventDefault();
       saveInlineEdit(item, e.shiftKey ? 'prev-row' : 'next-row');
     } else if (e.key === 'Tab') {
@@ -945,6 +1154,16 @@ function Tracking() {
   };
 
   const selectedRowsList = useMemo(() => rows.filter((r) => selectedLots.has(r.ID_Key)), [rows, selectedLots]);
+
+  const selectedSummary = useMemo(() => {
+    let qty = 0;
+    let kg = 0;
+    for (const r of selectedRowsList) {
+      qty += Number(r.so_luong || 0);
+      kg += Number(r.kg_Lot || 0);
+    }
+    return { qty, kg };
+  }, [selectedRowsList]);
 
   return (
     <>
@@ -1023,9 +1242,18 @@ function Tracking() {
             Phân xưởng: <b className="text-foreground">{workshops.join(', ')}</b>
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="text-muted-foreground">
-            💡 Bấm icon phễu <b>[▾]</b> ở đầu mỗi cột để lọc và sắp xếp như Google Sheets
+        <div className="flex items-center gap-2.5 text-[11px]">
+          <button
+            type="button"
+            onClick={handleResetAllColWidths}
+            className="inline-flex items-center gap-1.5 rounded border border-border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shadow-2xs"
+            title="Khôi phục kích thước mặc định cho toàn bộ 16 cột"
+          >
+            <RotateCcw size={11} />
+            <span>Khôi phục kích thước cột</span>
+          </button>
+          <span className="text-muted-foreground hidden sm:inline">
+            💡 Bấm icon phễu <b>[▾]</b> ở đầu mỗi cột để lọc và sắp xếp
           </span>
         </div>
       </div>
@@ -1033,30 +1261,72 @@ function Tracking() {
       {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) */}
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
         <div className="overflow-x-auto max-h-[750px]">
-          <table className="w-full min-w-[1300px] text-left text-xs border-collapse">
-            <thead className="sticky top-0 z-20 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs">
+          <table
+            className="text-left text-xs border-collapse"
+            style={{
+              tableLayout: 'fixed',
+              width: `${totalTableWidth}px`,
+              minWidth: `${totalTableWidth}px`,
+            }}
+          >
+            <colgroup>
+              <col style={{ width: `${colWidths.checkbox}px` }} />
+              <col style={{ width: `${colWidths.ID_Key}px` }} />
+              <col style={{ width: `${colWidths.So_DatHang}px` }} />
+              <col style={{ width: `${colWidths.phong_sx}px` }} />
+              <col style={{ width: `${colWidths.ma_hang}px` }} />
+              <col style={{ width: `${colWidths.vat_lieu}px` }} />
+              <col style={{ width: `${colWidths.do_cung}px` }} />
+              <col style={{ width: `${colWidths.so_luong}px` }} />
+              <col style={{ width: `${colWidths.kg_Lot}px` }} />
+              <col style={{ width: `${colWidths.cty_QT}px` }} />
+              <col style={{ width: `${colWidths.TrangThai}px` }} />
+              <col style={{ width: `${colWidths.qc}px` }} />
+              <col style={{ width: `${colWidths.ngay_gui_QT}px` }} />
+              <col style={{ width: `${colWidths.han_tra}px` }} />
+              <col style={{ width: `${colWidths.ghi_chu}px` }} />
+              <col style={{ width: `${colWidths.ticket}px` }} />
+            </colgroup>
+            <thead className="sticky top-0 z-10 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs">
               <tr>
                 {/* Column 1: Checkbox (Sticky left-0) */}
-                <th className="sticky left-0 z-30 w-10 px-3 py-2.5 text-center bg-secondary">
+                <th
+                  className="sticky left-0 z-20 px-3 py-2.5 text-center bg-secondary relative border-r border-border/50"
+                  style={{ width: `${colWidths.checkbox}px`, minWidth: `${colWidths.checkbox}px`, maxWidth: `${colWidths.checkbox}px` }}
+                >
                   <div className="flex items-center justify-center">
                     <input
+                      ref={selectAllCheckboxRef}
                       type="checkbox"
                       aria-label="Chọn tất cả trên trang này"
-                      checked={tableRows.length > 0 && tableRows.every((r) => selectedLots.has(r.ID_Key))}
+                      checked={isAllPageSelected}
                       onChange={toggleSelectAllPage}
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
                     />
                   </div>
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, 'checkbox')}
+                    onDoubleClick={() => handleResetColWidth('checkbox')}
+                    className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize select-none touch-none group/resizer flex items-center justify-end z-20"
+                    title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để reset)"
+                  >
+                    <div className="w-[1.5px] h-4 rounded-full bg-border group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
+                  </div>
                 </th>
 
-                {/* Column 2: Mã lô (Sticky left-10) */}
+                {/* Column 2: Mã lô (Sticky left-[checkbox]) */}
                 <HeaderFilterCell
                   title="MÃ LÔ"
                   field="ID_Key"
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.idKeySearch}
-                  stickyClass="sticky left-10 z-30 bg-secondary"
+                  stickyClass="sticky z-20 bg-secondary"
+                  stickyLeft={colWidths.checkbox}
+                  width={colWidths.ID_Key}
+                  isStickyLast={true}
+                  onResize={(e) => handleResizeStart(e, 'ID_Key')}
+                  onResetWidth={() => handleResetColWidth('ID_Key')}
                 >
                   <HeaderSortControls
                     field="ID_Key"
@@ -1115,6 +1385,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.orderSearch}
+                  width={colWidths.So_DatHang}
+                  onResize={(e) => handleResizeStart(e, 'So_DatHang')}
+                  onResetWidth={() => handleResetColWidth('So_DatHang')}
                 >
                   <HeaderSortControls
                     field="So_DatHang"
@@ -1160,6 +1433,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={filters.workshops.length > 0}
+                  width={colWidths.phong_sx}
+                  onResize={(e) => handleResizeStart(e, 'phong_sx')}
+                  onResetWidth={() => handleResetColWidth('phong_sx')}
                 >
                   <HeaderSortControls
                     field="phong_sx"
@@ -1221,6 +1497,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.itemSearch}
+                  width={colWidths.ma_hang}
+                  onResize={(e) => handleResizeStart(e, 'ma_hang')}
+                  onResetWidth={() => handleResetColWidth('ma_hang')}
                 >
                   <HeaderSortControls
                     field="ma_hang"
@@ -1266,6 +1545,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={filters.materials.length > 0}
+                  width={colWidths.vat_lieu}
+                  onResize={(e) => handleResizeStart(e, 'vat_lieu')}
+                  onResetWidth={() => handleResetColWidth('vat_lieu')}
                 >
                   <HeaderSortControls
                     field="vat_lieu"
@@ -1336,6 +1618,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.hardnessSearch || filters.missingHardnessOnly}
+                  width={colWidths.do_cung}
+                  onResize={(e) => handleResizeStart(e, 'do_cung')}
+                  onResetWidth={() => handleResetColWidth('do_cung')}
                 >
                   <HeaderSortControls
                     field="do_cung"
@@ -1380,6 +1665,9 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.qtyMin || !!filters.qtyMax}
                   align="end"
+                  width={colWidths.so_luong}
+                  onResize={(e) => handleResizeStart(e, 'so_luong')}
+                  onResetWidth={() => handleResetColWidth('so_luong')}
                 >
                   <HeaderSortControls
                     field="so_luong"
@@ -1427,6 +1715,9 @@ function Tracking() {
                   sortDir={sortDir}
                   isFiltered={!!filters.kgMin || !!filters.kgMax}
                   align="end"
+                  width={colWidths.kg_Lot}
+                  onResize={(e) => handleResizeStart(e, 'kg_Lot')}
+                  onResetWidth={() => handleResetColWidth('kg_Lot')}
                 >
                   <HeaderSortControls
                     field="kg_Lot"
@@ -1475,6 +1766,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={filters.vendors.length > 0}
+                  width={colWidths.cty_QT}
+                  onResize={(e) => handleResizeStart(e, 'cty_QT')}
+                  onResetWidth={() => handleResetColWidth('cty_QT')}
                 >
                   <HeaderSortControls
                     field="cty_QT"
@@ -1536,6 +1830,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={filters.logistics.length > 0}
+                  width={colWidths.TrangThai}
+                  onResize={(e) => handleResizeStart(e, 'TrangThai')}
+                  onResetWidth={() => handleResetColWidth('TrangThai')}
                 >
                   <HeaderSortControls
                     field="TrangThai"
@@ -1582,6 +1879,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={filters.qcStates.length > 0}
+                  width={colWidths.qc}
+                  onResize={(e) => handleResizeStart(e, 'qc')}
+                  onResetWidth={() => handleResetColWidth('qc')}
                 >
                   <HeaderSortControls
                     field="qc"
@@ -1612,13 +1912,12 @@ function Tracking() {
                                 className="rounded text-primary focus:ring-primary accent-primary"
                               />
                               <span
-                                className={`font-semibold ${
-                                  q === 'Đạt'
-                                    ? 'text-primary'
-                                    : q === 'Không đạt'
+                                className={`font-semibold ${q === 'Đạt'
+                                  ? 'text-primary'
+                                  : q === 'Không đạt'
                                     ? 'text-destructive'
                                     : 'text-foreground'
-                                }`}
+                                  }`}
                               >
                                 {q}
                               </span>
@@ -1638,6 +1937,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.sendFrom || !!filters.sendTo}
+                  width={colWidths.ngay_gui_QT}
+                  onResize={(e) => handleResizeStart(e, 'ngay_gui_QT')}
+                  onResetWidth={() => handleResetColWidth('ngay_gui_QT')}
                 >
                   <HeaderSortControls
                     field="ngay_gui_QT"
@@ -1711,6 +2013,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.dueFrom || !!filters.dueTo || filters.missingDueOnly}
+                  width={colWidths.han_tra}
+                  onResize={(e) => handleResizeStart(e, 'han_tra')}
+                  onResetWidth={() => handleResetColWidth('han_tra')}
                 >
                   <HeaderSortControls
                     field="han_tra"
@@ -1796,6 +2101,9 @@ function Tracking() {
                   sortCol={sortCol}
                   sortDir={sortDir}
                   isFiltered={!!filters.noteSearch || filters.hasNoteOnly}
+                  width={colWidths.ghi_chu}
+                  onResize={(e) => handleResizeStart(e, 'ghi_chu')}
+                  onResetWidth={() => handleResetColWidth('ghi_chu')}
                 >
                   <HeaderSortControls
                     field="ghi_chu"
@@ -1849,8 +2157,22 @@ function Tracking() {
                 </HeaderFilterCell>
 
                 {/* Column 16: Phiếu A4 */}
-                <th className="whitespace-nowrap px-3 py-2.5 text-center bg-secondary font-bold uppercase tracking-wider text-muted-foreground">
-                  PHIẾU A4
+                <th
+                  className="relative whitespace-nowrap px-3 py-2.5 text-center bg-secondary font-bold uppercase tracking-wider text-muted-foreground select-none"
+                  style={{ width: `${colWidths.ticket}px`, minWidth: `${colWidths.ticket}px` }}
+                >
+                  <span>PHIẾU A4</span>
+                  <div
+                    role="separator"
+                    tabIndex={-1}
+                    aria-orientation="vertical"
+                    title="Kéo để chỉnh độ rộng cột (Click đúp để khôi phục mặc định)"
+                    onMouseDown={(e) => handleResizeStart(e, 'ticket')}
+                    onDoubleClick={() => handleResetColWidth('ticket')}
+                    className="group/resizer absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-20 flex items-center justify-center hover:bg-primary/20 active:bg-primary transition-colors select-none"
+                  >
+                    <div className="w-[1.5px] h-3.5 bg-border/60 group-hover/resizer:bg-primary group-hover/resizer:h-full transition-all" />
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -1862,12 +2184,20 @@ function Tracking() {
                   return (
                     <tr
                       key={r.ID_Key}
-                      className={`group transition-colors ${
-                        isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
-                      }`}
+                      className={`group transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
+                        }`}
                     >
                       {/* 1. Checkbox */}
-                      <td className="sticky left-0 z-10 w-10 px-3 py-2.5 text-center bg-card group-hover:bg-accent/30">
+                      <td
+                        className={`sticky left-0 z-10 px-3 py-2.5 text-center transition-colors border-r border-border/40 ${
+                          isSelected ? 'bg-primary/15 group-hover:bg-primary/20' : 'bg-card group-hover:bg-accent/30'
+                        }`}
+                        style={{
+                          width: `${colWidths.checkbox}px`,
+                          minWidth: `${colWidths.checkbox}px`,
+                          maxWidth: `${colWidths.checkbox}px`,
+                        }}
+                      >
                         <input
                           type="checkbox"
                           aria-label={`Chọn lô ${r.ID_Key}`}
@@ -1878,7 +2208,17 @@ function Tracking() {
                       </td>
 
                       {/* 2. Mã lô (Green clickable link -> opens drawer) */}
-                      <td className="sticky left-10 z-10 whitespace-nowrap px-3.5 py-2.5 bg-card group-hover:bg-accent/30">
+                      <td
+                        className={`sticky z-10 whitespace-nowrap px-3.5 py-2.5 transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] ${
+                          isSelected ? 'bg-primary/15 group-hover:bg-primary/20' : 'bg-card group-hover:bg-accent/30'
+                        }`}
+                        style={{
+                          left: `${colWidths.checkbox}px`,
+                          width: `${colWidths.ID_Key}px`,
+                          minWidth: `${colWidths.ID_Key}px`,
+                          maxWidth: `${colWidths.ID_Key}px`,
+                        }}
+                      >
                         <button
                           type="button"
                           onClick={() => setDetailLot(r)}
@@ -1901,9 +2241,8 @@ function Tracking() {
 
                       {/* 5. Mã hàng (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-ma_hang` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-foreground transition-all ${savedCellKey === `${r.ID_Key}-ma_hang` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'ma_hang' ? (
                           <div className="flex items-center gap-1">
@@ -1954,9 +2293,8 @@ function Tracking() {
 
                       {/* 6. Vật liệu (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
                           <div className="flex items-center gap-1">
@@ -2007,9 +2345,8 @@ function Tracking() {
 
                       {/* 7. Độ cứng (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono text-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-do_cung` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono text-foreground transition-all ${savedCellKey === `${r.ID_Key}-do_cung` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
                           <div className="flex items-center gap-1">
@@ -2059,9 +2396,8 @@ function Tracking() {
                       {/* 8. SL (Inline Quick-Edit) */}
                       {/* 8. Số lượng (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-so_luong` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-so_luong` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
                           <div className="flex items-center justify-end gap-1">
@@ -2112,9 +2448,8 @@ function Tracking() {
 
                       {/* 9. Kg (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-kg_Lot` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-kg_Lot` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
                           <div className="flex items-center justify-end gap-1">
@@ -2166,9 +2501,8 @@ function Tracking() {
 
                       {/* 10. Đối tác (Partner Privacy Masking & Admin Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {isAdmin && editingCell?.id === r.ID_Key && editingCell.field === 'cty_QT' ? (
                           <div className="flex items-center gap-1">
@@ -2238,13 +2572,12 @@ function Tracking() {
                             toast.success(`Đã chuyển lô ${r.ID_Key} sang: ${newStatus}`);
                             playAudioCue('success');
                           }}
-                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${
-                            r.TrangThai === 'Đã nhập kho'
-                              ? 'border-border bg-secondary text-muted-foreground'
-                              : r.TrangThai === 'Đang tại Vendor'
+                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${r.TrangThai === 'Đã nhập kho'
+                            ? 'border-border bg-secondary text-muted-foreground'
+                            : r.TrangThai === 'Đang tại Vendor'
                               ? 'border-primary/40 bg-primary/10 text-primary'
                               : 'border-warning/40 bg-warning/10 text-warning'
-                          }`}
+                            }`}
                         >
                           {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Status[]).map((s) => (
                             <option key={s} value={s} className="bg-popover text-popover-foreground">
@@ -2276,13 +2609,12 @@ function Tracking() {
                             toast.success(`Cập nhật QC lô ${r.ID_Key}: ${newQc}`);
                             playAudioCue('success');
                           }}
-                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${
-                            qcOf(r) === 'Đạt'
-                              ? 'border-primary/40 bg-primary/10 text-primary'
-                              : qcOf(r) === 'Không đạt'
+                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${qcOf(r) === 'Đạt'
+                            ? 'border-primary/40 bg-primary/10 text-primary'
+                            : qcOf(r) === 'Không đạt'
                               ? 'border-destructive/40 bg-destructive/10 text-destructive'
                               : 'border-border bg-secondary text-muted-foreground'
-                          }`}
+                            }`}
                         >
                           {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => (
                             <option key={q} value={q} className="bg-popover text-popover-foreground">
@@ -2294,9 +2626,8 @@ function Tracking() {
 
                       {/* 13. Ngày gửi (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums text-muted-foreground transition-all ${
-                          savedCellKey === `${r.ID_Key}-ngay_gui_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums text-muted-foreground transition-all ${savedCellKey === `${r.ID_Key}-ngay_gui_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? (
                           <div className="flex items-center gap-1">
@@ -2347,9 +2678,8 @@ function Tracking() {
 
                       {/* 14. Hạn trả (Inline Quick-Edit Date) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums transition-all ${
-                          savedCellKey === `${r.ID_Key}-han_tra` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums transition-all ${savedCellKey === `${r.ID_Key}-han_tra` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'han_tra' ? (
                           <div className="flex items-center gap-1">
@@ -2403,51 +2733,68 @@ function Tracking() {
 
                       {/* 15. Ghi chú (Inline Quick-Edit & Comment cho mọi role) */}
                       <td
-                        className={`min-w-[160px] max-w-[260px] px-3.5 py-2 text-xs transition-all ${
+                        className={`min-w-[160px] px-3.5 py-2 text-xs transition-all ${
                           savedCellKey === `${r.ID_Key}-ghi_chu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
                         }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
+                          <div className="flex items-start gap-1">
+                            <textarea
                               value={editValue}
-                              placeholder="Nhập ghi chú cho lô..."
-                              onChange={(e) => setEditValue(e.target.value)}
+                              placeholder="Nhập ghi chú cho lô... (Enter: lưu, Shift+Enter: xuống dòng, Tab: ô tiếp)"
+                              onChange={(e) => {
+                                setEditValue(e.target.value);
+                                e.target.style.height = 'auto';
+                                e.target.style.height = `${Math.max(34, e.target.scrollHeight)}px`;
+                              }}
+                              ref={(el) => {
+                                if (el) {
+                                  el.style.height = 'auto';
+                                  el.style.height = `${Math.max(34, el.scrollHeight)}px`;
+                                }
+                              }}
                               onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 w-full rounded border-2 border-primary bg-background px-2 text-xs text-foreground outline-none shadow-xs"
+                              rows={1}
+                              style={{ resize: 'both' }}
+                              className="min-h-[34px] w-full rounded border-2 border-primary bg-background px-2 py-1 text-xs text-foreground outline-none shadow-xs leading-relaxed"
                               autoFocus
                             />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer shrink-0"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer shrink-0"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
+                            <div className="flex flex-col gap-1 shrink-0 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => saveInlineEdit(r)}
+                                className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
+                                title="Lưu (Enter)"
+                              >
+                                <Check size={13} className="stroke-[2.5]" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingCell(null)}
+                                className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
+                                title="Hủy (Esc)"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
-                            className="flex items-center justify-between gap-1 group/edit cursor-pointer py-0.5"
+                            className="flex items-start justify-between gap-1 group/edit cursor-pointer py-0.5"
                             title="Click đúp để viết hoặc chỉnh sửa ghi chú"
                           >
-                            <span className={`truncate text-xs ${r.ghi_chu ? 'text-foreground' : 'text-muted-foreground/60 italic'}`}>
+                            <span
+                              className={`text-xs break-words whitespace-pre-wrap leading-relaxed ${
+                                r.ghi_chu ? 'text-foreground' : 'text-muted-foreground/60 italic'
+                              }`}
+                            >
                               {r.ghi_chu || '+ Thêm ghi chú...'}
                             </span>
                             <button
                               type="button"
                               onClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
-                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1"
+                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1 mt-0.5"
                               title="Sửa ghi chú"
                             >
                               <Edit2 size={11} />
@@ -2539,11 +2886,18 @@ function Tracking() {
           aria-label="Thao tác hàng loạt"
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2.5 rounded-xl border border-primary/40 bg-card/95 px-5 py-3 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4"
         >
-          <div className="flex items-center gap-2 pr-3 border-r border-border">
+          <div className="flex items-center gap-2.5 pr-3 border-r border-border">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
               {selectedLots.size}
             </span>
-            <span className="text-xs font-semibold text-foreground">lô được chọn</span>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-foreground leading-tight">
+                {selectedLots.size} lô được chọn
+              </span>
+              <span className="text-[10px] font-mono text-muted-foreground leading-tight">
+                {number(selectedSummary.qty)} chi tiết • {number(Math.round(selectedSummary.kg * 10) / 10)} kg
+              </span>
+            </div>
           </div>
 
           <button
@@ -2770,27 +3124,24 @@ function BulkEditDialog({
                   <button
                     type="button"
                     onClick={() => setDueMode('add3')}
-                    className={`flex-1 rounded border px-2 py-1 text-xs ${
-                      dueMode === 'add3' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
-                    }`}
+                    className={`flex-1 rounded border px-2 py-1 text-xs ${dueMode === 'add3' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                      }`}
                   >
                     +3 Ngày
                   </button>
                   <button
                     type="button"
                     onClick={() => setDueMode('add7')}
-                    className={`flex-1 rounded border px-2 py-1 text-xs ${
-                      dueMode === 'add7' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
-                    }`}
+                    className={`flex-1 rounded border px-2 py-1 text-xs ${dueMode === 'add7' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                      }`}
                   >
                     +7 Ngày
                   </button>
                   <button
                     type="button"
                     onClick={() => setDueMode('custom')}
-                    className={`flex-1 rounded border px-2 py-1 text-xs ${
-                      dueMode === 'custom' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
-                    }`}
+                    className={`flex-1 rounded border px-2 py-1 text-xs ${dueMode === 'custom' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                      }`}
                   >
                     Ngày cụ thể
                   </button>
@@ -3049,11 +3400,10 @@ function LotDetailDrawer({
                 <button
                   type="button"
                   onClick={() => setIsEditing(!isEditing)}
-                  className={`rounded px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer border ${
-                    isEditing
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-secondary hover:bg-muted text-foreground'
-                  }`}
+                  className={`rounded px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer border ${isEditing
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-secondary hover:bg-muted text-foreground'
+                    }`}
                 >
                   {isEditing ? 'Hủy sửa' : '✏️ Sửa lô này'}
                 </button>

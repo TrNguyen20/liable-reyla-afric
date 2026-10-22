@@ -383,9 +383,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
           {/* Sidebar */}
           <aside
-            className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${
-              collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'
-            } ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}
+            className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'
+              } ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}
           >
             <div className="flex h-[72px] items-center justify-between border-b border-sidebar-border px-5">
               <Link to="/tracking" className="flex items-center gap-3 overflow-hidden" aria-label="DYNAMO VIETNAM QT - MES">
@@ -413,9 +412,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 <div key={n.to}>
                   {n.section && (
                     <p
-                      className={`mb-2 mt-5 px-3 text-[10px] font-bold tracking-[.16em] text-sidebar-foreground/50 ${
-                        index === 0 ? '!mt-0' : ''
-                      } ${collapsed ? 'lg:text-center lg:px-0' : ''}`}
+                      className={`mb-2 mt-5 px-3 text-[10px] font-bold tracking-[.16em] text-sidebar-foreground/50 ${index === 0 ? '!mt-0' : ''
+                        } ${collapsed ? 'lg:text-center lg:px-0' : ''}`}
                     >
                       {collapsed ? <span className="lg:hidden">{n.section}</span> : n.section}
                     </p>
@@ -423,18 +421,16 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                   <Link
                     to={n.to}
                     title={collapsed ? `${n.label} (Phím ${n.shortcut})` : undefined}
-                    className={`mb-1 flex h-10 items-center gap-3 rounded-sm px-3 text-[12px] font-bold tracking-wide transition-colors ${
-                      location.pathname === n.to
+                    className={`mb-1 flex h-10 items-center gap-3 rounded-sm px-3 text-[12px] font-bold tracking-wide transition-colors ${location.pathname === n.to
                         ? 'bg-sidebar-primary/20 text-sidebar-primary shadow-[inset_2px_0_0_var(--sidebar-primary)]'
                         : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                    }`}
+                      }`}
                   >
                     <n.icon size={16} className="shrink-0" />
                     <span className={`truncate flex-1 ${collapsed ? 'lg:hidden' : ''}`}>{n.label}</span>
                     <span
-                      className={`font-mono text-[9px] text-sidebar-foreground/40 tabular-nums ${
-                        collapsed ? 'lg:hidden' : ''
-                      }`}
+                      className={`font-mono text-[9px] text-sidebar-foreground/40 tabular-nums ${collapsed ? 'lg:hidden' : ''
+                        }`}
                     >
                       [{n.shortcut}]
                     </span>
@@ -465,9 +461,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 </span>
               </div>
               <p
-                className={`mb-2 px-2 text-[9px] font-bold leading-snug tracking-[.12em] text-sidebar-foreground/45 ${
-                  collapsed ? 'lg:hidden' : ''
-                }`}
+                className={`mb-2 px-2 text-[9px] font-bold leading-snug tracking-[.12em] text-sidebar-foreground/45 ${collapsed ? 'lg:hidden' : ''
+                  }`}
               >
                 DYNAMO VIETNAM CO., LTD.
                 <span className="block font-medium tracking-normal">QT Operations System</span>
@@ -533,11 +528,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 {/* Role Impersonation Switcher (Proposal 7 for Admin) */}
                 {role === 'admin' && (
                   <div
-                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
-                      impersonatedRole
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${impersonatedRole
                         ? 'border-warning bg-warning/15 text-warning font-bold'
                         : 'border-border/80 bg-secondary/70 text-foreground'
-                    }`}
+                      }`}
                     title="Chuyển đổi góc nhìn kiểm tra phân quyền (Proposal 7)"
                   >
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden xl:inline">
@@ -585,11 +579,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                       key={v}
                       type="button"
                       onClick={() => setWorkshop(v)}
-                      className={`h-7 rounded-sm px-2.5 text-[11px] font-bold tracking-wide transition-all ${
-                        workshop === v
+                      className={`h-7 rounded-sm px-2.5 text-[11px] font-bold tracking-wide transition-all ${workshop === v
                           ? 'bg-card text-foreground shadow-xs border border-border/80 font-black'
                           : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                      }`}
+                        }`}
                     >
                       {v === 'Tất cả' ? 'ALL' : v}
                     </button>
