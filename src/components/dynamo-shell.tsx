@@ -177,6 +177,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
   const location = useLocation();
   const navigate = useNavigate();
+  const isTracking = location.pathname === '/tracking';
 
   useEffect(() => {
     const saved = window.localStorage.getItem('dynamo-theme');
@@ -376,14 +377,14 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       {bare ? (
         children
       ) : (
-        <div className="min-h-screen bg-background text-foreground lg:flex">
+        <div className="min-h-screen lg:h-screen lg:max-h-[100dvh] lg:overflow-hidden bg-background text-foreground lg:flex">
           {mobileOpen && (
             <div className="fixed inset-0 z-30 bg-overlay lg:hidden" onClick={() => setMobileOpen(false)} />
           )}
 
           {/* Sidebar */}
           <aside
-            className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-screen ${collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'
+            className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-full lg:shrink-0 ${collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'
               } ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}
           >
             <div className="flex h-[72px] items-center justify-between border-b border-sidebar-border px-5">
@@ -493,14 +494,14 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
           </aside>
 
           {/* Main Area */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 flex flex-col lg:h-screen lg:max-h-[100dvh] lg:overflow-hidden">
             {!isOnline && (
-              <div className="flex items-center justify-center gap-2 border-b border-warning/60 bg-warning/20 px-4 py-1.5 text-center font-mono text-xs font-bold text-warning">
+              <div className="shrink-0 flex items-center justify-center gap-2 border-b border-warning/60 bg-warning/20 px-4 py-1.5 text-center font-mono text-xs font-bold text-warning">
                 <WifiOff size={13} />
                 <span>MẤT KẾT NỐI MẠNG NHÀ MÁY · ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (DỮ LIỆU ĐƯỢC LƯU CỤC BỘ)</span>
               </div>
             )}
-            <header className="sticky top-0 z-30 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
+            <header className="shrink-0 sticky top-0 z-30 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
               <div className="flex min-h-[58px] flex-wrap items-center gap-2.5 px-4 py-2 xl:gap-3.5 xl:px-6">
                 <Button
                   variant="ghost"
@@ -617,10 +618,12 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
             </header>
 
             {/* Shopfloor Telemetry Live Bar */}
-            <ShopfloorTelemetry />
+            <div className="shrink-0">
+              <ShopfloorTelemetry />
+            </div>
 
             {/* Main Page Content */}
-            <main className="mx-auto max-w-[1700px] px-4 pb-14 pt-6 xl:px-6">
+            <main className="mx-auto w-full max-w-[1700px] flex-1 min-h-0 flex flex-col px-3 py-2 lg:px-4 lg:py-2.5 overflow-y-auto lg:overflow-hidden">
               {!ready ? (
                 <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">
                   Đang tải dữ liệu phân quyền…
@@ -641,7 +644,11 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
             </main>
 
             {/* Footer */}
-            <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-3 text-[11px] text-muted-foreground xl:px-6">
+            <footer
+              className={`flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-2 text-[10px] text-muted-foreground xl:px-6 shrink-0 ${
+                isTracking ? 'lg:hidden' : ''
+              }`}
+            >
               <span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ</span>
               <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-primary" /> Môi trường mô phỏng (Edge Runtime)

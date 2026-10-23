@@ -1257,7 +1257,7 @@ function Tracking() {
     <>
       {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
       {activeFilters.length > 0 && (
-        <div className="mb-2.5 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-2 text-xs shadow-2xs animate-in fade-in shrink-0">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
           <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
             <Filter size={13} />
             Đang lọc ({activeFilters.length}):
@@ -1295,7 +1295,7 @@ function Tracking() {
       )}
 
       {/* KPI Summary Toolbar - Monozukuri Micro-Control Bar (TASK-002) */}
-      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
         <div className="flex flex-wrap items-center gap-2">
           {/* Badge 1: Số lô khớp / Tổng số lô với đèn LED tín hiệu */}
           <div className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
@@ -1357,9 +1357,9 @@ function Tracking() {
         </div>
       </div>
 
-      {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) */}
-      <div className="isolate overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
-        <div className="overflow-x-auto max-h-[750px]">
+      {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
+      <div className="isolate flex-1 min-h-[480px] lg:min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
+        <div className="flex-1 min-h-0 overflow-auto">
           <table
             className="text-left text-xs border-collapse"
             style={{
@@ -2975,8 +2975,8 @@ function Tracking() {
           </table>
         </div>
 
-        {/* Pagination & Export Bar - Monozukuri Ergonomic Control Bar (TASK-003) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/35 px-3.5 py-2.5 text-[11px] text-muted-foreground">
+        {/* Pagination & Export Bar - Monozukuri Ergonomic Control Bar (TASK-005) */}
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 border-t border-border bg-secondary/35 px-3.5 py-2 text-[11px] text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
             <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded border border-border/60 shadow-2xs">
               Đang xem <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}

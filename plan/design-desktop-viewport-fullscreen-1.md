@@ -47,9 +47,9 @@ Kế hoạch này kết hợp các chỉ dẫn chuyên sâu từ **/design-taste
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-003 | Cập nhật layout container trong `src/components/dynamo-shell.tsx`: Cấu hình vùng `div.min-w-0.flex-1` và thẻ `main` trên màn hình `lg:` thành cấu trúc Flex Column `h-screen lg:h-[100dvh] overflow-hidden flex flex-col`, giảm padding `pt-2 pb-2 px-4` | | |
-| TASK-004 | Tái cấu trúc container bảng dữ liệu trong `src/routes/tracking.tsx`: Thay thế `max-h-[750px]` bằng `flex-1 min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xs` để bảng tự co giãn theo chiều cao khả dụng của màn hình | | |
-| TASK-005 | Cập nhật khu vực cuộn bảng và thanh phân trang: Thẻ `table` nằm trong khối `flex-1 min-h-0 overflow-auto` với sticky header, thanh phân trang gắn chặt ở đáy bảng (`shrink-0 border-t border-border`) luôn luôn nằm trong tầm mắt | | |
+| TASK-003 | Cập nhật layout container trong `src/components/dynamo-shell.tsx`: Cấu hình vùng `div.min-w-0.flex-1` và thẻ `main` trên màn hình `lg:` thành cấu trúc Flex Column `h-screen lg:h-[100dvh] overflow-hidden flex flex-col`, giảm padding `pt-2 pb-2 px-4` | [x] | 2026-10-23 |
+| TASK-004 | Tái cấu trúc container bảng dữ liệu trong `src/routes/tracking.tsx`: Thay thế `max-h-[750px]` bằng `flex-1 min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xs` để bảng tự co giãn theo chiều cao khả dụng của màn hình | [x] | 2026-10-23 |
+| TASK-005 | Cập nhật khu vực cuộn bảng và thanh phân trang: Thẻ `table` nằm trong khối `flex-1 min-h-0 overflow-auto` với sticky header, thanh phân trang gắn chặt ở đáy bảng (`shrink-0 border-t border-border`) luôn luôn nằm trong tầm mắt | [x] | 2026-10-23 |
 
 ### Implementation Phase 3: Chế Độ Phóng To Bảng & Table Fullscreen Zen Focus Mode
 
