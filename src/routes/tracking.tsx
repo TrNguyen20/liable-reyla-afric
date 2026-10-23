@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { JobTicketButton, BatchJobTicketModal } from '@/components/job-ticket';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
 import { auditFor, failedSyncIds, appendAudit } from '@/lib/dynamo-workflow';
@@ -20,6 +20,8 @@ import {
   FileText,
   Filter,
   Layers,
+  Maximize2,
+  Minimize2,
   PackageOpen,
   Printer,
   RefreshCw,
@@ -509,6 +511,41 @@ function Tracking() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [batchPrintOpen, setBatchPrintOpen] = useState(false);
 
+  // Table Fullscreen / Zen Focus Mode State (TASK-006)
+  const [isTableFullscreen, setIsTableFullscreen] = useState(false);
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
+  const toggleTableFullscreen = useCallback(() => {
+    setIsTableFullscreen((prev) => {
+      const next = !prev;
+      playAudioCue('pop');
+      if (next) {
+        if (typeof document !== 'undefined' && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {
+            // Browser rejected or restricted native fullscreen, CSS Zen Mode is active
+          });
+        }
+      } else {
+        if (typeof document !== 'undefined' && document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  // Global Keyboard Shortcut: Alt+F to toggle Fullscreen Zen Mode (Esc is purely reserved for local cell/modal cancellations)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        toggleTableFullscreen();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleTableFullscreen]);
+
   // Inline Quick-Edit State
   type EditableField =
     | 'ma_hang'
@@ -525,6 +562,7 @@ function Tracking() {
   const [editingCell, setEditingCell] = useState<{ id: string; field: EditableField } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [savedCellKey, setSavedCellKey] = useState<string | null>(null);
+  const isSavingRef = useRef(false);
 
   const handleSort = (field: SortField, dir: SortDirection) => {
     setSortCol(field);
@@ -1066,6 +1104,7 @@ function Tracking() {
   const startInlineEdit = (id: string, field: EditableField, initialVal: string) => {
     if (!canEdit) return;
     if (field === 'cty_QT' && !isAdmin) return;
+    isSavingRef.current = false;
     setEditingCell({ id, field });
     setEditValue(initialVal);
   };
@@ -1140,7 +1179,8 @@ function Tracking() {
     item: QTItem,
     navigateDir?: 'next-row' | 'prev-row' | 'next-col' | 'prev-col',
   ) => {
-    if (!editingCell || !canEdit) return;
+    if (!editingCell || !canEdit || isSavingRef.current) return;
+    if (editingCell.id !== item.ID_Key) return;
     const { field, id } = editingCell;
 
     // Smart check: nếu nội dung không đổi so với ban đầu, chuyển ô/thoát mà không báo toast hay âm thanh
@@ -1199,29 +1239,36 @@ function Tracking() {
       patch.ghi_chu = editValue.trim() || undefined;
     }
 
-    updateItem(item.ID_Key, patch);
-    appendAudit({
-      ID_Key: item.ID_Key,
-      user: role,
-      role,
-      from: String((item as any)[field] ?? ''),
-      to: editValue,
-      changes: { [field]: [String((item as any)[field] ?? ''), editValue] },
-      result: 'ok',
-    });
+    isSavingRef.current = true;
+    try {
+      updateItem(item.ID_Key, patch);
+      appendAudit({
+        ID_Key: item.ID_Key,
+        user: role,
+        role,
+        from: String((item as any)[field] ?? ''),
+        to: editValue,
+        changes: { [field]: [String((item as any)[field] ?? ''), editValue] },
+        result: 'ok',
+      });
 
-    setSavedCellKey(`${id}-${field}`);
-    setTimeout(() => {
-      setSavedCellKey((curr) => (curr === `${id}-${field}` ? null : curr));
-    }, 1200);
+      setSavedCellKey(`${id}-${field}`);
+      setTimeout(() => {
+        setSavedCellKey((curr) => (curr === `${id}-${field}` ? null : curr));
+      }, 1200);
 
-    playAudioCue('success');
-    toast.success(`Đã cập nhật ${field === 'ghi_chu' ? 'ghi chú' : field} cho lô ${item.ID_Key}`);
+      playAudioCue('success');
+      toast.success(`Đã cập nhật ${field === 'ghi_chu' ? 'ghi chú' : field} cho lô ${item.ID_Key}`);
 
-    if (navigateDir) {
-      navigateCell(id, field, navigateDir);
-    } else {
-      setEditingCell(null);
+      if (navigateDir) {
+        navigateCell(id, field, navigateDir);
+      } else {
+        setEditingCell(null);
+      }
+    } finally {
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 120);
     }
   };
 
@@ -1237,7 +1284,9 @@ function Tracking() {
       saveInlineEdit(item, e.shiftKey ? 'prev-col' : 'next-col');
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       setEditingCell(null);
+      playAudioCue('pop');
     }
   };
 
@@ -1255,6 +1304,14 @@ function Tracking() {
 
   return (
     <>
+      <div
+        ref={tableWrapperRef}
+        className={`isolate flex flex-col transition-all duration-200 ${
+          isTableFullscreen
+            ? 'fixed inset-0 z-40 bg-background p-2.5 sm:p-3.5 overflow-hidden h-screen w-screen'
+            : 'flex-1 min-h-0 w-full overflow-hidden'
+        }`}
+      >
       {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
       {activeFilters.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
@@ -1328,6 +1385,38 @@ function Tracking() {
         </div>
 
         <div className="flex items-center gap-2 text-[11px]">
+          {/* Nút Phóng to / Thu nhỏ Toàn Màn hình (TASK-007) */}
+          <button
+            type="button"
+            onClick={toggleTableFullscreen}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 ${
+              isTableFullscreen
+                ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                : 'border-border/80 bg-card text-foreground hover:bg-secondary hover:border-primary/40'
+            }`}
+            title={
+              isTableFullscreen
+                ? 'Thu nhỏ bảng về kích thước ban đầu (Phím tắt: Alt+F)'
+                : 'Phóng to bảng toàn màn hình để tập trung điều độ (Phím tắt: Alt+F)'
+            }
+          >
+            {isTableFullscreen ? (
+              <Minimize2 size={12} className={isTableFullscreen ? 'text-primary-foreground' : 'text-primary/90'} />
+            ) : (
+              <Maximize2 size={12} className="text-primary/90" />
+            )}
+            <span>{isTableFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+            <kbd
+              className={`hidden sm:inline-block text-[9px] px-1 py-0.2 rounded font-mono border ${
+                isTableFullscreen
+                  ? 'bg-primary-foreground/20 border-primary-foreground/30 text-primary-foreground'
+                  : 'bg-muted/70 border-border/60 text-muted-foreground'
+              }`}
+            >
+              Alt+F
+            </kbd>
+          </button>
+
           {/* Nút Xuất CSV tích hợp trực tiếp từ PageHeading cũ */}
           <button
             type="button"
@@ -2383,32 +2472,15 @@ function Tracking() {
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'ma_hang' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 w-28 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs font-bold text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[130px] rounded border-2 border-primary bg-background px-2 font-mono text-xs font-bold text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
@@ -2435,32 +2507,15 @@ function Tracking() {
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 w-24 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[110px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
@@ -2487,32 +2542,15 @@ function Tracking() {
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 w-20 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[90px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
@@ -2531,39 +2569,21 @@ function Tracking() {
                         )}
                       </td>
 
-                      {/* 8. SL (Inline Quick-Edit) */}
                       {/* 8. Số lượng (Inline Quick-Edit) */}
                       <td
                         className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-so_luong` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 w-20 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-right text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="number"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[80px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
@@ -2590,33 +2610,16 @@ function Tracking() {
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              step="0.1"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 w-20 rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-right text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[80px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
@@ -2643,34 +2646,17 @@ function Tracking() {
                           }`}
                       >
                         {isAdmin && editingCell?.id === r.ID_Key && editingCell.field === 'cty_QT' ? (
-                          <div className="flex items-center gap-1">
-                            <select
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 rounded border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs"
-                              autoFocus
-                            >
-                              <option value="YAMAICHI">YAMAICHI</option>
-                              <option value="PROVISION">PROVISION</option>
-                            </select>
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <select
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[110px] rounded border-2 border-primary bg-background px-1.5 font-semibold text-xs text-foreground outline-none shadow-xs cursor-pointer"
+                            autoFocus
+                          >
+                            <option value="YAMAICHI">YAMAICHI</option>
+                            <option value="PROVISION">PROVISION</option>
+                          </select>
                         ) : (
                           <div
                             onDoubleClick={() => isAdmin && startInlineEdit(r.ID_Key, 'cty_QT', String(r.cty_QT))}
@@ -2768,32 +2754,15 @@ function Tracking() {
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="date"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 rounded border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="date"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[130px] rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => canEdit && startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
@@ -2820,32 +2789,15 @@ function Tracking() {
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'han_tra' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="date"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-7 rounded border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveInlineEdit(r)}
-                              className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                              title="Lưu (Enter)"
-                            >
-                              <Check size={13} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCell(null)}
-                              className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                              title="Hủy (Esc)"
-                            >
-                              <X size={13} />
-                            </button>
-                          </div>
+                          <input
+                            type="date"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            className="h-7 w-full min-w-[130px] rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
@@ -2876,46 +2828,27 @@ function Tracking() {
                         }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
-                          <div className="flex items-start gap-1">
-                            <textarea
-                              value={editValue}
-                              placeholder="Nhập ghi chú cho lô... (Enter: lưu, Shift+Enter: xuống dòng, Tab: ô tiếp)"
-                              onChange={(e) => {
-                                setEditValue(e.target.value);
-                                e.target.style.height = 'auto';
-                                e.target.style.height = `${Math.max(34, e.target.scrollHeight)}px`;
-                              }}
-                              ref={(el) => {
-                                if (el) {
-                                  el.style.height = 'auto';
-                                  el.style.height = `${Math.max(34, el.scrollHeight)}px`;
-                                }
-                              }}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              rows={1}
-                              style={{ resize: 'both' }}
-                              className="min-h-[34px] w-full rounded border-2 border-primary bg-background px-2 py-1 text-xs text-foreground outline-none shadow-xs leading-relaxed"
-                              autoFocus
-                            />
-                            <div className="flex flex-col gap-1 shrink-0 pt-0.5">
-                              <button
-                                type="button"
-                                onClick={() => saveInlineEdit(r)}
-                                className="text-primary hover:bg-primary/10 rounded p-1 cursor-pointer"
-                                title="Lưu (Enter)"
-                              >
-                                <Check size={13} className="stroke-[2.5]" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingCell(null)}
-                                className="text-muted-foreground hover:bg-secondary rounded p-1 cursor-pointer"
-                                title="Hủy (Esc)"
-                              >
-                                <X size={13} />
-                              </button>
-                            </div>
-                          </div>
+                          <textarea
+                            value={editValue}
+                            placeholder="Nhập ghi chú cho lô... (Enter: lưu, Shift+Enter: xuống dòng, Tab: ô tiếp)"
+                            onChange={(e) => {
+                              setEditValue(e.target.value);
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${Math.max(34, e.target.scrollHeight)}px`;
+                            }}
+                            ref={(el) => {
+                              if (el) {
+                                el.style.height = 'auto';
+                                el.style.height = `${Math.max(34, el.scrollHeight)}px`;
+                              }
+                            }}
+                            onKeyDown={(e) => handleCellKeyDown(e, r)}
+                            onBlur={() => saveInlineEdit(r)}
+                            rows={1}
+                            style={{ resize: 'both' }}
+                            className="min-h-[34px] w-full rounded border-2 border-primary bg-background px-2 py-1 text-xs text-foreground outline-none shadow-xs leading-relaxed"
+                            autoFocus
+                          />
                         ) : (
                           <div
                             onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
@@ -3056,12 +2989,13 @@ function Tracking() {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Proposal 2 & 5: Floating Bulk Action Bar - Monozukuri Control Dock (TASK-004) */}
+      {/* Proposal 2 & 5: Floating Bulk Action Bar - Monozukuri Control Dock (TASK-008) */}
       {selectedLots.size > 0 && (
         <aside
           aria-label="Thao tác hàng loạt"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2.5 rounded-xl border border-border/80 bg-card/95 px-4 py-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 text-xs"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-45 flex flex-wrap items-center gap-2.5 rounded-xl border border-border/80 bg-card/95 px-4 py-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 text-xs"
         >
           {/* Segment 1: Selected Count & Telemetry */}
           <div className="flex items-center gap-2.5 pr-3 border-r border-border/80">

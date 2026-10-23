@@ -103,7 +103,39 @@ export const updateLotProgress = createServerFn({ method: "POST" })
     const allowed = role === "admin" || role === "leader" || (vendor !== null && String(data.cty_QT ?? "").toUpperCase() === vendor);
     if (!allowed) return { ok: false as const, error: "Vai trò không có quyền cập nhật lô này" };
     if (!data.ID_Key) return { ok: false as const, error: "Thiếu ID_Key" };
-    // Demo: no central sheet is connected, so the write-back is acknowledged
-    // and the change is kept locally (audit log records the result).
+    // Gửi payload đồng bộ hai chiều tới Google Apps Script Webhook nếu đã cấu hình
+    if (data.webhook && data.webhook.trim()) {
+      try {
+        const payload = {
+          action: "updateLot",
+          ID_Key: data.ID_Key,
+          cty_QT: data.cty_QT,
+          updates: data.updates,
+          user: role,
+          timestamp: new Date().toISOString(),
+        };
+        const res = await fetch(data.webhook.trim(), {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+          redirect: "follow",
+        });
+        if (!res.ok) {
+          return { ok: false as const, error: `Apps Script trả về HTTP ${res.status}` };
+        }
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          if (json && json.ok === false) {
+            return { ok: false as const, error: json.error || "Google Apps Script từ chối cập nhật" };
+          }
+        } catch {
+          // Phản hồi không phải JSON nhưng status 200 OK
+        }
+      } catch (err: any) {
+        return { ok: false as const, error: `Không thể kết nối Webhook Apps Script: ${err.message}` };
+      }
+    }
+
     return { ok: true as const };
   });

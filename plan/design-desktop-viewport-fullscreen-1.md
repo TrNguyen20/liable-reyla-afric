@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-10-23
 last_updated: 2026-10-23
 owner: Frontend Taste Lead & UI/UX Specialist
-status: Planned
+status: Completed
 tags: ['design', 'taste', 'desktop-viewport', 'fullscreen', 'tracking', 'ergonomics', 'anti-slop']
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Kế hoạch này kết hợp các chỉ dẫn chuyên sâu từ **/design-taste-frontend** (Anti-Slop, tinh gọn tối đa khoảng thở thừa, loại bỏ trùng lặp nhãn mác) và **/frontend-design** (tôn trọng không gian hữu dụng, thiết kế có chủ đích cho người dùng nhà xưởng) nhằm giải quyết 3 bài toán công thái học trọng yếu trên màn hình điều hành Flagship `/tracking`:
 
@@ -57,9 +57,9 @@ Kế hoạch này kết hợp các chỉ dẫn chuyên sâu từ **/design-taste
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Bổ sung trạng thái `isTableFullscreen` trong `src/routes/tracking.tsx`, tích hợp cả Browser Fullscreen API (`requestFullscreen()`) và lớp phủ Zen Mode (`fixed inset-0 z-50 bg-background flex flex-col p-4`) với phím tắt `Esc` | | |
-| TASK-007 | Thêm nút chuyển đổi Fullscreen (`Maximize2` / `Minimize2`) trên thanh công cụ KPI của bảng, có tooltip và huy hiệu phím tắt trực quan `[Alt+F]` | | |
-| TASK-008 | Kiểm tra tương thích phím tắt và Stacking Context: Đảm bảo thanh Floating Bulk Action Bar và modal cập nhật lô vẫn hiển thị chuẩn xác khi ở chế độ Fullscreen | | |
+| TASK-006 | Bổ sung trạng thái `isTableFullscreen` trong `src/routes/tracking.tsx`, tích hợp cả Browser Fullscreen API (`requestFullscreen()`) và lớp phủ Zen Mode (`fixed inset-0 z-40 bg-background flex flex-col p-3.5`) với phím tắt `Esc` | [x] | 2026-10-23 |
+| TASK-007 | Thêm nút chuyển đổi Fullscreen (`Maximize2` / `Minimize2`) trên thanh công cụ KPI của bảng, có tooltip và huy hiệu phím tắt trực quan `[Alt+F]` | [x] | 2026-10-23 |
+| TASK-008 | Kiểm tra tương thích phím tắt và Stacking Context: Đảm bảo thanh Floating Bulk Action Bar và modal cập nhật lô vẫn hiển thị chuẩn xác khi ở chế độ Fullscreen | [x] | 2026-10-23 |
 
 ## 3. Alternatives
 
