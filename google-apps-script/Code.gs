@@ -155,44 +155,53 @@ function handleUpdateLot(payload) {
   var oldValues = {};
   var newValues = {};
 
-  // 1. Cập nhật TrangThai
-  if (updates.TrangThai !== undefined && colMap['trangthai']) {
-    var col = colMap['trangthai'];
-    var cell = sheet.getRange(targetRow, col);
-    oldValues['TrangThai'] = cell.getValue();
-    cell.setValue(updates.TrangThai);
-    newValues['TrangThai'] = updates.TrangThai;
-    updatedFields.push('TrangThai');
+  // Bản đồ alias tên cột linh hoạt cho tiếng Việt và tiếng Anh
+  var fieldAliases = {
+    'trangthai': ['trangthai', 'trạng thái', 'status', 'tình trạng'],
+    'ngay_nhan_qt': ['ngay_nhan_qt', 'ngày nhận', 'ngay_nhan', 'ngày nhận qt', 'received_date'],
+    'do_cung': ['do_cung', 'độ cứng', 'hardness', 'hrc'],
+    'ghi_chu': ['ghi_chu', 'ghi chú', 'note', 'ghi chú gia công', 'ghi chú qc'],
+    'ma_hang': ['ma_hang', 'mã hàng', 'item_code', 'part_no', 'mã sản phẩm'],
+    'vat_lieu': ['vat_lieu', 'vật liệu', 'mác thép', 'material', 'chất liệu'],
+    'so_luong': ['so_luong', 'số lượng', 'quantity', 'qty'],
+    'kg_lot': ['kg_lot', 'khối lượng', 'trọng lượng', 'kg', 'weight'],
+    'han_tra': ['han_tra', 'hạn trả', 'due_date', 'ngày hẹn trả'],
+    'ngay_gui_qt': ['ngay_gui_qt', 'ngày gửi', 'ngay_gui', 'ngày gửi qt', 'ngay_tao'],
+    'cty_qt': ['cty_qt', 'công ty qt', 'đơn vị qt', 'vendor', 'đơn vị gia công']
+  };
+
+  function findColumnForField(fieldKey) {
+    var k = String(fieldKey).trim().toLowerCase();
+    if (colMap[k]) return colMap[k];
+    var aliases = fieldAliases[k];
+    if (aliases) {
+      for (var a = 0; a < aliases.length; a++) {
+        if (colMap[aliases[a]]) return colMap[aliases[a]];
+      }
+    }
+    for (var colName in colMap) {
+      if (colName.indexOf(k) !== -1 || k.indexOf(colName) !== -1) {
+        return colMap[colName];
+      }
+    }
+    return null;
   }
 
-  // 2. Cập nhật ngay_nhan_QT (hoặc ngay_nhan)
-  var dateCol = colMap['ngay_nhan_qt'] || colMap['ngay_nhan'];
-  if (updates.ngay_nhan_QT !== undefined && dateCol) {
-    var cellDate = sheet.getRange(targetRow, dateCol);
-    oldValues['ngay_nhan_QT'] = cellDate.getValue();
-    cellDate.setValue(updates.ngay_nhan_QT);
-    newValues['ngay_nhan_QT'] = updates.ngay_nhan_QT;
-    updatedFields.push('ngay_nhan_QT');
-  }
+  // Cập nhật động tất cả các trường được gửi lên trong updates
+  for (var fieldKey in updates) {
+    if (updates.hasOwnProperty(fieldKey)) {
+      var val = updates[fieldKey];
+      if (val === undefined || val === null) continue;
 
-  // 3. Cập nhật do_cung
-  if (updates.do_cung !== undefined && colMap['do_cung']) {
-    var colHrc = colMap['do_cung'];
-    var cellHrc = sheet.getRange(targetRow, colHrc);
-    oldValues['do_cung'] = cellHrc.getValue();
-    cellHrc.setValue(updates.do_cung);
-    newValues['do_cung'] = updates.do_cung;
-    updatedFields.push('do_cung');
-  }
-
-  // 4. Cập nhật ghi_chu (nếu có)
-  var noteCol = colMap['ghi_chu'] || colMap['ghi chú'] || colMap['note'];
-  if (updates.ghi_chu !== undefined && noteCol) {
-    var cellNote = sheet.getRange(targetRow, noteCol);
-    oldValues['ghi_chu'] = cellNote.getValue();
-    cellNote.setValue(updates.ghi_chu);
-    newValues['ghi_chu'] = updates.ghi_chu;
-    updatedFields.push('ghi_chu');
+      var colIdx = findColumnForField(fieldKey);
+      if (colIdx) {
+        var cell = sheet.getRange(targetRow, colIdx);
+        oldValues[fieldKey] = cell.getValue();
+        cell.setValue(val);
+        newValues[fieldKey] = val;
+        updatedFields.push(fieldKey);
+      }
+    }
   }
 
   // Ghi nhật ký vào sheet AUDIT_LOG
@@ -210,7 +219,7 @@ function handleUpdateLot(payload) {
 
   return {
     ok: true,
-    message: 'Đã cập nhật thành công lô ' + idKey + ' tại dòng ' + targetRow,
+    message: 'Đã cập nhật thành công lô ' + idKey + ' (' + updatedFields.join(', ') + ') tại dòng ' + targetRow,
     ID_Key: idKey,
     row: targetRow,
     updatedFields: updatedFields,

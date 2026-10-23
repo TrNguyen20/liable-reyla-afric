@@ -86,35 +86,63 @@ export const logoutSession = createServerFn({ method: "POST" }).handler(async ()
   return { ok: true as const };
 });
 
-// Write-back of a lot progress update. Role comes from the signed session only.
+// Truy xuất Webhook URL tập trung từ server
+export const fetchCentralWebhookConfig = createServerFn({ method: "GET" }).handler(async () => {
+  const { getCentralWebhookUrl } = await import("./config.server");
+  const url = await getCentralWebhookUrl();
+  return { ok: true as const, url };
+});
+
+// Lưu Webhook URL tập trung lên server (chỉ dành cho Admin)
+export const saveCentralWebhookConfig = createServerFn({ method: "POST" })
+  .inputValidator((data: { url: string }) => data)
+  .handler(async ({ data }) => {
+    const { readSession } = await import("./session.server");
+    const s = await readSession();
+    if (!s) return { ok: false as const, error: "Phiên đăng nhập đã hết hạn" };
+    if (s.role !== "admin") {
+      return { ok: false as const, error: "Chỉ Quản trị viên (Admin) mới có quyền lưu cấu hình Webhook hệ thống" };
+    }
+    const { saveCentralWebhookUrl } = await import("./config.server");
+    await saveCentralWebhookUrl(data.url, s.role);
+    return { ok: true as const };
+  });
+
+// Ghi ngược tiến độ lô hàng. Tự động lấy Webhook URL tập trung từ server nếu client không truyền
 export const updateLotProgress = createServerFn({ method: "POST" })
   .inputValidator((data: {
     ID_Key: string;
     cty_QT?: string;
     webhook?: string;
-    updates?: { TrangThai?: string; do_cung?: string; ngay_nhan_QT?: string };
+    updates?: Record<string, any>;
   }) => data)
   .handler(async ({ data }) => {
     const { readSession } = await import("./session.server");
     const s = await readSession();
     if (!s) return { ok: false as const, error: "Phiên đăng nhập đã hết hạn" };
     const role = s.role;
-    const vendor = role.startsWith("qt_") ? role.slice(3).toUpperCase() : null;
-    const allowed = role === "admin" || role === "leader" || (vendor !== null && String(data.cty_QT ?? "").toUpperCase() === vendor);
-    if (!allowed) return { ok: false as const, error: "Vai trò không có quyền cập nhật lô này" };
+    
+    // Phân quyền mở: Mọi vai trò đã xác thực phiên (Admin, Leader, Viewer, Vendor) đều được cập nhật tiến độ
     if (!data.ID_Key) return { ok: false as const, error: "Thiếu ID_Key" };
-    // Gửi payload đồng bộ hai chiều tới Google Apps Script Webhook nếu đã cấu hình
-    if (data.webhook && data.webhook.trim()) {
+
+    // Tự động sử dụng Webhook tập trung từ Server nếu Client không truyền
+    let targetWebhook = (data.webhook ?? "").trim();
+    if (!targetWebhook) {
+      const { getCentralWebhookUrl } = await import("./config.server");
+      targetWebhook = await getCentralWebhookUrl();
+    }
+
+    if (targetWebhook) {
       try {
         const payload = {
           action: "updateLot",
           ID_Key: data.ID_Key,
           cty_QT: data.cty_QT,
-          updates: data.updates,
+          updates: data.updates || {},
           user: role,
           timestamp: new Date().toISOString(),
         };
-        const res = await fetch(data.webhook.trim(), {
+        const res = await fetch(targetWebhook, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(payload),
@@ -127,7 +155,7 @@ export const updateLotProgress = createServerFn({ method: "POST" })
         try {
           const json = JSON.parse(text);
           if (json && json.ok === false) {
-            return { ok: false as const, error: json.error || "Google Apps Script từ chối cập nhật" };
+            return { ok: false as const, error: json.error || json.message || "Google Apps Script từ chối cập nhật" };
           }
         } catch {
           // Phản hồi không phải JSON nhưng status 200 OK

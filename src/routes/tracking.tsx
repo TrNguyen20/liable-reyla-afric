@@ -39,6 +39,7 @@ import { useDynamo } from '@/components/dynamo-shell';
 import { playAudioCue } from '@/lib/audio-cues';
 import { date, money, number, type QTItem, type Status, type Workshop, type Vendor } from '@/lib/dynamo-data';
 import { formatVendorName, canViewPricing } from '@/lib/dynamo-auth';
+import { updateLotProgress } from '@/lib/auth.functions';
 import { isMaterialEquivalent } from '@/lib/materials-data';
 import {
   hasValidDue,
@@ -1175,6 +1176,23 @@ function Tracking() {
     }
   };
 
+  // Gửi payload ghi ngược hai chiều tới Google Apps Script Webhook (Server tự động xử lý Webhook URL tập trung)
+  const syncWriteBack = (idKey: string, vendor: string | undefined, patch: Record<string, any>) => {
+    void updateLotProgress({
+      data: {
+        ID_Key: idKey,
+        cty_QT: String(vendor ?? ''),
+        updates: patch,
+      },
+    }).then((res) => {
+      if (!res?.ok) {
+        toast.warning(`Chưa đồng bộ lên Google Sheets: ${res?.error || 'Lỗi kết nối Webhook'}`);
+      }
+    }).catch((err) => {
+      console.warn('Lỗi gửi Webhook đồng bộ:', err);
+    });
+  };
+
   const saveInlineEdit = (
     item: QTItem,
     navigateDir?: 'next-row' | 'prev-row' | 'next-col' | 'prev-col',
@@ -1242,6 +1260,7 @@ function Tracking() {
     isSavingRef.current = true;
     try {
       updateItem(item.ID_Key, patch);
+      syncWriteBack(item.ID_Key, item.cty_QT, patch);
       appendAudit({
         ID_Key: item.ID_Key,
         user: role,
@@ -2684,6 +2703,7 @@ function Tracking() {
                           onChange={(e) => {
                             const newStatus = e.target.value as Status;
                             updateItem(r.ID_Key, { TrangThai: newStatus });
+                            syncWriteBack(r.ID_Key, r.cty_QT, { TrangThai: newStatus });
                             appendAudit({
                               ID_Key: r.ID_Key,
                               user: role,
@@ -2718,9 +2738,11 @@ function Tracking() {
                           onChange={(e) => {
                             const newQc = e.target.value as QcState;
                             const isPassed = newQc === 'Đạt';
-                            updateItem(r.ID_Key, {
-                              TrangThai: isPassed ? 'Đã nhập kho' : r.TrangThai,
-                            });
+                            const statusPatch: Partial<QTItem> = isPassed ? { TrangThai: 'Đã nhập kho' } : {};
+                            updateItem(r.ID_Key, statusPatch);
+                            if (isPassed) {
+                              syncWriteBack(r.ID_Key, r.cty_QT, statusPatch);
+                            }
                             appendAudit({
                               ID_Key: r.ID_Key,
                               user: role,
@@ -3086,6 +3108,8 @@ function Tracking() {
             const ids = selectedRowsList.map((r) => r.ID_Key);
             bulkUpdateItems(ids, patch);
             ids.forEach((id) => {
+              const matchedItem = selectedRowsList.find((r) => r.ID_Key === id);
+              syncWriteBack(id, matchedItem?.cty_QT, patch);
               appendAudit({
                 ID_Key: id,
                 user: role,
@@ -3123,6 +3147,7 @@ function Tracking() {
           onClose={() => setDetailLot(null)}
           onUpdate={(patch) => {
             updateItem(detailLot.ID_Key, patch);
+            syncWriteBack(detailLot.ID_Key, detailLot.cty_QT, patch);
             setDetailLot((prev) => (prev ? { ...prev, ...patch } : null));
           }}
         />

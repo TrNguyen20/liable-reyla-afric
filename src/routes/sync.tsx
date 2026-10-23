@@ -23,6 +23,7 @@ import { number, type QTItem } from '@/lib/dynamo-data';
 import { SHEET_URL, type MapResult } from '@/lib/dynamo-source';
 import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
+import { fetchCentralWebhookConfig, saveCentralWebhookConfig } from '@/lib/auth.functions';
 
 export const Route = createFileRoute('/sync')({
   head: () => ({
@@ -63,32 +64,55 @@ function Sync() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [isWebhookSaved, setIsWebhookSaved] = useState(false);
 
-  // Load existing Webhook URL from localStorage
+  // Load existing Webhook URL from localStorage and Central Server
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = window.localStorage.getItem('dynamo-webhook') ?? '';
-      setWebhookUrl(stored);
-      setIsWebhookSaved(Boolean(stored));
+      if (stored) {
+        setWebhookUrl(stored);
+        setIsWebhookSaved(true);
+      }
     }
+    // Đồng bộ từ server cấu hình tập trung
+    void fetchCentralWebhookConfig().then((res) => {
+      if (res?.url) {
+        setWebhookUrl(res.url);
+        setIsWebhookSaved(true);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('dynamo-webhook', res.url);
+        }
+      }
+    }).catch(() => {
+      // Fallback giữ local
+    });
   }, []);
 
-  const saveWebhook = () => {
+  const saveWebhook = async () => {
     const v = webhookUrl.trim();
     if (v && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)) {
       toast.error('Định dạng URL không đúng! Link Webhook phải có dạng https://script.google.com/macros/s/.../exec');
       return;
     }
-    if (typeof window !== 'undefined') {
+    try {
+      // Lưu tập trung lên Server để mọi user khác đều được thừa hưởng
+      await saveCentralWebhookConfig({ data: { url: v } });
+      if (typeof window !== 'undefined') {
+        if (v) {
+          window.localStorage.setItem('dynamo-webhook', v);
+          setIsWebhookSaved(true);
+        } else {
+          window.localStorage.removeItem('dynamo-webhook');
+          setIsWebhookSaved(false);
+        }
+      }
       if (v) {
-        window.localStorage.setItem('dynamo-webhook', v);
-        setIsWebhookSaved(true);
-        toast.success('Đã cấu hình Webhook Google Apps Script thành công.');
+        toast.success('Đã lưu cấu hình Webhook tập trung vào hệ thống thành công.');
         playAudioCue('success');
       } else {
-        window.localStorage.removeItem('dynamo-webhook');
-        setIsWebhookSaved(false);
-        toast.info('Đã xóa cấu hình Webhook ghi ngược.');
+        toast.info('Đã xóa cấu hình Webhook ghi ngược trên toàn hệ thống.');
       }
+    } catch (err: any) {
+      toast.error(`Lỗi lưu Webhook lên máy chủ: ${err.message || 'Không có quyền'}`);
     }
   };
 

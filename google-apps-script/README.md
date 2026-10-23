@@ -7,18 +7,18 @@ Tài liệu hướng dẫn cấu hình Webhook Google Apps Script để nhận d
 ## 🎯 Luồng Hoạt Động (End-to-End Workflow)
 
 ```
-[Kỹ sư / Vendor thao tác trên MES]
+[Kỹ sư / Vendor / Viewer thao tác trên MES]
              │
              ▼
-   [Cập nhật trạng thái lô: TrangThai, ngay_nhan_QT, do_cung]
+   [Chỉnh sửa dữ liệu lô: TrangThai, Ngày nhận, Độ cứng, Ghi chú, Mã hàng, Vật liệu, Số lượng, Kg, Hạn trả...]
              │
              ▼ (HTTP POST JSON payload)
    [Google Apps Script Webhook (/exec)]
              │
       ┌──────┴───────────────────────────┐
       ▼                                  ▼
-[Cập nhật dòng khớp ID_Key]    [Ghi lịch sử vào sheet AUDIT_LOG]
-(TrangThai, ngày nhận, độ cứng)  (Thời gian, Người sửa, Trạng thái cũ/mới)
+[Cập nhật tự động dòng khớp ID_Key] [Ghi lịch sử vào sheet AUDIT_LOG]
+(Tất cả các cột tương ứng trên Sheet)  (Thời gian, Người sửa, Chi tiết thay đổi)
 ```
 
 ---
