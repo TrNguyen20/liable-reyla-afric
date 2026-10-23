@@ -184,29 +184,66 @@ function Sync() {
       {/* Proposal 6: Live Health Telemetry Bar */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {/* Metric 1: Connection Status */}
-        <div className="mes-card p-3.5 rounded-lg flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <div className="mes-card p-3.5 rounded-lg flex items-center gap-3 shadow-2xs border border-border/80">
+          <div className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Radio size={18} className="animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
           </div>
           <div className="min-w-0">
             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">KẾT NỐI SHEETS</p>
             <p className="font-bold text-xs text-foreground flex items-center gap-1.5 mt-0.5">
-              <span className="size-2 rounded-full bg-primary" />
-              Sẵn sàng (Live Feed)
+              <span>Sẵn sàng (Live Feed)</span>
             </p>
           </div>
         </div>
 
-        {/* Metric 2: Ping Latency */}
-        <div className="mes-card p-3.5 rounded-lg flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-info/10 text-info">
-            <Activity size={18} />
+        {/* Metric 2: Ping Latency (TASK-007) */}
+        <div className="mes-card p-3.5 rounded-lg flex items-center gap-3 shadow-2xs border border-border/80">
+          <div
+            className={`relative flex size-9 shrink-0 items-center justify-center rounded-md transition-colors ${
+              latencyMs === null
+                ? 'bg-muted text-muted-foreground'
+                : latencyMs < 300
+                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                : latencyMs < 800
+                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                : 'bg-destructive/10 text-destructive border border-destructive/20'
+            }`}
+          >
+            <Activity
+              size={18}
+              className={latencyMs !== null && latencyMs < 300 ? 'animate-pulse' : ''}
+            />
+            {latencyMs !== null && latencyMs < 300 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">ĐỘ TRỄ PHẢN HỒI</p>
-            <p className="font-mono font-bold text-xs text-foreground mt-0.5">
-              {latencyMs !== null ? `${latencyMs} ms` : '—'}
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="font-mono font-bold text-xs text-foreground">
+                {latencyMs !== null ? `${latencyMs} ms` : '—'}
+              </span>
+              {latencyMs !== null && (
+                <span
+                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded font-sans ${
+                    latencyMs < 300
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : latencyMs < 800
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      : 'bg-destructive/10 text-destructive'
+                  }`}
+                >
+                  {latencyMs < 300 ? 'Tối ưu' : latencyMs < 800 ? 'Ổn định' : 'Chậm'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -515,35 +552,50 @@ function Sync() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-xs">
-            <thead className="border-b border-border bg-secondary/60 text-muted-foreground font-bold text-[10px] uppercase">
+          <table className="w-full min-w-[820px] text-left text-xs border-collapse">
+            <thead className="border-b border-border bg-secondary/50 text-muted-foreground font-bold text-[10px] uppercase tracking-wider">
               <tr>
-                {previewCols.map((col) => (
-                  <th key={col} className="px-4 py-2.5 font-mono">
-                    {col === 'cty_QT' ? 'Đơn vị gia công' : col}
-                  </th>
-                ))}
+                <th className="px-3.5 py-2.5 font-mono text-foreground/80">MÃ LÔ (ID_KEY)</th>
+                <th className="px-3 py-2.5">XƯỞNG</th>
+                <th className="px-3.5 py-2.5">MÃ HÀNG</th>
+                <th className="px-3 py-2.5">MÁC THÉP</th>
+                <th className="px-3 py-2.5 text-right font-mono">SỐ LƯỢNG</th>
+                <th className="px-3.5 py-2.5">ĐƠN VỊ QT</th>
+                <th className="px-3 py-2.5">TRẠNG THÁI</th>
+                <th className="px-3.5 py-2.5 font-mono">ĐƠN HÀNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {(stagedRows.length ? stagedRows : dataset).slice(0, 10).map((r) => (
-                <tr key={r.ID_Key} className="transition-colors hover:bg-secondary/40">
-                  <td className="px-4 py-2 font-mono font-bold text-primary">{r.ID_Key}</td>
-                  <td className="px-4 py-2 font-bold text-foreground">{r.phong_sx}</td>
-                  <td className="px-4 py-2 font-mono font-semibold text-foreground">{r.ma_hang}</td>
-                  <td className="px-4 py-2 font-mono text-muted-foreground">{r.vat_lieu}</td>
-                  <td className="px-4 py-2 font-mono font-bold tabular-nums text-foreground">
+                <tr key={r.ID_Key} className="h-9 transition-colors hover:bg-secondary/40">
+                  <td className="px-3.5 py-1.5 font-mono font-bold text-primary text-xs">
+                    {r.ID_Key}
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-bold text-foreground border border-border/60">
+                      {r.phong_sx}
+                    </span>
+                  </td>
+                  <td className="px-3.5 py-1.5 font-mono font-bold text-foreground text-xs">
+                    {r.ma_hang}
+                  </td>
+                  <td className="px-3 py-1.5 font-mono text-xs text-foreground/85">
+                    {r.vat_lieu || '—'}
+                  </td>
+                  <td className="px-3 py-1.5 font-mono font-bold tabular-nums text-foreground text-xs text-right">
                     {number(r.so_luong)}
                   </td>
-                  <td className="px-4 py-2 font-medium text-foreground">
+                  <td className="px-3.5 py-1.5 font-medium text-foreground text-xs">
                     {formatVendorName(r.cty_QT, role)}
                   </td>
-                  <td className="px-4 py-2">
-                    <span className="inline-flex rounded-xs border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-foreground font-medium">
+                  <td className="px-3 py-1.5">
+                    <span className="inline-flex items-center rounded-md border border-border/80 bg-background/80 px-2 py-0.5 font-mono text-[10px] text-foreground font-semibold shadow-2xs">
                       {r.TrangThai}
                     </span>
                   </td>
-                  <td className="px-4 py-2 font-mono text-muted-foreground">{r.So_DatHang}</td>
+                  <td className="px-3.5 py-1.5 font-mono text-xs text-muted-foreground">
+                    {r.So_DatHang}
+                  </td>
                 </tr>
               ))}
             </tbody>

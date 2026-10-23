@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-10-23
 last_updated: 2026-10-23
 owner: Frontend Taste Lead & UI/UX Specialist
-status: Planned
+status: Completed
 tags: ['design', 'taste', 'ui', 'ux', 'tracking', 'sync', 'login', 'kpi', 'ergonomics']
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Kế hoạch này tiến hành đánh giá thẩm mỹ chuyên sâu theo tiêu chuẩn **/design-taste-frontend** (Anti-Slop, tinh giản chuẩn xưởng Nhật Bản Monozukuri) kết hợp **/redesign-existing-projects** nhằm nâng cấp toàn diện các điểm chạm giao diện (Touchpoints) trên cả 3 trang chính của hệ thống DYNAMO VIETNAM QT - MES:
 1. **Trang Luân Chuyển QT (`/tracking`)**: Flagship Screen điều hành sản xuất nhiệt luyện & xi mạ.
@@ -56,8 +56,8 @@ Kế hoạch này tiến hành đánh giá thẩm mỹ chuyên sâu theo tiêu c
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Nâng cấp bảng xem trước (`previewCols table`) trong `src/routes/sync.tsx`: đồng bộ chiều cao dòng `h-9`, font mono cho mã lô và nhãn phân xưởng giống chuẩn `/tracking` | | |
-| TASK-007 | Tinh chỉnh thanh Telemetry trạng thái mạng và độ trễ latency (`latencyMs`) trong `src/routes/sync.tsx`: bổ sung hiệu ứng nhịp tim xanh khi kết nối ổn định (<300ms) và vàng/đỏ khi suy giảm tín hiệu | | |
+| TASK-006 | Nâng cấp bảng xem trước (`previewCols table`) trong `src/routes/sync.tsx`: đồng bộ chiều cao dòng `h-9`, font mono cho mã lô và nhãn phân xưởng giống chuẩn `/tracking` | [x] | 2026-10-23 |
+| TASK-007 | Tinh chỉnh thanh Telemetry trạng thái mạng và độ trễ latency (`latencyMs`) trong `src/routes/sync.tsx`: bổ sung hiệu ứng nhịp tim xanh khi kết nối ổn định (<300ms) và vàng/đỏ khi suy giảm tín hiệu | [x] | 2026-10-23 |
 
 ## 3. Alternatives
 
