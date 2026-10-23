@@ -913,6 +913,39 @@ function Tracking() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [selectedLots.size, editingCell]);
 
+  // Global keyboard shortcuts: Alt+Left / Alt+Right for pagination (TASK-003)
+  useEffect(() => {
+    const handlePaginationKeys = (e: KeyboardEvent) => {
+      if (
+        editingCell ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)
+      ) {
+        return;
+      }
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setTablePage((p) => {
+          if (p > 0) {
+            playAudioCue('beep');
+            return p - 1;
+          }
+          return p;
+        });
+      } else if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        setTablePage((p) => {
+          if (p + 1 < totalPages) {
+            playAudioCue('beep');
+            return p + 1;
+          }
+          return p;
+        });
+      }
+    };
+    window.addEventListener('keydown', handlePaginationKeys);
+    return () => window.removeEventListener('keydown', handlePaginationKeys);
+  }, [editingCell, totalPages]);
+
   // Checkbox selection
   const toggleSelectLot = (id: string) => {
     setSelectedLots((prev) => {
@@ -1282,33 +1315,53 @@ function Tracking() {
         </div>
       )}
 
-      {/* KPI Summary Line */}
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs text-muted-foreground font-medium">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="font-mono tabular-nums text-foreground font-bold">
-            {number(rows.length)} / {number(all.length)} lô khớp
-          </span>
-          <span className="text-border">·</span>
-          <span className="font-mono tabular-nums text-foreground font-bold">
-            {number(totalKg, 1)} kg tổng khối lượng
-          </span>
-          <span className="text-border">·</span>
-          <span>
-            Phân xưởng: <b className="text-foreground">{workshops.join(', ')}</b>
-          </span>
+      {/* KPI Summary Line - Monozukuri Micro-Metric Badges (TASK-001) */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Badge 1: Số lô khớp / Tổng số lô với đèn LED tín hiệu */}
+          <div className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-[11px] text-muted-foreground font-medium">Lô khớp:</span>
+            <span className="font-mono tabular-nums font-bold text-foreground">
+              {number(rows.length)}
+              <span className="text-muted-foreground/60 font-normal ml-1">/ {number(all.length)}</span>
+            </span>
+          </div>
+
+          {/* Badge 2: Tổng khối lượng (kg) */}
+          <div className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
+            <span className="text-[11px] text-muted-foreground font-medium">Khối lượng:</span>
+            <span className="font-mono tabular-nums font-bold text-foreground">
+              {number(totalKg, 1)} <span className="text-[11px] font-normal text-muted-foreground">kg</span>
+            </span>
+          </div>
+
+          {/* Badge 3: Phân xưởng */}
+          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
+            <span className="text-[11px] text-muted-foreground font-medium">Phân xưởng:</span>
+            <span className="font-semibold text-foreground truncate max-w-[240px]">
+              {workshops.join(', ')}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5 text-[11px]">
+
+        <div className="flex items-center gap-2 text-[11px]">
           <button
             type="button"
             onClick={handleResetAllColWidths}
-            className="inline-flex items-center gap-1.5 rounded border border-border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shadow-2xs"
-            title="Khôi phục kích thước mặc định cho toàn bộ 16 cột"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
+            title="Khôi phục kích thước mặc định cho toàn bộ cột"
           >
-            <RotateCcw size={11} />
-            <span>Khôi phục kích thước cột</span>
+            <RotateCcw size={11} className="text-primary/80" />
+            <span>Khôi phục cỡ cột</span>
           </button>
-          <span className="text-muted-foreground hidden sm:inline">
-            💡 Bấm icon phễu <b>[▾]</b> ở đầu mỗi cột để lọc và sắp xếp
+          <span className="text-muted-foreground/80 hidden lg:inline-flex items-center gap-1 text-[11px]">
+            <span>💡 Bấm</span>
+            <span className="inline-block px-1 py-0.2 bg-muted/60 text-[10px] rounded font-mono font-medium border border-border/60 text-foreground">▾ Lọc</span>
+            <span>đầu cột để lọc & sắp xếp</span>
           </span>
         </div>
       </div>
@@ -2907,9 +2960,23 @@ function Tracking() {
               ) : (
                 <tr>
                   <td colSpan={16} className="px-4 py-16 text-center text-xs text-muted-foreground">
-                    <PackageOpen size={32} className="mx-auto mb-2 opacity-40" />
-                    <p className="font-semibold text-foreground">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
-                    <p className="mt-1 text-muted-foreground">Hãy thử chọn lại tiêu chí tìm kiếm hoặc xóa các điều kiện lọc.</p>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 border border-border/80 text-muted-foreground mb-3">
+                      <PackageOpen size={24} className="opacity-80 text-foreground" />
+                    </div>
+                    <p className="font-bold text-foreground text-sm">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground max-w-md mx-auto">
+                      Hiện tại không có bản ghi nào khớp với điều kiện lọc đang chọn. Bạn có thể xóa nhanh bộ lọc để tải lại toàn bộ danh sách.
+                    </p>
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={resetAllFilters}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer shadow-2xs active:scale-98"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Xóa tất cả tiêu chí lọc & Tải lại</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -2917,22 +2984,24 @@ function Tracking() {
           </table>
         </div>
 
-        {/* Pagination & Export Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 p-3 text-[11px] text-muted-foreground">
+        {/* Pagination & Export Bar - Monozukuri Ergonomic Control Bar (TASK-003) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/35 px-3.5 py-2.5 text-[11px] text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono tabular-nums text-foreground">
-              Đang xem {number(rows.length ? tablePage * pageSize + 1 : 0)} –{' '}
-              {number(Math.min((tablePage + 1) * pageSize, rows.length))} / {number(rows.length)} lô
+            <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded border border-border/60 shadow-2xs">
+              Đang xem <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}
+              <b className="text-foreground">{number(Math.min((tablePage + 1) * pageSize, rows.length))}</b> /{' '}
+              <span className="font-bold text-foreground">{number(rows.length)}</span> lô
             </span>
+
             <div className="flex items-center gap-1.5">
-              <span>Hiển thị:</span>
+              <span className="text-muted-foreground font-medium">Hiển thị:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
                   setTablePage(0);
                 }}
-                className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                className="rounded-md border border-input bg-background px-2.5 py-1 text-[11px] text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs cursor-pointer"
               >
                 {PAGE_SIZES.map((n) => (
                   <option key={n} value={n}>
@@ -2941,12 +3010,14 @@ function Tracking() {
                 ))}
               </select>
             </div>
+
             <button
               type="button"
               onClick={() => exportCsv(false)}
-              className="flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-secondary cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
             >
-              <Download size={13} /> Xuất CSV toàn bộ
+              <Download size={13} className="text-primary/90" />
+              <span>Xuất CSV toàn bộ</span>
             </button>
           </div>
 
@@ -2954,38 +3025,60 @@ function Tracking() {
             <button
               type="button"
               disabled={tablePage === 0}
-              onClick={() => setTablePage((p) => Math.max(0, p - 1))}
-              className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-secondary cursor-pointer"
+              onClick={() => {
+                setTablePage((p) => Math.max(0, p - 1));
+                playAudioCue('beep');
+              }}
+              title="Trang trước (Phím tắt: Alt + Mũi tên trái)"
+              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98"
             >
-              Trang trước
+              <ChevronLeft size={13} />
+              <span>Trang trước</span>
+              <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
+                Alt+←
+              </kbd>
             </button>
-            <span className="font-mono tabular-nums text-foreground font-bold">
-              Trang {tablePage + 1} / {number(totalPages)}
+
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
+              <span className="text-muted-foreground font-sans">Trang</span>
+              <span className="font-bold text-foreground text-xs">{tablePage + 1}</span>
+              <span className="text-muted-foreground/60">/</span>
+              <span className="font-semibold text-muted-foreground">{number(totalPages)}</span>
             </span>
+
             <button
               type="button"
               disabled={tablePage + 1 >= totalPages}
-              onClick={() => setTablePage((p) => Math.min(totalPages - 1, p + 1))}
-              className="rounded border border-border bg-background px-2.5 py-1 disabled:opacity-40 hover:bg-secondary cursor-pointer"
+              onClick={() => {
+                setTablePage((p) => Math.min(totalPages - 1, p + 1));
+                playAudioCue('beep');
+              }}
+              title="Trang sau (Phím tắt: Alt + Mũi tên phải)"
+              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98"
             >
-              Trang sau
+              <span>Trang sau</span>
+              <ChevronRight size={13} />
+              <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
+                Alt+→
+              </kbd>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Proposal 2 & 5: Floating Bulk Action Bar */}
+      {/* Proposal 2 & 5: Floating Bulk Action Bar - Monozukuri Control Dock (TASK-004) */}
       {selectedLots.size > 0 && (
         <aside
           aria-label="Thao tác hàng loạt"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2.5 rounded-xl border border-primary/40 bg-card/95 px-5 py-3 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2.5 rounded-xl border border-border/80 bg-card/95 px-4 py-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 text-xs"
         >
-          <div className="flex items-center gap-2.5 pr-3 border-r border-border">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
+          {/* Segment 1: Selected Count & Telemetry */}
+          <div className="flex items-center gap-2.5 pr-3 border-r border-border/80">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[11px] font-black text-primary-foreground shadow-2xs">
               {selectedLots.size}
             </span>
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-foreground leading-tight">
+              <span className="text-xs font-bold text-foreground leading-tight">
                 {selectedLots.size} lô được chọn
               </span>
               <span className="text-[10px] font-mono text-muted-foreground leading-tight">
@@ -2994,45 +3087,66 @@ function Tracking() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setBulkEditOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
-          >
-            <Zap size={14} /> Sửa hàng loạt
-          </button>
+          {/* Segment 2: Production Actions */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setBulkEditOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-xs active:scale-98"
+            >
+              <Zap size={13} />
+              <span>Sửa hàng loạt</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setBatchPrintOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
-          >
-            <Printer size={14} /> In phiếu A4 hàng loạt
-          </button>
+            <button
+              type="button"
+              onClick={() => setBatchPrintOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
+            >
+              <Printer size={13} className="text-primary/80" />
+              <span>In phiếu A4 ({selectedLots.size})</span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => exportCsv(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
-          >
-            <Download size={14} /> Xuất CSV ({selectedLots.size})
-          </button>
+          <div className="h-4 w-px bg-border/80 hidden sm:block" />
 
-          <button
-            type="button"
-            onClick={copySelectedIds}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
-          >
-            <Copy size={14} /> Copy mã lô
-          </button>
+          {/* Segment 3: Data & Export Operations */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => exportCsv(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
+            >
+              <Download size={13} className="text-primary/80" />
+              <span>Xuất CSV</span>
+            </button>
 
+            <button
+              type="button"
+              onClick={copySelectedIds}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
+            >
+              <Copy size={13} className="text-muted-foreground" />
+              <span>Copy mã</span>
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-border/80" />
+
+          {/* Segment 4: Clear Selection CTA with Esc Badge */}
           <button
             type="button"
-            onClick={() => setSelectedLots(new Set())}
-            className="ml-2 rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
-            title="Bỏ chọn tất cả"
+            onClick={() => {
+              setSelectedLots(new Set());
+              playAudioCue('pop');
+            }}
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+            title="Bỏ chọn toàn bộ (Phím tắt: Esc)"
           >
-            <X size={16} />
+            <X size={15} />
+            <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
+              Esc
+            </kbd>
           </button>
         </aside>
       )}
@@ -3681,60 +3795,100 @@ function LotDetailDrawer({
             </div>
           ) : (
             <>
-              {/* Technical Specs Grid */}
-              <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-secondary/30 p-3.5 text-xs mb-4">
+              {/* Technical Specs Grid - Monozukuri Precision Grid (TASK-005) */}
+              <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/80 bg-secondary/30 p-3.5 text-xs mb-4">
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider mb-0.5">
                     Mác thép / Vật liệu:
                   </span>
-                  <p className="font-mono font-bold text-foreground text-sm">{item.vat_lieu}</p>
+                  <div className="inline-flex items-center gap-1.5">
+                    <span className="font-mono font-bold text-foreground text-sm px-1.5 py-0.5 rounded bg-background border border-border/70 shadow-2xs">
+                      {item.vat_lieu || '—'}
+                    </span>
+                  </div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider mb-0.5">
                     Độ cứng yêu cầu:
                   </span>
-                  <p className="font-mono font-black text-destructive text-sm">{item.do_cung}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
-                    Số lượng xuất:
-                  </span>
-                  <p className="font-mono font-bold text-foreground">
-                    {number(item.so_luong)} {item.don_vi_tinh}
+                  <p className="font-mono font-bold text-sm">
+                    {item.do_cung && item.do_cung !== '—' ? (
+                      <span className="text-destructive font-black px-1.5 py-0.5 rounded bg-destructive/10 border border-destructive/20 shadow-2xs">
+                        {item.do_cung}
+                      </span>
+                    ) : (
+                      <span className="text-amber-500 font-medium text-xs">Chưa có thông số</span>
+                    )}
                   </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
-                    Trọng lượng lô:
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
+                    Số lượng xuất:
                   </span>
-                  <p className="font-mono font-bold text-foreground">{number(item.kg_Lot, 1)} kg</p>
+                  <p className="font-mono font-bold text-foreground text-sm">
+                    {number(item.so_luong)}{' '}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {item.don_vi_tinh || 'chi tiết'}
+                    </span>
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
+                    Trọng lượng lô:
+                  </span>
+                  <p className="font-mono font-bold text-foreground text-sm">
+                    {number(item.kg_Lot, 1)}{' '}
+                    <span className="text-xs font-normal text-muted-foreground">kg</span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
                     Kích thước SP:
                   </span>
                   <p className="font-mono text-foreground">{item.Kich_Thuoc_SP || '—'}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
                     Đơn vị nhận gia công:
                   </span>
                   <p className="font-semibold text-foreground">{formatVendorName(item.cty_QT, role as any)}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
                     Ngày gửi xuất xưởng:
                   </span>
                   <p className="font-mono text-foreground">{date(item.ngay_gui_QT)}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block font-bold uppercase">
-                    Hạn trả:
+                  <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
+                    Hạn trả gia công:
                   </span>
                   <p className="font-mono font-bold text-foreground">
                     {date(item.han_tra)}
                   </p>
                 </div>
+
+                {/* Phân quyền xem đơn giá & thành tiền */}
+                {canViewPricing(role as any) && (
+                  <>
+                    <div className="pt-2 border-t border-border/60">
+                      <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
+                        Đơn giá gia công:
+                      </span>
+                      <p className="font-mono font-bold text-foreground">
+                        {item.don_gia ? money(item.don_gia) : 'Chưa có giá'}
+                      </p>
+                    </div>
+                    <div className="pt-2 border-t border-border/60">
+                      <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
+                        Thành tiền dự kiến:
+                      </span>
+                      <p className="font-mono font-black text-primary">
+                        {item.thanh_tien ? money(item.thanh_tien) : '—'}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Current Status Banner */}
@@ -3750,29 +3904,35 @@ function LotDetailDrawer({
             </>
           )}
 
-          {/* Audit History */}
+          {/* Audit History Timeline */}
           <div>
-            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-2">
-              NHẬT KÝ THAY ĐỔI & AUDIT TRAIL ({auditLogs.length})
+            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
+              <span>NHẬT KÝ THAY ĐỔI & AUDIT TRAIL</span>
+              <span className="font-mono text-[10px] font-normal px-2 py-0.5 bg-muted rounded border border-border/60 text-muted-foreground">
+                {auditLogs.length} bản ghi
+              </span>
             </h3>
             {auditLogs.length ? (
-              <div className="max-h-44 overflow-y-auto space-y-2 rounded border border-border p-2.5 text-[11px]">
+              <div className="max-h-48 overflow-y-auto space-y-2 rounded-lg border border-border/80 bg-background/50 p-2.5 text-[11px]">
                 {auditLogs.map((log) => (
-                  <div key={log.id} className="border-l-2 border-primary pl-2.5 py-1">
-                    <p className="font-mono text-[10px] text-muted-foreground">
-                      {new Date(log.at).toLocaleString('vi-VN')} · {log.user} ({log.role})
-                    </p>
-                    <p className="font-medium text-foreground">
+                  <div key={log.id} className="border-l-2 border-primary/70 pl-2.5 py-1 bg-secondary/25 rounded-r pr-2 shadow-2xs">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                      <span>{new Date(log.at).toLocaleString('vi-VN')}</span>
+                      <span className="font-bold text-foreground/85 px-1.5 py-0.2 bg-muted rounded text-[9px] border border-border/40">
+                        {log.user} ({log.role})
+                      </span>
+                    </div>
+                    <p className="font-medium text-foreground mt-0.5 font-mono text-[11px]">
                       {Object.entries(log.changes)
                         .map(([k, [oldV, newV]]) => `${k}: "${oldV}" → "${newV}"`)
                         .join('; ')}
                     </p>
-                    {log.reason && <p className="text-muted-foreground italic">Lý do: {log.reason}</p>}
+                    {log.reason && <p className="text-muted-foreground/80 text-[10px] italic mt-0.5">Lý do: {log.reason}</p>}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground italic p-2 border rounded">
+              <p className="text-xs text-muted-foreground italic p-3 border border-border/60 rounded-lg text-center bg-secondary/20">
                 Chưa có thay đổi nào được ghi nhận cho lô này.
               </p>
             )}
