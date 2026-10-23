@@ -33,7 +33,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PageHeading, useDynamo } from '@/components/dynamo-shell';
+import { useDynamo } from '@/components/dynamo-shell';
 import { playAudioCue } from '@/lib/audio-cues';
 import { date, money, number, type QTItem, type Status, type Workshop, type Vendor } from '@/lib/dynamo-data';
 import { formatVendorName, canViewPricing } from '@/lib/dynamo-auth';
@@ -1255,30 +1255,9 @@ function Tracking() {
 
   return (
     <>
-      <PageHeading
-        eyebrow="DYNAMO VIETNAM QT - MES"
-        title="LUÂN CHUYỂN QT"
-        description="Giám sát tiến độ, hạn trả và điều độ các lô hàng gia công nhiệt luyện, xi mạ theo phân xưởng."
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary rounded-md">
-              <Layers size={14} />
-              {number(rows.length)} lô đang quản lý
-            </span>
-            <button
-              type="button"
-              onClick={() => exportCsv(false)}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-colors cursor-pointer"
-            >
-              <Download size={13} /> Xuất CSV
-            </button>
-          </div>
-        }
-      />
-
       {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
       {activeFilters.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-2.5 text-xs shadow-2xs animate-in fade-in">
+        <div className="mb-2.5 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-2 text-xs shadow-2xs animate-in fade-in shrink-0">
           <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
             <Filter size={13} />
             Đang lọc ({activeFilters.length}):
@@ -1286,7 +1265,7 @@ function Tracking() {
           {activeFilters.map((af) => (
             <span
               key={af.key}
-              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-card px-2.5 py-1 text-[11px] font-medium text-foreground shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-card px-2.5 py-0.5 text-[11px] font-medium text-foreground shadow-2xs"
             >
               <span>{af.label}</span>
               <button
@@ -1306,7 +1285,7 @@ function Tracking() {
           <button
             type="button"
             onClick={resetAllFilters}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
             title="Xóa toàn bộ các bộ lọc trên bảng"
           >
             <Trash2 size={12} />
@@ -1315,8 +1294,8 @@ function Tracking() {
         </div>
       )}
 
-      {/* KPI Summary Line - Monozukuri Micro-Metric Badges (TASK-001) */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+      {/* KPI Summary Toolbar - Monozukuri Micro-Control Bar (TASK-002) */}
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
         <div className="flex flex-wrap items-center gap-2">
           {/* Badge 1: Số lô khớp / Tổng số lô với đèn LED tín hiệu */}
           <div className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
@@ -1324,7 +1303,7 @@ function Tracking() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span className="text-[11px] text-muted-foreground font-medium">Lô khớp:</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Lô quản lý:</span>
             <span className="font-mono tabular-nums font-bold text-foreground">
               {number(rows.length)}
               <span className="text-muted-foreground/60 font-normal ml-1">/ {number(all.length)}</span>
@@ -1342,13 +1321,24 @@ function Tracking() {
           {/* Badge 3: Phân xưởng */}
           <div className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
             <span className="text-[11px] text-muted-foreground font-medium">Phân xưởng:</span>
-            <span className="font-semibold text-foreground truncate max-w-[240px]">
+            <span className="font-semibold text-foreground truncate max-w-[200px]">
               {workshops.join(', ')}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-[11px]">
+          {/* Nút Xuất CSV tích hợp trực tiếp từ PageHeading cũ */}
+          <button
+            type="button"
+            onClick={() => exportCsv(false)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
+            title="Xuất toàn bộ danh sách hiện tại ra file CSV"
+          >
+            <Download size={12} className="text-primary/90" />
+            <span>Xuất CSV</span>
+          </button>
+
           <button
             type="button"
             onClick={handleResetAllColWidths}
@@ -1358,7 +1348,8 @@ function Tracking() {
             <RotateCcw size={11} className="text-primary/80" />
             <span>Khôi phục cỡ cột</span>
           </button>
-          <span className="text-muted-foreground/80 hidden lg:inline-flex items-center gap-1 text-[11px]">
+
+          <span className="text-muted-foreground/80 hidden xl:inline-flex items-center gap-1 text-[11px]">
             <span>💡 Bấm</span>
             <span className="inline-block px-1 py-0.2 bg-muted/60 text-[10px] rounded font-mono font-medium border border-border/60 text-foreground">▾ Lọc</span>
             <span>đầu cột để lọc & sắp xếp</span>

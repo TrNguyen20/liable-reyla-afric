@@ -38,8 +38,8 @@ Kế hoạch này kết hợp các chỉ dẫn chuyên sâu từ **/design-taste
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Xóa bỏ component `<PageHeading>` tại dòng 1225-1244 trong `src/routes/tracking.tsx` nhằm loại bỏ sự lặp lại của chuỗi "DYNAMO VIETNAM QT - MES" và "LUÂN CHUYỂN QT" | | |
-| TASK-002 | Tái cấu trúc cụm KPI Summary Line tại dòng 1285+ trong `src/routes/tracking.tsx`: Bổ sung badge số lô đang quản lý và nút hành động nhanh `"Xuất CSV"` vào góc phải thanh công cụ, tạo thành một thanh điều khiển vi mô hoàn chỉnh | | |
+| TASK-001 | Xóa bỏ component `<PageHeading>` tại dòng 1225-1244 trong `src/routes/tracking.tsx` nhằm loại bỏ sự lặp lại của chuỗi "DYNAMO VIETNAM QT - MES" và "LUÂN CHUYỂN QT" | [x] | 2026-10-23 |
+| TASK-002 | Tái cấu trúc cụm KPI Summary Line tại dòng 1285+ trong `src/routes/tracking.tsx`: Bổ sung badge số lô đang quản lý và nút hành động nhanh `"Xuất CSV"` vào góc phải thanh công cụ, tạo thành một thanh điều khiển vi mô hoàn chỉnh | [x] | 2026-10-23 |
 
 ### Implementation Phase 2: Thiết Lập Kiến Trúc Single-Viewport Lock Cho Desktop
 
