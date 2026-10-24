@@ -1,23 +1,13 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import {
-  Activity,
   ArrowLeftRight,
-  Boxes,
-  ChevronLeft,
-  ChevronRight,
   CircleHelp,
   DatabaseZap,
-  LayoutDashboard,
   LogOut,
-  Menu,
   Moon,
   Sun,
-  Volume2,
-  VolumeX,
   WifiOff,
-  X,
 } from 'lucide-react';
-import { isSoundEnabled, setSoundEnabled, playSuccessChime } from '@/lib/audio-cues';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback, memo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { type QTItem, type Workshop } from '@/lib/dynamo-data';
@@ -114,10 +104,7 @@ const LedClock = memo(function LedClock() {
 export function DynamoShell({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
   const [workshop, setWorkshopState] = useState<Filter>('Tất cả');
   const [search, setSearch] = useState('');
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [user, setUser] = useState('Quản lý QT');
@@ -184,7 +171,6 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     const next = saved === 'dark' ? 'dark' : 'light';
     setTheme(next);
     document.documentElement.classList.toggle('dark', next === 'dark');
-    setSoundOn(isSoundEnabled());
     const savedWs = window.localStorage.getItem('dynamo-workshop') as Filter | null;
     if (savedWs && ['Tất cả', 'PIN', 'INSERT', 'MOLD'].includes(savedWs)) {
       setWorkshopState(savedWs);
@@ -205,13 +191,6 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     setWorkshopState(w);
     window.localStorage.setItem('dynamo-workshop', w);
   }, []);
-
-  const toggleSound = () => {
-    const next = !soundOn;
-    setSoundOn(next);
-    setSoundEnabled(next);
-    if (next) playSuccessChime();
-  };
 
   // Keyboard navigation & Command Palette listener
   useEffect(() => {
@@ -248,7 +227,6 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   }, [effectiveRole, navigate]);
 
   useEffect(() => {
-    setMobileOpen(false);
     if (bare) return;
     let alive = true;
     void fetchSession()
@@ -377,165 +355,69 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       {bare ? (
         children
       ) : (
-        <div className="min-h-screen lg:h-screen lg:max-h-[100dvh] lg:overflow-hidden bg-background text-foreground lg:flex">
-          {mobileOpen && (
-            <div className="fixed inset-0 z-30 bg-overlay lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="min-h-screen md:h-screen md:max-h-[100dvh] md:overflow-hidden bg-background text-foreground flex flex-col">
+          {!isOnline && (
+            <div className="shrink-0 flex items-center justify-center gap-2 border-b border-warning/60 bg-warning/20 px-4 py-1.5 text-center font-mono text-xs font-bold text-warning">
+              <WifiOff size={13} />
+              <span>MẤT KẾT NỐI MẠNG NHÀ MÁY · ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (DỮ LIỆU ĐƯỢC LƯU CỤC BỘ)</span>
+            </div>
           )}
 
-          {/* Sidebar */}
-          <aside
-            className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:sticky lg:top-0 lg:h-full lg:shrink-0 ${collapsed ? 'lg:w-[80px]' : 'lg:w-[248px]'
-              } ${mobileOpen ? 'w-[248px] translate-x-0' : 'w-[248px] -translate-x-full lg:translate-x-0'}`}
-          >
-            <div className="flex h-[72px] items-center justify-between border-b border-sidebar-border px-5">
-              <Link to="/tracking" className="flex items-center gap-3 overflow-hidden" aria-label="DYNAMO VIETNAM QT - MES">
-                {collapsed ? (
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-dynamo font-display text-lg font-black text-white">
-                    D
+          {/* Top Header Navigation */}
+          <header className="shrink-0 sticky top-0 z-30 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
+            <div className="flex min-h-[58px] items-center justify-between gap-2 px-3 py-1.5 md:px-5 xl:px-6">
+              {/* Left Area: Logo & Inline Navigation Tabs */}
+              <div className="flex items-center gap-3 md:gap-5 min-w-0">
+                <Link to="/tracking" className="flex items-center gap-2.5 shrink-0" aria-label="DYNAMO VIETNAM QT - MES">
+                  <img src={logo} alt="Dynamo Vietnam" className="h-8 md:h-9 w-auto max-w-[145px] md:max-w-[175px] object-contain" />
+                  <span className="hidden xl:inline-block rounded-xs bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-wider text-primary">
+                    MES
                   </span>
-                ) : (
-                  <img src={logo} alt="Dynamo Vietnam" className="h-9 w-auto max-w-[190px] object-contain" />
-                )}
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                aria-label="Đóng menu"
-                onClick={() => setMobileOpen(false)}
-              >
-                <X />
-              </Button>
-            </div>
+                </Link>
 
-            <div className="flex-1 overflow-y-auto px-3 py-5">
-              {visibleNav.map((n, index) => (
-                <div key={n.to}>
-                  {n.section && (
-                    <p
-                      className={`mb-2 mt-5 px-3 text-[10px] font-bold tracking-[.16em] text-sidebar-foreground/50 ${index === 0 ? '!mt-0' : ''
-                        } ${collapsed ? 'lg:text-center lg:px-0' : ''}`}
-                    >
-                      {collapsed ? <span className="lg:hidden">{n.section}</span> : n.section}
-                    </p>
-                  )}
-                  <Link
-                    to={n.to}
-                    title={collapsed ? `${n.label} (Phím ${n.shortcut})` : undefined}
-                    className={`mb-1 flex h-10 items-center gap-3 rounded-sm px-3 text-[12px] font-bold tracking-wide transition-colors ${location.pathname === n.to
-                        ? 'bg-sidebar-primary/20 text-sidebar-primary shadow-[inset_2px_0_0_var(--sidebar-primary)]'
-                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                      }`}
-                  >
-                    <n.icon size={16} className="shrink-0" />
-                    <span className={`truncate flex-1 ${collapsed ? 'lg:hidden' : ''}`}>{n.label}</span>
-                    <span
-                      className={`font-mono text-[9px] text-sidebar-foreground/40 tabular-nums ${collapsed ? 'lg:hidden' : ''
+                {/* Inline Nav Tabs */}
+                <nav className="flex items-center gap-1 overflow-x-auto py-0.5" aria-label="Thanh điều hướng chính">
+                  {visibleNav.map((n) => {
+                    const isActive = location.pathname === n.to;
+                    return (
+                      <Link
+                        key={n.to}
+                        to={n.to}
+                        title={`${n.label} (Phím [${n.shortcut}])`}
+                        className={`flex h-9 items-center gap-2 rounded-md px-3 text-[12px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
+                          isActive
+                            ? 'bg-primary/15 text-primary border border-primary/30 shadow-2xs font-black'
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
                         }`}
-                    >
-                      [{n.shortcut}]
-                    </span>
-                  </Link>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-sidebar-border p-3">
-              <div className={`mb-3 flex items-center gap-3 px-2 py-2 ${collapsed ? 'lg:justify-center' : ''}`}>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-bold text-sidebar-primary">
-                  QT
-                </span>
-                <span className={collapsed ? 'lg:hidden' : ''}>
-                  <span className="block text-xs font-bold">{user}</span>
-                  <span
-                    className={`mt-0.5 inline-block rounded-sm px-1.5 py-0.5 text-[9px] font-bold tracking-wide ${roleBadge(
-                      effectiveRole,
-                    )}`}
-                  >
-                    {roleLabel(effectiveRole).toUpperCase()}
-                  </span>
-                  {impersonatedRole && (
-                    <span className="ml-1 inline-block text-[9px] text-warning font-mono">
-                      (GIẢ LẬP)
-                    </span>
-                  )}
-                </span>
+                      >
+                        <n.icon size={15} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span>{n.label}</span>
+                        <span
+                          className={`font-mono text-[9px] tabular-nums rounded px-1 py-0.2 hidden sm:inline-block ${
+                            isActive ? 'bg-primary/25 text-primary' : 'bg-muted/60 text-muted-foreground'
+                          }`}
+                        >
+                          [{n.shortcut}]
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </nav>
               </div>
-              <p
-                className={`mb-2 px-2 text-[9px] font-bold leading-snug tracking-[.12em] text-sidebar-foreground/45 ${collapsed ? 'lg:hidden' : ''
-                  }`}
-              >
-                DYNAMO VIETNAM CO., LTD.
-                <span className="block font-medium tracking-normal">QT Operations System</span>
-              </p>
-              <div className={`flex gap-1 ${collapsed ? 'lg:flex-col' : ''}`}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden flex-1 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex"
-                  title={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
-                  aria-label={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
-                  onClick={() => setCollapsed((v) => !v)}
-                >
-                  {collapsed ? <ChevronRight /> : <ChevronLeft />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-full text-sidebar-foreground/60 hover:bg-destructive/20 hover:text-destructive"
-                  title="Đăng xuất"
-                  aria-label="Đăng xuất"
-                  onClick={logout}
-                >
-                  <LogOut size={16} />
-                </Button>
-              </div>
-            </div>
-          </aside>
 
-          {/* Main Area */}
-          <div className="min-w-0 flex-1 flex flex-col lg:h-screen lg:max-h-[100dvh] lg:overflow-hidden">
-            {!isOnline && (
-              <div className="shrink-0 flex items-center justify-center gap-2 border-b border-warning/60 bg-warning/20 px-4 py-1.5 text-center font-mono text-xs font-bold text-warning">
-                <WifiOff size={13} />
-                <span>MẤT KẾT NỐI MẠNG NHÀ MÁY · ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (DỮ LIỆU ĐƯỢC LƯU CỤC BỘ)</span>
-              </div>
-            )}
-            <header className="shrink-0 sticky top-0 z-30 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
-              <div className="flex min-h-[58px] flex-wrap items-center gap-2.5 px-4 py-2 xl:gap-3.5 xl:px-6">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden text-foreground hover:bg-secondary"
-                  aria-label="Mở menu"
-                  onClick={() => setMobileOpen(true)}
-                >
-                  <Menu size={18} />
-                </Button>
-                <div className="mr-auto flex min-w-[160px] items-center gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold tracking-[.18em] text-muted-foreground uppercase">
-                      DYNAMO VIETNAM QT - MES
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block size-2 rounded-full bg-primary" />
-                      <p className="font-display text-base font-bold tracking-tight text-foreground">
-                        {current?.label ?? 'TỔNG QUAN'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Role Impersonation Switcher (Proposal 7 for Admin) */}
+              {/* Right Area: Controls, Role Switcher, Clock, Theme, User & Logout */}
+              <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
+                {/* Role Impersonation Switcher (Chỉ cho Admin) */}
                 {role === 'admin' && (
                   <div
-                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${impersonatedRole
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+                      impersonatedRole
                         ? 'border-warning bg-warning/15 text-warning font-bold'
                         : 'border-border/80 bg-secondary/70 text-foreground'
-                      }`}
-                    title="Chuyển đổi góc nhìn kiểm tra phân quyền (Proposal 7)"
+                    }`}
+                    title="Chuyển đổi góc nhìn kiểm tra phân quyền"
                   >
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden xl:inline">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden 2xl:inline">
                       Góc nhìn:
                     </span>
                     <select
@@ -570,40 +452,12 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                   </div>
                 )}
 
-                {/* Workshop Filter Selector */}
-                <div
-                  className="flex items-center rounded-md border border-border/80 bg-secondary/70 p-0.5"
-                  aria-label="Lọc phân xưởng"
-                >
-                  {(['Tất cả', 'PIN', 'INSERT', 'MOLD'] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setWorkshop(v)}
-                      className={`h-7 rounded-sm px-2.5 text-[11px] font-bold tracking-wide transition-all ${workshop === v
-                          ? 'bg-card text-foreground shadow-xs border border-border/80 font-black'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                        }`}
-                    >
-                      {v === 'Tất cả' ? 'ALL' : v}
-                    </button>
-                  ))}
+                {/* Digital LED Real-time Clock */}
+                <div className="hidden lg:block">
+                  <LedClock />
                 </div>
 
-                {/* Digital LED Real-time Clock (Isolated Leaf Component) */}
-                <LedClock />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8.5 w-8.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title={soundOn ? 'Tắt âm thanh hiệu ứng' : 'Bật âm thanh hiệu ứng (Web Audio)'}
-                  aria-label={soundOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
-                  onClick={toggleSound}
-                >
-                  {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                </Button>
-
+                {/* Theme Toggle Button */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -614,48 +468,80 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 >
                   {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                 </Button>
+
+                {/* User Profile Pill */}
+                <div className="flex items-center gap-2 rounded-md border border-border/80 bg-secondary/50 px-2 py-1">
+                  <span className="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-black text-primary">
+                    QT
+                  </span>
+                  <div className="hidden sm:flex flex-col text-left">
+                    <span className="text-[11px] font-bold leading-tight truncate max-w-[120px]">{user}</span>
+                    <div className="flex items-center gap-1">
+                      <span className={`inline-block rounded-xs px-1 py-0.2 text-[8px] font-bold tracking-wide ${roleBadge(effectiveRole)}`}>
+                        {roleLabel(effectiveRole).toUpperCase()}
+                      </span>
+                      {impersonatedRole && (
+                        <span className="text-[8px] text-warning font-mono font-bold">
+                          (GIẢ LẬP)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logout Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8.5 w-8.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                  title="Đăng xuất khỏi hệ thống"
+                  aria-label="Đăng xuất"
+                  onClick={logout}
+                >
+                  <LogOut size={16} />
+                </Button>
               </div>
-            </header>
-
-            {/* Shopfloor Telemetry Live Bar */}
-            <div className="shrink-0">
-              <ShopfloorTelemetry />
             </div>
+          </header>
 
-            {/* Main Page Content */}
-            <main className="mx-auto w-full max-w-[1700px] flex-1 min-h-0 flex flex-col px-3 py-2 lg:px-4 lg:py-2.5 overflow-y-auto lg:overflow-hidden">
-              {!ready ? (
-                <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">
-                  Đang tải dữ liệu phân quyền…
-                </div>
-              ) : loading && rawDataset.length === 0 ? (
-                <BootSkeleton />
-              ) : loadError && rawDataset.length === 0 ? (
-                <div role="alert" className="mes-card mx-auto mt-10 max-w-xl p-6">
-                  <p className="font-semibold text-foreground">Chưa tải được dữ liệu sản xuất</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
-                  <Button className="mt-4 active:scale-[0.98]" onClick={() => void pullLive()}>
-                    Thử lại
-                  </Button>
-                </div>
-              ) : (
-                children
-              )}
-            </main>
-
-            {/* Footer */}
-            <footer
-              className={`flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-2 text-[10px] text-muted-foreground xl:px-6 shrink-0 ${
-                isTracking ? 'lg:hidden' : ''
-              }`}
-            >
-              <span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ</span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-primary" /> Môi trường mô phỏng (Edge Runtime)
-                <CircleHelp size={12} className="ml-2 opacity-70" />
-              </span>
-            </footer>
+          {/* Shopfloor Telemetry Live Bar */}
+          <div className="shrink-0">
+            <ShopfloorTelemetry />
           </div>
+
+          {/* Main Page Content */}
+          <main className="w-full flex-1 min-h-0 flex flex-col px-2.5 py-1.5 md:px-4 md:py-2 overflow-y-auto md:overflow-hidden">
+            {!ready ? (
+              <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">
+                Đang tải dữ liệu phân quyền…
+              </div>
+            ) : loading && rawDataset.length === 0 ? (
+              <BootSkeleton />
+            ) : loadError && rawDataset.length === 0 ? (
+              <div role="alert" className="mes-card mx-auto mt-10 max-w-xl p-6">
+                <p className="font-semibold text-foreground">Chưa tải được dữ liệu sản xuất</p>
+                <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+                <Button className="mt-4 active:scale-[0.98]" onClick={() => void pullLive()}>
+                  Thử lại
+                </Button>
+              </div>
+            ) : (
+              children
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer
+            className={`flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-2 text-[10px] text-muted-foreground xl:px-6 shrink-0 ${
+              isTracking ? 'md:hidden' : ''
+            }`}
+          >
+            <span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ</span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-primary" /> Môi trường mô phỏng (Edge Runtime)
+              <CircleHelp size={12} className="ml-2 opacity-70" />
+            </span>
+          </footer>
 
           {/* Global Command Palette (⌘K) */}
           <CommandPalette

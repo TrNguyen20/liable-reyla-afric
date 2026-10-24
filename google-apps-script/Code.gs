@@ -40,7 +40,7 @@ function doGet(e) {
     var ss = getSpreadsheet();
     var sheet = findTargetSheet(ss);
     var colMap = getColumnMap(sheet);
-    
+
     var response = {
       ok: true,
       service: 'DYNAMO VIETNAM QT - MES Webhook Gateway',
@@ -53,7 +53,7 @@ function doGet(e) {
       detectedColumns: Object.keys(colMap),
       instructions: 'Gửi yêu cầu HTTP POST với payload JSON để cập nhật dữ liệu lô hàng.'
     };
-    
+
     return ContentService.createTextOutput(JSON.stringify(response, null, 2))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -61,7 +61,7 @@ function doGet(e) {
       ok: false,
       error: err.message
     }))
-    .setMimeType(ContentService.MimeType.JSON);
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -400,7 +400,7 @@ function testUpdateLot() {
   var ss = getSpreadsheet();
   var sheet = findTargetSheet(ss);
   var colMap = getColumnMap(sheet);
-  
+
   Logger.log('Đã phát hiện sheet: ' + sheet.getName() + ' (ID: ' + sheet.getSheetId() + ')');
   Logger.log('Các cột phát hiện: ' + JSON.stringify(colMap));
 

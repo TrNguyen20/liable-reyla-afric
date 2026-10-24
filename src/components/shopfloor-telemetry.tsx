@@ -116,7 +116,7 @@ export function ShopfloorTelemetry() {
 
   return (
     <div className="relative border-b border-border/80 bg-secondary/40 backdrop-blur-xs">
-      <div className="grid grid-cols-2 divide-x divide-border/60 text-[11px] lg:grid-cols-[1.4fr_1fr_1.2fr_1.4fr]">
+      <div className="grid grid-cols-1 divide-y divide-border/60 text-[11px] md:grid-cols-3 md:divide-y-0 md:divide-x lg:grid-cols-[1.5fr_1fr_1.5fr]">
         {/* Cột 1: Trạng thái kết nối Sheet & Ca kíp */}
         <div className="flex items-center gap-2.5 px-4 py-2 xl:px-6">
           <span className={`size-2 shrink-0 rounded-full transition-colors ${led}`} aria-hidden />
@@ -155,20 +155,7 @@ export function ShopfloorTelemetry() {
           </p>
         </div>
 
-        {/* Cột 3: Tiến độ Luân chuyển thực tế */}
-        <div className="flex items-center flex-wrap gap-1.5 px-4 py-2">
-          <span className="rounded-sm border border-border/80 bg-background/80 px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-foreground">
-            {m.waiting} Chờ xuất
-          </span>
-          <span className="rounded-sm border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-primary">
-            {m.atVendor} Đang tại Vendor
-          </span>
-          <span className="rounded-sm border border-border/60 bg-secondary/80 px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums text-muted-foreground">
-            {m.stocked} Đã nhập kho
-          </span>
-        </div>
-
-        {/* Cột 4: Tải theo phân xưởng */}
+        {/* Cột 3: Tải theo phân xưởng */}
         <div className="px-4 py-2 xl:px-6">
           <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
             <span className="font-bold tracking-wider uppercase">Tải theo xưởng</span>
