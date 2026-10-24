@@ -369,14 +369,14 @@ function HeaderFilterCell({
             <button
               type="button"
               onClick={(e) => e.stopPropagation()}
-              className={`inline-flex size-5 shrink-0 items-center justify-center rounded transition-all cursor-pointer ${
+              className={`inline-flex size-6 shrink-0 items-center justify-center rounded-sm transition-all cursor-pointer touch-manipulation active:scale-95 ${
                 isFiltered
                   ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
-                  : 'text-muted-foreground/60 hover:bg-background/80 hover:text-foreground'
+                  : 'text-muted-foreground/70 hover:bg-background/80 hover:text-foreground'
               }`}
               title={`Mở bộ lọc ${title}`}
             >
-              <Filter size={10} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.5]'} />
+              <Filter size={11} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
             </button>
           </PopoverTrigger>
           <PopoverContent
@@ -1408,7 +1408,7 @@ function Tracking() {
           <button
             type="button"
             onClick={toggleTableFullscreen}
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 ${
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${
               isTableFullscreen
                 ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                 : 'border-border/80 bg-card text-foreground hover:bg-secondary hover:border-primary/40'
@@ -1440,7 +1440,7 @@ function Tracking() {
           <button
             type="button"
             onClick={() => exportCsv(false)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
             title="Xuất toàn bộ danh sách hiện tại ra file CSV"
           >
             <Download size={12} className="text-primary/90" />
@@ -1450,7 +1450,7 @@ function Tracking() {
           <button
             type="button"
             onClick={handleResetAllColWidths}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
             title="Khôi phục kích thước mặc định cho toàn bộ cột"
           >
             <RotateCcw size={11} className="text-primary/80" />
@@ -1466,7 +1466,7 @@ function Tracking() {
       </div>
 
       {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
-      <div className="isolate flex-1 min-h-[480px] lg:min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
+      <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
         <div className="flex-1 min-h-0 overflow-auto">
           <table
             className="text-left text-xs border-collapse"
@@ -1519,7 +1519,7 @@ function Tracking() {
                       aria-label="Chọn tất cả trên trang này"
                       checked={isAllPageSelected}
                       onChange={toggleSelectAllPage}
-                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                      className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
                     />
                   </div>
                   <div
@@ -2444,7 +2444,7 @@ function Tracking() {
                             aria-label={`Chọn lô ${r.ID_Key}`}
                             checked={isSelected}
                             onChange={() => toggleSelectLot(r.ID_Key)}
-                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                            className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
                           />
                         </div>
                       </td>
@@ -2511,7 +2511,8 @@ function Tracking() {
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
-                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa mã hàng"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -2546,7 +2547,8 @@ function Tracking() {
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
-                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa mác thép"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -2580,7 +2582,8 @@ function Tracking() {
                             <button
                               type="button"
                               onClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
-                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                              title="Chạm để sửa độ cứng"
                             >
                               <Edit2 size={11} />
                             </button>
@@ -2614,7 +2617,8 @@ function Tracking() {
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
-                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa số lượng"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -2650,7 +2654,8 @@ function Tracking() {
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
-                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa kg"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -2687,7 +2692,8 @@ function Tracking() {
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'cty_QT', String(r.cty_QT))}
-                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để đổi đối tác gia công"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -2796,7 +2802,8 @@ function Tracking() {
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
-                                className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa ngày gửi"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -2835,7 +2842,8 @@ function Tracking() {
                             <button
                               type="button"
                               onClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
-                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity"
+                              className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                              title="Chạm để sửa hạn trả"
                             >
                               <Edit2 size={11} />
                             </button>
@@ -2887,8 +2895,8 @@ function Tracking() {
                             <button
                               type="button"
                               onClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
-                              className="opacity-0 group-hover/edit:opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1 mt-0.5"
-                              title="Sửa ghi chú"
+                              className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1 mt-0.5 p-0.5 rounded hover:bg-secondary cursor-pointer touch-manipulation"
+                              title="Chạm để sửa ghi chú"
                             >
                               <Edit2 size={11} />
                             </button>
@@ -2976,7 +2984,7 @@ function Tracking() {
                 playAudioCue('beep');
               }}
               title="Trang trước (Phím tắt: Alt + Mũi tên trái)"
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98"
+              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
             >
               <ChevronLeft size={13} />
               <span>Trang trước</span>
@@ -3000,7 +3008,7 @@ function Tracking() {
                 playAudioCue('beep');
               }}
               title="Trang sau (Phím tắt: Alt + Mũi tên phải)"
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98"
+              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
             >
               <span>Trang sau</span>
               <ChevronRight size={13} />

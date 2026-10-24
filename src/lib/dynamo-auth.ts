@@ -46,7 +46,7 @@ export const canViewVendorName = (role: Role, vendor?: string | null): boolean =
 export const formatVendorName = (vendor: string | undefined | null, role: Role): string => {
   if (!vendor || vendor === '—') return '—';
   if (canViewVendorName(role, vendor)) return vendor;
-  return 'Đơn vị gia công theo chỉ định';
+  return 'Đã Ẩn';
 };
 
 export const formatVendorSummary = (vendors: Iterable<string>, role: Role): string => {
@@ -57,9 +57,9 @@ export const formatVendorSummary = (vendors: Iterable<string>, role: Role): stri
   if (role.startsWith('qt_')) {
     const scope = getVendorScope(role);
     if (scope && list.some(v => v.toUpperCase() === scope)) return scope;
-    return 'Đơn vị gia công theo chỉ định';
+    return 'Đã Ẩn';
   }
-  return list.length > 1 ? `${list.length} đơn vị gia công ngoài` : 'Đơn vị gia công theo chỉ định';
+  return list.length > 1 ? `${list.length} đơn vị gia công ngoài` : 'Đã Ẩn';
 };
 
 /** Read the server-verified session with client-side fallback for iframe previews. Null means signed out. */
