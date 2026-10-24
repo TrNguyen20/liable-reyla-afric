@@ -2,11 +2,12 @@ import type { QTItem, Status, Vendor, Workshop } from '@/lib/dynamo-data';
 
 export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cC9VnRrjf3IgADbzYL1VulrqgcSf2h56XkXEJILdyuE/edit#gid=1963478526';
 
-export function sheetCsvUrl(url: string) {
+export function sheetCsvUrl(url: string, bustCache = true) {
   const id = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1];
   const gid = url.match(/[#&?]gid=([0-9]+)/)?.[1];
   if (!id) return null;
-  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+  const base = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+  return bustCache ? `${base}&_t=${Date.now()}` : base;
 }
 
 function parseLine(line: string) {
@@ -126,10 +127,17 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
 }
 
 export async function fetchSheetItems(url: string): Promise<MapResult> {
-  const csv = sheetCsvUrl(url);
+  const csv = sheetCsvUrl(url, true);
   if (!csv) throw new Error('Link không hợp lệ. Hãy dán link chia sẻ Google Sheets.');
-  let res = await fetch(csv);
-  if (!res.ok) res = await fetch(csv.replace('/export?format=csv', '/gviz/tq?tqx=out:csv'));
+  const fetchOpts: RequestInit = {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
+  };
+  let res = await fetch(csv, fetchOpts);
+  if (!res.ok) res = await fetch(csv.replace('/export?format=csv', '/gviz/tq?tqx=out:csv'), fetchOpts);
   if (!res.ok) throw new Error(`Google trả về mã ${res.status}`);
   const text = await res.text();
   if (text.trim().startsWith('<')) throw new Error('Tệp chưa được chia sẻ công khai ("Anyone with the link").');

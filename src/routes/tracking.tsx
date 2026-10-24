@@ -1186,10 +1186,13 @@ function Tracking() {
       },
     }).then((res) => {
       if (!res?.ok) {
-        toast.warning(`Chưa đồng bộ lên Google Sheets: ${res?.error || 'Lỗi kết nối Webhook'}`);
+        toast.error(`Chưa đồng bộ lên Google Sheets: ${res?.error || 'Lỗi kết nối Webhook'}`, {
+          duration: 5000,
+        });
       }
     }).catch((err) => {
       console.warn('Lỗi gửi Webhook đồng bộ:', err);
+      toast.error('Lỗi mạng khi kết nối Webhook ghi ngược Google Sheets.');
     });
   };
 

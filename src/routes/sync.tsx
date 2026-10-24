@@ -16,6 +16,7 @@ import {
   Send,
   ShieldCheck,
   TableProperties,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDynamo } from '@/components/dynamo-shell';
@@ -23,7 +24,11 @@ import { number, type QTItem } from '@/lib/dynamo-data';
 import { SHEET_URL, type MapResult } from '@/lib/dynamo-source';
 import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
-import { fetchCentralWebhookConfig, saveCentralWebhookConfig } from '@/lib/auth.functions';
+import {
+  fetchCentralWebhookConfig,
+  saveCentralWebhookConfig,
+  testWebhookConnection,
+} from '@/lib/auth.functions';
 
 export const Route = createFileRoute('/sync')({
   head: () => ({
@@ -113,6 +118,53 @@ function Sync() {
       }
     } catch (err: any) {
       toast.error(`Lỗi lưu Webhook lên máy chủ: ${err.message || 'Không có quyền'}`);
+    }
+  };
+
+  // Ping Test Webhook State & Function
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+    latency?: number;
+  } | null>(null);
+
+  const handleTestWebhook = async () => {
+    const v = webhookUrl.trim();
+    if (!v) {
+      toast.error('Vui lòng nhập đường dẫn Webhook trước khi kiểm tra.');
+      return;
+    }
+    setTestingWebhook(true);
+    setTestResult(null);
+    try {
+      const res = await testWebhookConnection({ data: { url: v } });
+      if (res.ok) {
+        setTestResult({
+          ok: true,
+          message: res.message || 'Kết nối Webhook thành công!',
+          latency: res.latency,
+        });
+        toast.success(`Webhook phản hồi tốt (${res.latency ?? 0}ms)!`);
+        playAudioCue('success');
+      } else {
+        setTestResult({
+          ok: false,
+          message: res.error || 'Lỗi không xác định khi kết nối Apps Script',
+          latency: res.latency,
+        });
+        toast.error(`Kiểm tra Webhook thất bại: ${res.error}`);
+        playAudioCue('error');
+      }
+    } catch (err: any) {
+      setTestResult({
+        ok: false,
+        message: err.message || 'Không thể gửi yêu cầu kiểm tra',
+      });
+      toast.error(`Lỗi: ${err.message}`);
+      playAudioCue('error');
+    } finally {
+      setTestingWebhook(false);
     }
   };
 
@@ -308,7 +360,7 @@ function Sync() {
                 </span>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative min-w-0 flex-1">
                   <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-[10px] font-bold text-muted-foreground">
                     POST
@@ -318,21 +370,65 @@ function Sync() {
                     onChange={(e) => {
                       setWebhookUrl(e.target.value);
                       setIsWebhookSaved(false);
+                      setTestResult(null);
                     }}
                     placeholder="https://script.google.com/macros/s/.../exec"
                     aria-label="Link Google Apps Script Webhook"
                     className="h-9 w-full rounded-md border border-input bg-background pl-13 pr-3 font-mono text-xs text-foreground placeholder:font-sans placeholder:text-muted-foreground/60 outline-none focus:border-primary transition-colors"
                   />
                 </div>
-                <Button
-                  onClick={saveWebhook}
-                  size="sm"
-                  className="h-9 shrink-0 gap-1 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.98] cursor-pointer shadow-2xs"
-                >
-                  {isWebhookSaved ? <CheckCircle2 size={13} /> : <Send size={13} />}
-                  {isWebhookSaved ? 'Đã lưu' : 'Lưu Webhook'}
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    onClick={handleTestWebhook}
+                    disabled={testingWebhook}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1 rounded-md px-2.5 text-xs font-semibold hover:border-primary/50 cursor-pointer shadow-2xs"
+                    title="Gửi gói tin ping kiểm tra kết nối tới Google Apps Script"
+                  >
+                    {testingWebhook ? <Loader2 size={13} className="animate-spin text-primary" /> : <Zap size={13} className="text-warning" />}
+                    {testingWebhook ? 'Đang test…' : 'Kiểm tra kết nối'}
+                  </Button>
+
+                  <Button
+                    onClick={saveWebhook}
+                    size="sm"
+                    className="h-9 gap-1 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.98] cursor-pointer shadow-2xs"
+                  >
+                    {isWebhookSaved ? <CheckCircle2 size={13} /> : <Send size={13} />}
+                    {isWebhookSaved ? 'Đã lưu' : 'Lưu'}
+                  </Button>
+                </div>
               </div>
+
+              {testResult && (
+                <div
+                  className={`flex items-start gap-2 rounded-md p-2.5 text-xs border ${
+                    testResult.ok
+                      ? 'border-run/30 bg-run/10 text-run font-medium'
+                      : 'border-destructive/30 bg-destructive/10 text-destructive'
+                  }`}
+                >
+                  {testResult.ok ? (
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-bold">
+                      {testResult.ok ? 'Kết nối Webhook hoạt động hoàn hảo' : 'Kiểm tra kết nối thất bại'}
+                      {testResult.latency !== undefined && (
+                        <span className="ml-1.5 font-mono text-[10px] font-semibold opacity-85">
+                          ({testResult.latency}ms)
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed opacity-95">
+                      {testResult.message}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                 <span className="flex items-center gap-1">

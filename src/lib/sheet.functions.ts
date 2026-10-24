@@ -4,7 +4,7 @@ import { scopeItemsForRole } from '@/lib/data-scope';
 
 /** Reads the sheet on the server and returns only the rows/fields the session role may see. */
 export const fetchScopedSheet = createServerFn({ method: 'POST' })
-  .inputValidator((data: { url: string }) => data)
+  .validator((data: { url: string }) => data)
   .handler(async ({ data }) => {
     let role = 'viewer';
     try {

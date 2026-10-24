@@ -47,7 +47,7 @@ async function loadCodes(): Promise<Record<string, Entry>> {
 }
 
 export const verifyAccessCode = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string }) => data)
+  .validator((data: { code: string }) => data)
   .handler(async ({ data }) => {
     const code = (data.code ?? "").trim().toLowerCase();
     if (!code) return { ok: false as const };
@@ -95,7 +95,7 @@ export const fetchCentralWebhookConfig = createServerFn({ method: "GET" }).handl
 
 // Lưu Webhook URL tập trung lên server (chỉ dành cho Admin)
 export const saveCentralWebhookConfig = createServerFn({ method: "POST" })
-  .inputValidator((data: { url: string }) => data)
+  .validator((data: { url: string }) => data)
   .handler(async ({ data }) => {
     const { readSession } = await import("./session.server");
     const s = await readSession();
@@ -108,9 +108,66 @@ export const saveCentralWebhookConfig = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+// Kiểm tra kết nối Webhook tới Google Apps Script (Ping Test)
+export const testWebhookConnection = createServerFn({ method: "POST" })
+  .validator((data: { url?: string }) => data)
+  .handler(async ({ data }) => {
+    const { readSession } = await import("./session.server");
+    const s = await readSession();
+    if (!s) return { ok: false as const, error: "Phiên đăng nhập đã hết hạn" };
+
+    let targetWebhook = (data.url ?? "").trim();
+    if (!targetWebhook) {
+      const { getCentralWebhookUrl } = await import("./config.server");
+      targetWebhook = await getCentralWebhookUrl();
+    }
+
+    if (!targetWebhook) {
+      return { ok: false as const, error: "Chưa cấu hình Webhook URL. Vui lòng nhập link Apps Script Web App." };
+    }
+
+    const t0 = performance.now();
+    try {
+      const res = await fetch(targetWebhook, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "ping", user: s.role, timestamp: new Date().toISOString() }),
+        redirect: "follow",
+      });
+      const elapsed = Math.round(performance.now() - t0);
+      if (!res.ok) {
+        return { ok: false as const, error: `Apps Script trả về HTTP ${res.status}`, latency: elapsed };
+      }
+      const text = await res.text();
+      if (text.includes("<!DOCTYPE") || text.includes("<html") || text.includes("accounts.google.com")) {
+        return {
+          ok: false as const,
+          error: "Apps Script yêu cầu đăng nhập Google. Vui lòng triển khai Web App với quyền: 'Who has access' = 'Anyone' (Bất kỳ ai).",
+          latency: elapsed,
+        };
+      }
+      try {
+        const json = JSON.parse(text);
+        if (json && json.ok === false) {
+          return { ok: false as const, error: json.error || json.message || "Apps Script từ chối kết nối", latency: elapsed };
+        }
+        return {
+          ok: true as const,
+          message: json.message || "Kết nối Google Apps Script thành công",
+          latency: elapsed,
+          details: json,
+        };
+      } catch {
+        return { ok: true as const, message: "Apps Script phản hồi tốt (HTTP 200)", latency: elapsed };
+      }
+    } catch (err: any) {
+      return { ok: false as const, error: `Không thể kết nối Webhook Apps Script: ${err.message}` };
+    }
+  });
+
 // Ghi ngược tiến độ lô hàng. Tự động lấy Webhook URL tập trung từ server nếu client không truyền
 export const updateLotProgress = createServerFn({ method: "POST" })
-  .inputValidator((data: {
+  .validator((data: {
     ID_Key: string;
     cty_QT?: string;
     webhook?: string;
@@ -132,37 +189,45 @@ export const updateLotProgress = createServerFn({ method: "POST" })
       targetWebhook = await getCentralWebhookUrl();
     }
 
-    if (targetWebhook) {
-      try {
-        const payload = {
-          action: "updateLot",
-          ID_Key: data.ID_Key,
-          cty_QT: data.cty_QT,
-          updates: data.updates || {},
-          user: role,
-          timestamp: new Date().toISOString(),
-        };
-        const res = await fetch(targetWebhook, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload),
-          redirect: "follow",
-        });
-        if (!res.ok) {
-          return { ok: false as const, error: `Apps Script trả về HTTP ${res.status}` };
-        }
-        const text = await res.text();
-        try {
-          const json = JSON.parse(text);
-          if (json && json.ok === false) {
-            return { ok: false as const, error: json.error || json.message || "Google Apps Script từ chối cập nhật" };
-          }
-        } catch {
-          // Phản hồi không phải JSON nhưng status 200 OK
-        }
-      } catch (err: any) {
-        return { ok: false as const, error: `Không thể kết nối Webhook Apps Script: ${err.message}` };
+    if (!targetWebhook) {
+      return { ok: false as const, error: "Chưa cấu hình Webhook URL trên Server (Admin cần vào /sync để thiết lập)" };
+    }
+
+    try {
+      const payload = {
+        action: "updateLot",
+        ID_Key: data.ID_Key,
+        cty_QT: data.cty_QT,
+        updates: data.updates || {},
+        user: role,
+        timestamp: new Date().toISOString(),
+      };
+      const res = await fetch(targetWebhook, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+        redirect: "follow",
+      });
+      if (!res.ok) {
+        return { ok: false as const, error: `Apps Script trả về HTTP ${res.status}` };
       }
+      const text = await res.text();
+      if (text.includes("<!DOCTYPE") || text.includes("<html") || text.includes("accounts.google.com")) {
+        return {
+          ok: false as const,
+          error: "Google Apps Script bị chặn quyền (Cần chọn 'Who has access: Anyone' khi Deploy Web App)",
+        };
+      }
+      try {
+        const json = JSON.parse(text);
+        if (json && json.ok === false) {
+          return { ok: false as const, error: json.error || json.message || "Google Apps Script từ chối cập nhật" };
+        }
+      } catch {
+        // Phản hồi text thông thường status 200 OK
+      }
+    } catch (err: any) {
+      return { ok: false as const, error: `Không thể kết nối Webhook Apps Script: ${err.message}` };
     }
 
     return { ok: true as const };

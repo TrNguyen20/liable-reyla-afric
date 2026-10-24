@@ -23,6 +23,7 @@ import {
   type Role,
 } from '@/lib/dynamo-auth';
 import { toast } from 'sonner';
+import { playAudioCue } from '@/lib/audio-cues';
 import { clearDataset, loadDataset, saveDataset } from '@/lib/dynamo-source';
 import { logoutSession } from '@/lib/auth.functions';
 import { fetchScopedSheet } from '@/lib/sheet.functions';
@@ -44,6 +45,7 @@ type AppContextType = {
   loading: boolean;
   loadError: string;
   applyDataset: (rows: QTItem[], label: string) => void;
+  pullLive: () => Promise<void>;
   role: Role;
   actualRole: Role;
   impersonatedRole: Role | null;
@@ -148,11 +150,18 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   const pullLive = useCallback(async () => {
     setLoading(true);
     setLoadError('');
+    const t0 = performance.now();
     try {
       const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } });
+      const elapsed = Math.round(performance.now() - t0);
       applyDataset(r.items, LIVE_LABEL);
+      toast.success(`Đã làm mới ${r.items.length} lô từ Google Sheets (${elapsed}ms)`);
+      playAudioCue('success');
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Không tải được dữ liệu từ Google Sheets.');
+      const msg = e instanceof Error ? e.message : 'Không tải được dữ liệu từ Google Sheets.';
+      setLoadError(msg);
+      toast.error(`Lỗi tải dữ liệu Google Sheets: ${msg}`);
+      playAudioCue('error');
     } finally {
       setLoading(false);
     }
@@ -210,6 +219,11 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       ) {
         return;
       }
+      if (e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        void pullLive();
+        return;
+      }
       if (e.key >= '1' && e.key <= '2') {
         const routes: ('/tracking' | '/sync')[] = [
           '/tracking',
@@ -224,7 +238,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [effectiveRole, navigate]);
+  }, [effectiveRole, navigate, pullLive]);
 
   useEffect(() => {
     if (bare) return;
@@ -319,6 +333,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       loading,
       loadError,
       applyDataset,
+      pullLive,
       resetDataset,
       role: effectiveRole,
       actualRole: role,
@@ -340,6 +355,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       loading,
       loadError,
       applyDataset,
+      pullLive,
       resetDataset,
       effectiveRole,
       role,

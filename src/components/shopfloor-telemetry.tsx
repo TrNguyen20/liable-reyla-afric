@@ -7,9 +7,10 @@ import { isDueSoon, isOpen, isOverdue, onTimeRate } from '@/lib/dynamo-rules';
 import { number } from '@/lib/dynamo-data';
 import { LIVE_SHEET_URL } from '@/lib/live-sheet';
 
-export { LIVE_SHEET_URL };
+import { toast } from 'sonner';
+import { playAudioCue } from '@/lib/audio-cues';
 
-const CADENCE = 60;
+export { LIVE_SHEET_URL };
 
 function getShift(d = new Date()): string {
   const h = d.getHours();
@@ -20,8 +21,6 @@ function getShift(d = new Date()): string {
 
 export function ShopfloorTelemetry() {
   const { filtered, dataset, sourceLabel, syncedAt, applyDataset } = useDynamo();
-  const auto = true;
-  const [left, setLeft] = useState(CADENCE);
   const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
   const [shiftName, setShiftName] = useState('');
   const busy = useRef(false);
@@ -32,31 +31,52 @@ export function ShopfloorTelemetry() {
     return () => clearInterval(shiftInterval);
   }, []);
 
-  const pull = async () => {
+  const pull = async (isManual = true) => {
     if (busy.current) return;
     busy.current = true;
     setState('busy');
+    const t0 = performance.now();
     try {
       const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } });
+      const elapsed = Math.round(performance.now() - t0);
       applyDataset(r.items, 'Google Sheets');
       setState('idle');
-    } catch {
+      if (isManual) {
+        toast.success(`Đã làm mới ${r.items.length} lô từ Google Sheets (${elapsed}ms)`);
+        playAudioCue('success');
+      }
+    } catch (err: any) {
       setState('error');
+      if (isManual) {
+        toast.error(`Lỗi tải dữ liệu Google Sheets: ${err?.message || 'Không thể kết nối'}`);
+        playAudioCue('error');
+      }
     } finally {
       busy.current = false;
-      setLeft(CADENCE);
     }
   };
 
+  // Lắng nghe phím tắt Shift + R toàn cục để kích hoạt làm mới nhanh
   useEffect(() => {
-    if (!auto) return;
-    const id = setInterval(() => setLeft((s) => s - 1), 1000);
-    return () => clearInterval(id);
-  }, [auto]);
-
-  useEffect(() => {
-    if (auto && left <= 0) void pull();
-  }, [left, auto]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        void pull(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const m = useMemo(() => {
     let waiting = 0;
@@ -101,47 +121,51 @@ export function ShopfloorTelemetry() {
       ? 'bg-destructive'
       : state === 'busy'
       ? 'bg-warning animate-pulse'
-      : auto
-      ? 'bg-run fx-run-dot'
-      : 'bg-muted-foreground';
+      : 'bg-run fx-run-dot';
 
   const syncText =
     state === 'busy'
       ? 'Đang đồng bộ...'
       : state === 'error'
-      ? 'Lỗi đồng bộ, thử lại sau 60s'
-      : auto
-      ? `Đồng bộ sau ${Math.max(left, 0)}s`
-      : 'Đồng bộ tự động tắt';
+      ? 'Lỗi kết nối Google Sheets'
+      : syncedAt
+      ? `Cập nhật lúc ${new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}`
+      : 'Sẵn sàng đồng bộ';
 
   return (
     <div className="relative border-b border-border/80 bg-secondary/40 backdrop-blur-xs">
       <div className="grid grid-cols-1 divide-y divide-border/60 text-[11px] md:grid-cols-3 md:divide-y-0 md:divide-x lg:grid-cols-[1.5fr_1fr_1.5fr]">
-        {/* Cột 1: Trạng thái kết nối Sheet & Ca kíp */}
-        <div className="flex items-center gap-2.5 px-4 py-2 xl:px-6">
-          <span className={`size-2 shrink-0 rounded-full transition-colors ${led}`} aria-hidden />
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <p className="font-bold text-foreground tracking-tight">{syncText}</p>
-              {shiftName && (
-                <span className="hidden font-mono text-[9px] font-bold text-muted-foreground sm:inline rounded-xs bg-muted/60 px-1 py-0.2">
-                  {shiftName}
-                </span>
-              )}
+        {/* Cột 1: Trạng thái kết nối Sheet & Nút Làm Mới Tinh Gọn */}
+        <div className="flex items-center justify-between gap-3 px-4 py-2 xl:px-6">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className={`size-2 shrink-0 rounded-full transition-colors ${led}`} aria-hidden />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="font-bold text-foreground tracking-tight">{syncText}</p>
+                {shiftName && (
+                  <span className="hidden font-mono text-[9px] font-bold text-muted-foreground sm:inline rounded-xs bg-muted/60 px-1 py-0.2">
+                    {shiftName}
+                  </span>
+                )}
+              </div>
+              <p className="truncate font-mono text-[10px] text-muted-foreground tabular-nums">
+                {number(dataset.length)} dòng · {sourceLabel}
+              </p>
             </div>
-            <p className="truncate font-mono text-[10px] text-muted-foreground tabular-nums">
-              {number(dataset.length)} dòng · {auto ? 'Live Sheets' : sourceLabel}
-              {syncedAt ? ` · ${new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}` : ''}
-            </p>
           </div>
+
           <button
-            onClick={() => void pull()}
+            onClick={() => void pull(true)}
             disabled={state === 'busy'}
-            title="Đồng bộ lại từ Google Sheets"
-            aria-label="Đồng bộ lại từ Google Sheets"
-            className="ml-auto rounded p-1 text-muted-foreground transition-colors hover:bg-background hover:text-foreground active:scale-95 disabled:opacity-50"
+            title="Làm mới dữ liệu tức thì từ Google Sheets (Phím tắt: Shift + R)"
+            aria-label="Làm mới dữ liệu từ Google Sheets"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/80 bg-background/90 hover:bg-background px-2.5 py-1 text-[11px] font-bold text-foreground shadow-2xs hover:border-primary/50 transition-all active:scale-95 cursor-pointer disabled:opacity-60"
           >
-            <RefreshCw size={13} className={state === 'busy' ? 'animate-spin text-primary' : ''} />
+            <RefreshCw size={12} className={state === 'busy' ? 'animate-spin text-primary' : 'text-primary'} />
+            <span>{state === 'busy' ? 'Đang tải…' : 'Làm mới'}</span>
+            <kbd className="hidden font-mono text-[9px] text-muted-foreground sm:inline-block bg-muted/80 px-1 py-0.2 rounded border border-border/50">
+              Shift+R
+            </kbd>
           </button>
         </div>
 
@@ -180,14 +204,6 @@ export function ShopfloorTelemetry() {
           </p>
         </div>
       </div>
-
-      {auto && (
-        <span
-          className="absolute bottom-0 left-0 h-0.5 bg-primary transition-[width] duration-1000 ease-linear"
-          style={{ width: `${(Math.max(left, 0) / CADENCE) * 100}%` }}
-          aria-hidden
-        />
-      )}
     </div>
   );
 }
