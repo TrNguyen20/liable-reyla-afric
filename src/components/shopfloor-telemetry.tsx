@@ -20,10 +20,8 @@ function getShift(d = new Date()): string {
 }
 
 export function ShopfloorTelemetry() {
-  const { filtered, dataset, sourceLabel, syncedAt, applyDataset } = useDynamo();
-  const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  const { filtered, dataset, sourceLabel, syncedAt, pullLive, loading, loadError } = useDynamo();
   const [shiftName, setShiftName] = useState('');
-  const busy = useRef(false);
 
   useEffect(() => {
     setShiftName(getShift(new Date()));
@@ -31,52 +29,7 @@ export function ShopfloorTelemetry() {
     return () => clearInterval(shiftInterval);
   }, []);
 
-  const pull = async (isManual = true) => {
-    if (busy.current) return;
-    busy.current = true;
-    setState('busy');
-    const t0 = performance.now();
-    try {
-      const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } });
-      const elapsed = Math.round(performance.now() - t0);
-      applyDataset(r.items, 'Google Sheets');
-      setState('idle');
-      if (isManual) {
-        toast.success(`Đã làm mới ${r.items.length} lô từ Google Sheets (${elapsed}ms)`);
-        playAudioCue('success');
-      }
-    } catch (err: any) {
-      setState('error');
-      if (isManual) {
-        toast.error(`Lỗi tải dữ liệu Google Sheets: ${err?.message || 'Không thể kết nối'}`);
-        playAudioCue('error');
-      }
-    } finally {
-      busy.current = false;
-    }
-  };
-
-  // Lắng nghe phím tắt Shift + R toàn cục để kích hoạt làm mới nhanh
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.shiftKey && (e.key === 'r' || e.key === 'R')) {
-        const target = e.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.tagName === 'SELECT' ||
-            target.isContentEditable)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        void pull(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const state = loading ? 'busy' : loadError ? 'error' : 'idle';
 
   const m = useMemo(() => {
     let waiting = 0;
@@ -155,7 +108,7 @@ export function ShopfloorTelemetry() {
           </div>
 
           <button
-            onClick={() => void pull(true)}
+            onClick={() => void pullLive(true)}
             disabled={state === 'busy'}
             title="Làm mới dữ liệu tức thì từ Google Sheets (Phím tắt: Shift + R)"
             aria-label="Làm mới dữ liệu từ Google Sheets"

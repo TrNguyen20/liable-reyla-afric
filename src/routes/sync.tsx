@@ -177,7 +177,7 @@ function Sync() {
     setError('');
     const t0 = performance.now();
     try {
-      const res = await fetchScopedSheet({ data: { url: sheetUrl.trim() } });
+      const res = await fetchScopedSheet({ data: { url: sheetUrl.trim(), forceGoogle: true } });
       const elapsed = Math.round(performance.now() - t0);
       setStats(res);
       setStagedRows(res.items);

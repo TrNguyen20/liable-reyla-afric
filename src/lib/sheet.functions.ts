@@ -1,10 +1,9 @@
 import { createServerFn } from '@tanstack/react-start';
-import { fetchSheetItems } from '@/lib/dynamo-source';
 import { scopeItemsForRole } from '@/lib/data-scope';
 
-/** Reads the sheet on the server and returns only the rows/fields the session role may see. */
+/** Reads the live dataset on the server (seeded from Google Sheets) and returns role-scoped rows. */
 export const fetchScopedSheet = createServerFn({ method: 'POST' })
-  .validator((data: { url: string }) => data)
+  .validator((data: { url?: string; forceGoogle?: boolean }) => data)
   .handler(async ({ data }) => {
     let role = 'viewer';
     try {
@@ -14,7 +13,18 @@ export const fetchScopedSheet = createServerFn({ method: 'POST' })
     } catch {
       role = 'viewer';
     }
-    const r = await fetchSheetItems(data.url);
+    const { getLiveServerDataset } = await import('./server-dataset');
+    const r = await getLiveServerDataset(Boolean(data?.forceGoogle));
     const items = scopeItemsForRole(r.items, role);
-    return { ...r, items };
+    return {
+      items,
+      total: r.total,
+      version: r.version,
+      lastModified: r.lastModified,
+      skipped: 0,
+      duplicates: [],
+      unknownStatus: [],
+      estimatedDue: 0,
+      badDates: 0,
+    };
   });
