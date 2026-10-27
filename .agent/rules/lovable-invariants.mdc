@@ -106,7 +106,7 @@ Hệ thống quản lý dữ liệu gia công nhiệt luyện nhạy cảm của
    - Theo hàm chuẩn `canViewVendorName` trong `src/lib/dynamo-auth.ts`:
      - CHỈ CÓ `admin` HOẶC đúng tài khoản đối tác đó (`qt_<vendor>`) mới được xem tên thật của đối tác.
      - Vai trò `viewer` và `leader` **KHÔNG ĐƯỢC PHÉP** thấy tên nhà thầu ngoài.
-     - BẮT BUỘC sử dụng hàm `formatVendorName(vendor, role)` (trả về chuỗi an toàn: `"Đơn vị gia công theo chỉ định"`).
+     - BẮT BUỘC sử dụng hàm `formatVendorName(vendor, role)` (trả về chuỗi an toàn: `"Đã ẩn"`).
    - Trên Server: Hàm `fetchScopedSheet` bắt buộc gọi `scopeItemsForRole(items, role)` để gạt bỏ trường `cty_QT` và giá trước khi payload truyền về browser.
 3. **Bảo mật đơn giá & thành tiền**:
    - Đơn giá (`don_gia`) và thành tiền (`thanh_tien`) CHỈ hiển thị với `admin` và `leader` (qua hàm `canViewPricing`).

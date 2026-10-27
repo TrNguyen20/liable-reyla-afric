@@ -2,11 +2,12 @@ import type { QTItem, Status, Vendor, Workshop } from '@/lib/dynamo-data';
 
 export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cC9VnRrjf3IgADbzYL1VulrqgcSf2h56XkXEJILdyuE/edit#gid=1963478526';
 
-export function sheetCsvUrl(url: string) {
+export function sheetCsvUrl(url: string, bustCache = true) {
   const id = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1];
   const gid = url.match(/[#&?]gid=([0-9]+)/)?.[1];
   if (!id) return null;
-  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+  const base = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+  return bustCache ? `${base}&_t=${Date.now()}` : base;
 }
 
 function parseLine(line: string) {
@@ -99,11 +100,12 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
     const don_vi_tinh = (r['don_vi_tinh'] ?? '').trim().toLowerCase() === 'kg' ? 'Kg' : 'pcs';
     const thanh_tien = num(r['thanh_tien']) || Math.round((don_vi_tinh === 'Kg' ? kg_Lot : so_luong) * don_gia);
     const raw = (r['TrangThai'] ?? '').trim();
+    const TrangThai: Status = statusMap[raw] ?? 'Đang tại Vendor';
     if (raw && !statusMap[raw]) unknownStatus.push(`${ID_Key}: "${raw}"`);
     if ((r['ngay_gui_QT'] && !toIsoDate(r['ngay_gui_QT'])) || (r['ngay_nhan_QT'] && !ngay_nhan)) badDates++;
     const srcDue = toIsoDate(r['han_tra']);
     if (!srcDue) estimatedDue++;
-    const TrangThai: Status = ngay_nhan ? 'Đã nhập kho' : (statusMap[raw] ?? 'Chờ xuất xưởng');
+    const ghi_chu = (r['ghi_chu'] ?? r['Ghi_chu'] ?? r['Ghi chú'] ?? r['GHI_CHU'] ?? r['note'] ?? r['Note'] ?? '').trim();
     items.push({
       ID_Key, phong_sx,
       doi_tuong_hang: (r['doi_tuong_hang'] ?? '').trim() || (phong_sx === 'MOLD' ? 'Khuôn' : 'Linh kiện khuôn'),
@@ -118,16 +120,24 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
       han_tra_est: !srcDue,
       ngay_nhan: ngay_nhan || undefined,
       cong_doan: (r['loai_hang'] ?? '').trim() || 'Nhiệt luyện',
+      ghi_chu: ghi_chu || undefined,
     });
   }
   return { items, total: rows.length, skipped, duplicates, unknownStatus, estimatedDue, badDates };
 }
 
 export async function fetchSheetItems(url: string): Promise<MapResult> {
-  const csv = sheetCsvUrl(url);
+  const csv = sheetCsvUrl(url, true);
   if (!csv) throw new Error('Link không hợp lệ. Hãy dán link chia sẻ Google Sheets.');
-  let res = await fetch(csv);
-  if (!res.ok) res = await fetch(csv.replace('/export?format=csv', '/gviz/tq?tqx=out:csv'));
+  const fetchOpts: RequestInit = {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
+  };
+  let res = await fetch(csv, fetchOpts);
+  if (!res.ok) res = await fetch(csv.replace('/export?format=csv', '/gviz/tq?tqx=out:csv'), fetchOpts);
   if (!res.ok) throw new Error(`Google trả về mã ${res.status}`);
   const text = await res.text();
   if (text.trim().startsWith('<')) throw new Error('Tệp chưa được chia sẻ công khai ("Anyone with the link").');

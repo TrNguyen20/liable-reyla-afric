@@ -1,16 +1,11 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Boxes, CircleAlert, Clock3, FileText, Filter, PackageCheck, Printer, RotateCcw, Wallet, X } from 'lucide-react';
-import { useDynamo, PageHeading } from '@/components/dynamo-shell';
-import { JobTicketButton } from '@/components/job-ticket';
-import { LotUpdateButton } from '@/components/lot-update-dialog';
-import { playAudioCue } from '@/lib/audio-cues';
-import { date, money, number, type QTItem } from '@/lib/dynamo-data';
-import { formatVendorName, type UserRole } from '@/lib/dynamo-auth';
-import { daysOver, hasValidDue, isDone, isDueSoon, isMissingDue, isOpen, isOverdue, logisticsOf, onTimeRate, qcOf, type Logistics, type QcState } from '@/lib/dynamo-rules';
-import { failedSyncIds } from '@/lib/dynamo-workflow';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/dashboard')({ head: () => ({ meta: [{title:'Tổng quan | DYNAMO QT'}, {name:'description',content:'Trung tâm điều hành luân chuyển gia công QT cho PIN, INSERT và MOLD.'}, {property:'og:title',content:'Tổng quan | DYNAMO QT'}, {property:'og:description',content:'Theo dõi lô mở, quá hạn, tỷ lệ đúng hạn và chi phí gia công QT.'}, {property:'og:type',content:'website'}, {name:'twitter:card',content:'summary'}] }), component: Dashboard });
+export const Route = createFileRoute('/dashboard')({
+  beforeLoad: () => {
+    throw redirect({ to: '/tracking' });
+  },
+  component: () => null,
+});
 
 type Period = 'all' | 'this' | 'prev';
 type Focus = 'overdue' | 'due_soon' | 'est_due' | 'sync_failed';

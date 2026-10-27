@@ -35,7 +35,7 @@ export function WebhookConfig() {
   };
 
   return (
-    <div className="mes-card mb-6 overflow-hidden p-5">
+    <div className="mes-card mb-4.5 overflow-hidden p-4 sm:p-4.5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-sm bg-primary/10 text-primary">

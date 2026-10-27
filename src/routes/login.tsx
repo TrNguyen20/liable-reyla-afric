@@ -144,7 +144,7 @@ function Login() {
           JSON.stringify({ role: entry.role, note: entry.note, at: Date.now() }),
         );
       }
-      navigate({ to: '/dashboard' });
+      navigate({ to: '/tracking' });
     } catch (err) {
       if (err instanceof LockedError) {
         setLockUntil(Date.now() + err.remainingMs);
