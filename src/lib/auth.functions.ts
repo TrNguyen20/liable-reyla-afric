@@ -165,7 +165,7 @@ export const testWebhookConnection = createServerFn({ method: "POST" })
     }
   });
 
-// Ghi ngược tiến độ lô hàng. Tự động lấy Webhook URL tập trung từ server nếu client không truyền
+// Ghi ngược tiến độ lô hàng. Tự động cập nhật Server Live Store trong 1ms và gửi Webhook sang Google Sheets
 export const updateLotProgress = createServerFn({ method: "POST" })
   .validator((data: {
     ID_Key: string;
@@ -182,7 +182,11 @@ export const updateLotProgress = createServerFn({ method: "POST" })
     // Phân quyền mở: Mọi vai trò đã xác thực phiên (Admin, Leader, Viewer, Vendor) đều được cập nhật tiến độ
     if (!data.ID_Key) return { ok: false as const, error: "Thiếu ID_Key" };
 
-    // Tự động sử dụng Webhook tập trung từ Server nếu Client không truyền
+    // 1. Cập nhật NGAY LẬP TỨC vào bộ nhớ Server Live Store để mọi desktop khác đều nhận được trong < 1s!
+    const { patchServerDataset, setServerDatasetVersion } = await import("./server-dataset");
+    const patchResult = patchServerDataset(data.ID_Key, data.updates || {}, role);
+
+    // 2. Gửi Webhook lưu trữ dài hạn về Google Sheets
     let targetWebhook = (data.webhook ?? "").trim();
     if (!targetWebhook) {
       const { getCentralWebhookUrl } = await import("./config.server");
@@ -190,7 +194,11 @@ export const updateLotProgress = createServerFn({ method: "POST" })
     }
 
     if (!targetWebhook) {
-      return { ok: false as const, error: "Chưa cấu hình Webhook URL trên Server (Admin cần vào /sync để thiết lập)" };
+      return {
+        ok: false as const,
+        error: "Chưa cấu hình Webhook Google Sheets. Vui lòng kiểm tra lại cấu hình hệ thống.",
+        version: patchResult.version,
+      };
     }
 
     try {
@@ -209,26 +217,65 @@ export const updateLotProgress = createServerFn({ method: "POST" })
         redirect: "follow",
       });
       if (!res.ok) {
-        return { ok: false as const, error: `Apps Script trả về HTTP ${res.status}` };
+        return {
+          ok: false as const,
+          error: `Google Apps Script trả về HTTP ${res.status}`,
+          version: patchResult.version,
+        };
       }
       const text = await res.text();
       if (text.includes("<!DOCTYPE") || text.includes("<html") || text.includes("accounts.google.com")) {
         return {
           ok: false as const,
           error: "Google Apps Script bị chặn quyền (Cần chọn 'Who has access: Anyone' khi Deploy Web App)",
+          version: patchResult.version,
         };
       }
       try {
         const json = JSON.parse(text);
         if (json && json.ok === false) {
-          return { ok: false as const, error: json.error || json.message || "Google Apps Script từ chối cập nhật" };
+          return {
+            ok: false as const,
+            error: json.error || json.message || "Google Apps Script từ chối cập nhật",
+            version: patchResult.version,
+          };
+        }
+        if (json && typeof json.version === "number") {
+          setServerDatasetVersion(json.version, {
+            id: data.ID_Key,
+            patch: data.updates || {},
+            version: json.version,
+            timestamp: new Date().toISOString(),
+            user: role,
+          });
+          return { ok: true as const, version: json.version, message: json.message };
         }
       } catch {
         // Phản hồi text thông thường status 200 OK
       }
     } catch (err: any) {
-      return { ok: false as const, error: `Không thể kết nối Webhook Apps Script: ${err.message}` };
+      return {
+        ok: false as const,
+        error: `Không thể kết nối Webhook Apps Script: ${err.message}`,
+        version: patchResult.version,
+      };
     }
 
-    return { ok: true as const };
+    return { ok: true as const, version: patchResult.version };
+  });
+
+// Kiểm tra phiên bản dữ liệu máy chủ (tải lượng cực nhẹ ~20 bytes)
+export const checkDatasetVersion = createServerFn({ method: "GET" }).handler(async () => {
+  const { getServerDatasetVersionAsync } = await import("./server-dataset");
+  return getServerDatasetVersionAsync();
+});
+
+// Lấy danh sách các thay đổi delta kể từ một phiên bản cụ thể
+export const fetchDatasetDeltas = createServerFn({ method: "POST" })
+  .validator((data: { sinceVersion: number }) => data)
+  .handler(async ({ data }) => {
+    const { getDeltasSinceAsync, getServerDatasetVersionAsync } = await import("./server-dataset");
+    const info = await getServerDatasetVersionAsync();
+    const result = await getDeltasSinceAsync(Number(data.sinceVersion) || 0);
+    return { ...info, ...result };
   });

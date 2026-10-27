@@ -1,15 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getCentralWebhookUrl, saveCentralWebhookUrl } from '@/lib/config.server';
-import { unlinkSync, existsSync } from 'node:fs';
+import { getCentralWebhookUrl, saveCentralWebhookUrl, DEFAULT_WEBHOOK_URL, _resetCachedConfigForTesting } from '@/lib/config.server';
+import { unlinkSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 describe('Centralized Server-side Webhook & Bidirectional Sync Contract', () => {
   const configPath = resolve(process.cwd(), '.server-config.json');
+  let originalConfig: string | null = null;
 
   beforeEach(() => {
-    // Reset config file before test
+    _resetCachedConfigForTesting();
     if (existsSync(configPath)) {
       try {
+        originalConfig = readFileSync(configPath, 'utf-8');
         unlinkSync(configPath);
       } catch {
         // ignore
@@ -18,9 +20,10 @@ describe('Centralized Server-side Webhook & Bidirectional Sync Contract', () => 
   });
 
   afterEach(() => {
-    if (existsSync(configPath)) {
+    _resetCachedConfigForTesting();
+    if (originalConfig !== null) {
       try {
-        unlinkSync(configPath);
+        writeFileSync(configPath, originalConfig, 'utf-8');
       } catch {
         // ignore
       }
@@ -124,5 +127,13 @@ describe('Centralized Server-side Webhook & Bidirectional Sync Contract', () => 
     expect(findCol('TrangThai')).toBe(5);
     expect(findCol('ngay_nhan_QT')).toBe(6);
     expect(findCol('ghi_chu')).toBe(7);
+  });
+
+  it('TC-06: Khi chưa có tệp cấu hình và chưa có biến môi trường, tự động trả về DEFAULT_WEBHOOK_URL dự phòng trên serverless', async () => {
+    delete process.env.DYNAMO_WEBHOOK_URL;
+    _resetCachedConfigForTesting();
+    const retrieved = await getCentralWebhookUrl();
+    expect(retrieved).toBe(DEFAULT_WEBHOOK_URL);
+    expect(retrieved).toMatch(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/);
   });
 });

@@ -1178,17 +1178,21 @@ function Tracking() {
 
   // Gửi payload ghi ngược hai chiều tới Google Apps Script Webhook (Server tự động xử lý Webhook URL tập trung)
   const syncWriteBack = (idKey: string, vendor: string | undefined, patch: Record<string, any>) => {
+    const clientWebhook = (typeof window !== 'undefined' ? window.localStorage.getItem('dynamo-webhook') : '') ?? '';
     void updateLotProgress({
       data: {
         ID_Key: idKey,
         cty_QT: String(vendor ?? ''),
+        webhook: clientWebhook,
         updates: patch,
       },
     }).then((res) => {
       if (!res?.ok) {
         toast.error(`Chưa đồng bộ lên Google Sheets: ${res?.error || 'Lỗi kết nối Webhook'}`, {
-          duration: 5000,
+          duration: 6000,
         });
+      } else if (res.warning) {
+        toast.warning(res.warning, { duration: 6000 });
       }
     }).catch((err) => {
       console.warn('Lỗi gửi Webhook đồng bộ:', err);

@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
 import { clearDataset, loadDataset, saveDataset } from '@/lib/dynamo-source';
-import { logoutSession } from '@/lib/auth.functions';
+import { checkDatasetVersion, fetchDatasetDeltas, logoutSession } from '@/lib/auth.functions';
 import { fetchScopedSheet } from '@/lib/sheet.functions';
 import { LIVE_LABEL, LIVE_SHEET_URL } from '@/lib/live-sheet';
 import { ShopfloorTelemetry } from '@/components/shopfloor-telemetry';
@@ -45,7 +45,7 @@ type AppContextType = {
   loading: boolean;
   loadError: string;
   applyDataset: (rows: QTItem[], label: string) => void;
-  pullLive: () => Promise<void>;
+  pullLive: (isManual?: boolean) => Promise<void>;
   role: Role;
   actualRole: Role;
   impersonatedRole: Role | null;
@@ -135,6 +135,13 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     setDataset((prev) => {
       const next = prev.map((i) => (i.ID_Key === id ? { ...i, ...patch } : i));
       void saveDataset({ items: next, label: sourceLabel, syncedAt });
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('dynamo-realtime-bus');
+          bc.postMessage({ type: 'PATCH_ITEM', id, patch });
+          bc.close();
+        }
+      } catch {}
       return next;
     }), [sourceLabel, syncedAt]);
 
@@ -143,27 +150,44 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       const idSet = new Set(ids);
       const next = prev.map((i) => (idSet.has(i.ID_Key) ? { ...i, ...patch } : i));
       void saveDataset({ items: next, label: sourceLabel, syncedAt });
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('dynamo-realtime-bus');
+          bc.postMessage({ type: 'BULK_PATCH', ids, patch });
+          bc.close();
+        }
+      } catch {}
       return next;
     }), [sourceLabel, syncedAt]);
 
+  const [clientVersion, setClientVersion] = useState<number>(0);
+  const isSyncingDeltas = useRef(false);
+
   // Pull live rows through the server; the server scopes/masks them by the signed session role.
-  const pullLive = useCallback(async () => {
-    setLoading(true);
+  const pullLive = useCallback(async (isManual = true) => {
+    if (isManual) setLoading(true);
     setLoadError('');
     const t0 = performance.now();
     try {
       const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } });
       const elapsed = Math.round(performance.now() - t0);
       applyDataset(r.items, LIVE_LABEL);
-      toast.success(`Đã làm mới ${r.items.length} lô từ Google Sheets (${elapsed}ms)`);
-      playAudioCue('success');
+      if (r.version) {
+        setClientVersion(r.version);
+      }
+      if (isManual) {
+        toast.success(`Đã làm mới ${r.items.length} lô từ hệ thống (${elapsed}ms)`);
+        playAudioCue('success');
+      }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Không tải được dữ liệu từ Google Sheets.';
+      const msg = e instanceof Error ? e.message : 'Không tải được dữ liệu từ hệ thống.';
       setLoadError(msg);
-      toast.error(`Lỗi tải dữ liệu Google Sheets: ${msg}`);
-      playAudioCue('error');
+      if (isManual) {
+        toast.error(`Lỗi tải dữ liệu: ${msg}`);
+        playAudioCue('error');
+      }
     } finally {
-      setLoading(false);
+      if (isManual) setLoading(false);
     }
   }, [applyDataset]);
 
@@ -264,8 +288,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
               setSourceLabel(cached.label);
               setSyncedAt(cached.syncedAt);
               setLoading(false);
+              // Đồng bộ ngầm với bộ nhớ Server để nhận phiên bản mới nhất
+              void pullLive(false);
             } else {
-              void pullLive();
+              void pullLive(false);
             }
           });
         }
@@ -280,7 +306,96 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     return () => {
       alive = false;
     };
-  }, [location.pathname, bare]);
+  }, [location.pathname, bare, pullLive]);
+
+  // Lắng nghe BroadcastChannel để đồng bộ tức thì (< 5ms) giữa các tab trong cùng trình duyệt
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const bc = new BroadcastChannel('dynamo-realtime-bus');
+    bc.onmessage = (event) => {
+      const msg = event.data;
+      if (!msg) return;
+      if (msg.type === 'PATCH_ITEM') {
+        setDataset((prev) => prev.map((i) => (i.ID_Key === msg.id ? { ...i, ...msg.patch } : i)));
+      } else if (msg.type === 'BULK_PATCH') {
+        const idSet = new Set(msg.ids);
+        setDataset((prev) => prev.map((i) => (idSet.has(i.ID_Key) ? { ...i, ...msg.patch } : i)));
+      }
+    };
+    return () => {
+      bc.close();
+    };
+  }, []);
+
+  // Vòng lặp Realtime Sync Hub: Nhận biết phiên bản dữ liệu từ Server & Google Apps Script
+  const pollDeltas = useCallback(async () => {
+    if (isSyncingDeltas.current) return;
+    try {
+      const vInfo = await checkDatasetVersion();
+      if (!vInfo) return;
+
+      // Khởi tạo clientVersion nếu chưa có
+      if (clientVersion === 0) {
+        setClientVersion(vInfo.version);
+        return;
+      }
+
+      if (vInfo.version > clientVersion) {
+        isSyncingDeltas.current = true;
+        const deltaRes = await fetchDatasetDeltas({ data: { sinceVersion: clientVersion } });
+        if (deltaRes.resetRequired) {
+          void pullLive(false);
+        } else if (deltaRes.deltas && deltaRes.deltas.length > 0) {
+          const patchMap = new Map<string, Partial<QTItem>>();
+          for (const d of deltaRes.deltas) {
+            const prev = patchMap.get(d.id) || {};
+            patchMap.set(d.id, { ...prev, ...d.patch });
+          }
+          setDataset((prev) => {
+            const next = prev.map((item) => {
+              const patch = patchMap.get(item.ID_Key);
+              return patch ? { ...item, ...patch } : item;
+            });
+            void saveDataset({ items: next, label: LIVE_LABEL, syncedAt: new Date().toISOString() });
+            return next;
+          });
+          setSyncedAt(new Date().toISOString());
+          setClientVersion(deltaRes.version);
+        } else {
+          setClientVersion(deltaRes.version);
+        }
+      }
+    } catch {
+      // Heartbeat ngầm bỏ qua lỗi mạng tạm thời
+    } finally {
+      isSyncingDeltas.current = false;
+    }
+  }, [clientVersion, pullLive]);
+
+  useEffect(() => {
+    if (bare) return;
+
+    // Polling định kỳ mỗi 1.8s
+    const interval = setInterval(() => {
+      void pollDeltas();
+    }, 1800);
+
+    // Kích hoạt đồng bộ ngay lập tức khi người dùng chuyển sang tab (visibilitychange / focus)
+    const onVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void pollDeltas();
+      }
+    };
+
+    window.addEventListener('focus', onVisibilityChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onVisibilityChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [bare, pollDeltas]);
 
   const visibleNav = nav.filter((n) => canAccessRoute(effectiveRole, n.to));
 

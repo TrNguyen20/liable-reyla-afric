@@ -14,10 +14,20 @@ type ServerConfig = {
   updatedBy?: string;
 };
 
+// Default fallback Webhook URL deployed for this DYNAMO MES project.
+// Ensures that on serverless runtimes (like Vercel Lambda) where disk files
+// are not bundled into the serverless function, write-backs never fail with empty URL.
+export const DEFAULT_WEBHOOK_URL =
+  'https://script.google.com/macros/s/AKfycbxaZOFq1sMm7vLSLmeYJvu1To4SXdbtERiMlvZE9jYhv7LCPA0SI9cHvqQ_21m0-RA/exec';
+
 const CONFIG_PATH = resolve(process.cwd(), '.server-config.json');
 
 // In-memory cache for ultra-fast access
 let cachedConfig: ServerConfig | null = null;
+
+export function _resetCachedConfigForTesting(): void {
+  cachedConfig = null;
+}
 
 function loadFromDisk(): ServerConfig {
   if (cachedConfig) return cachedConfig;
@@ -30,7 +40,7 @@ function loadFromDisk(): ServerConfig {
   } catch (err) {
     console.warn('[config.server] Failed to read .server-config.json:', err);
   }
-  cachedConfig = { webhookUrl: process.env.DYNAMO_WEBHOOK_URL || '' };
+  cachedConfig = { webhookUrl: process.env.DYNAMO_WEBHOOK_URL || DEFAULT_WEBHOOK_URL };
   return cachedConfig;
 }
 
@@ -49,10 +59,17 @@ function saveToDisk(config: ServerConfig): void {
 
 /**
  * Retrieve the active central Webhook URL stored on the server.
+ * Precedence: Environment Variable > Saved Disk/Memory Config > Default Webhook URL.
  */
 export async function getCentralWebhookUrl(): Promise<string> {
+  const envUrl = process.env.DYNAMO_WEBHOOK_URL?.trim();
+  if (envUrl) return envUrl;
+
   const config = loadFromDisk();
-  return config.webhookUrl || process.env.DYNAMO_WEBHOOK_URL || '';
+  if (typeof config.webhookUrl === 'string') {
+    return config.webhookUrl;
+  }
+  return DEFAULT_WEBHOOK_URL;
 }
 
 /**

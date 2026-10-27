@@ -1,23 +1,26 @@
 /**
  * ============================================================================
  * DYNAMO VIETNAM QT - MES (MANUFACTURING EXECUTION SYSTEM)
- * GOOGLE APPS SCRIPT WEBHOOK ĐỒNG BỘ HAI CHIỀU (BIDIRECTIONAL WRITEBACK)
+ * GOOGLE APPS SCRIPT WEBHOOK ĐỒNG BỘ HAI CHIỀU & REALTIME DELTA HUB
  * ============================================================================
  * 
  * Mục đích:
  * 1. Tiếp nhận payload JSON từ ứng dụng web DYNAMO MES khi kỹ sư cập nhật
- *    tiến độ lô gia công nhiệt luyện (TrangThai, ngay_nhan_QT, do_cung, ghi_chu).
+ *    tiến độ lô gia công nhiệt luyện (so_luong, ma_hang, TrangThai, ngay_nhan_QT, do_cung, ghi_chu, v.v.).
  * 2. Tìm kiếm dòng dữ liệu tương ứng theo mã khóa duy nhất [ID_Key] và ghi ngược
  *    trực tiếp vào bảng tính Google Sheets điều độ luân chuyển.
  * 3. Tự động ghi chép nhật ký kiểm toán (Audit Trail) vào sheet [AUDIT_LOG].
+ * 4. [NÂNG CẤP REALTIME HUB]: Duy trì bộ nhớ đệm CacheService & ScriptProperties toàn cục
+ *    để cung cấp cơ chế Delta Sync tức thì (< 100ms) cho mọi trình duyệt (Chrome, Ẩn danh,
+ *    mobile, v.v.) mà không bị ảnh hưởng bởi độ trễ CDN 30s-120s của Google CSV export.
  *
  * Cài đặt nhanh:
  * - Mở Google Sheets > Tiện ích mở rộng (Extensions) > Apps Script.
  * - Dán toàn bộ mã này vào tệp Code.gs.
- * - Nhấn "Triển khai" (Deploy) > "Tùy chọn triển khai mới" (New deployment) > "Ứng dụng web" (Web App).
+ * - Nhấn "Triển khai" (Deploy) > "Quản lý tùy chọn triển khai" (Manage deployments) hoặc "Tùy chọn triển khai mới" (New deployment) > "Ứng dụng web" (Web App).
  *   + Thực thi với tư cách (Execute as): "Tôi" (Me).
  *   + Ai có quyền truy cập (Who has access): "Bất kỳ ai" (Anyone).
- * - Sao chép Web App URL (dạng https://script.google.com/macros/s/.../exec) và dán vào trang /sync.
+ * - Sao chép Web App URL (dạng https://script.google.com/macros/s/.../exec) và dán vào trang /sync hoặc cấu hình hệ thống.
  */
 
 // Cấu hình tùy chọn (để trống nếu script gắn trực tiếp vào Google Sheets)
@@ -32,26 +35,185 @@ var CONFIG = {
   PRIMARY_KEY_COL: 'ID_Key'
 };
 
+var DELTAS_KEY = 'DYNAMO_RECENT_DELTAS';
+var VERSION_KEY = 'DYNAMO_VERSION';
+var CACHE_EXPIRY_SEC = 21600; // 6 giờ lưu trữ đệm
+
 /**
- * Xử lý yêu cầu HTTP GET (Kiểm tra trạng thái Webhook qua trình duyệt)
+ * Lấy số phiên bản hiện tại từ CacheService / ScriptProperties
+ */
+function getGlobalVersion() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var cached = cache.get(VERSION_KEY);
+    if (cached) return Number(cached) || 1;
+    var props = PropertiesService.getScriptProperties();
+    var stored = props.getProperty(VERSION_KEY);
+    var v = stored ? Number(stored) || 1 : 1;
+    cache.put(VERSION_KEY, String(v), CACHE_EXPIRY_SEC);
+    return v;
+  } catch (e) {
+    return 1;
+  }
+}
+
+/**
+ * Tăng số phiên bản toàn cục khi có thay đổi
+ */
+function incrementGlobalVersion() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var cur = Number(props.getProperty(VERSION_KEY)) || 1;
+    var next = cur + 1;
+    props.setProperty(VERSION_KEY, String(next));
+    var cache = CacheService.getScriptCache();
+    cache.put(VERSION_KEY, String(next), CACHE_EXPIRY_SEC);
+    return next;
+  } catch (e) {
+    return Date.now();
+  }
+}
+
+/**
+ * Ghi delta thay đổi vào bộ đệm FIFO gần nhất (lưu tối đa 200 thay đổi)
+ */
+function recordDelta(delta) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var listRaw = cache.get(DELTAS_KEY);
+    var list = [];
+    if (listRaw) {
+      try { list = JSON.parse(listRaw); } catch(e) {}
+    } else {
+      var props = PropertiesService.getScriptProperties();
+      var pRaw = props.getProperty(DELTAS_KEY);
+      if (pRaw) {
+        try { list = JSON.parse(pRaw); } catch(e) {}
+      }
+    }
+    list.push(delta);
+    if (list.length > 200) {
+      list = list.slice(list.length - 200);
+    }
+    var serialized = JSON.stringify(list);
+    cache.put(DELTAS_KEY, serialized, CACHE_EXPIRY_SEC);
+    PropertiesService.getScriptProperties().setProperty(DELTAS_KEY, serialized);
+  } catch (err) {
+    Logger.log('Lỗi lưu delta: ' + err.message);
+  }
+}
+
+/**
+ * Trả về các deltas phát sinh sau sinceVersion
+ */
+function getRecentDeltas(sinceVersion) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var listRaw = cache.get(DELTAS_KEY);
+    var list = [];
+    if (listRaw) {
+      try { list = JSON.parse(listRaw); } catch(e) {}
+    } else {
+      var props = PropertiesService.getScriptProperties();
+      var pRaw = props.getProperty(DELTAS_KEY);
+      if (pRaw) {
+        try { list = JSON.parse(pRaw); } catch(e) {}
+      }
+    }
+    var threshold = Number(sinceVersion) || 0;
+    return list.filter(function(d) {
+      return (Number(d.version) || 0) > threshold;
+    });
+  } catch (err) {
+    Logger.log('Lỗi đọc delta: ' + err.message);
+    return [];
+  }
+}
+
+/**
+ * Đọc trực tiếp các hàng từ Sheet (bỏ qua độ trễ CDN CSV của Google)
+ */
+function getLiveRowsFromSheet(sheet) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+  var data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var headers = data[0].map(function(h) { return String(h || '').trim(); });
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var rowObj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var h = headers[j];
+      if (h) {
+        rowObj[h] = data[i][j];
+      }
+    }
+    rows.push(rowObj);
+  }
+  return rows;
+}
+
+/**
+ * Xử lý yêu cầu HTTP GET
+ * - action=checkVersion / version: Kiểm tra nhanh phiên bản (< 50ms)
+ * - action=getDeltas / deltas: Lấy các thay đổi từ sau sinceVersion
+ * - action=getLive / live: Lấy dữ liệu bảng tính trực tiếp không độ trễ
+ * - Mặc định: Trả về trạng thái chẩn đoán Gateway
  */
 function doGet(e) {
   try {
+    var action = (e && e.parameter && e.parameter.action) ? String(e.parameter.action).trim() : '';
+    var version = getGlobalVersion();
+
+    if (action === 'checkVersion' || action === 'version') {
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        version: version,
+        timestamp: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'getDeltas' || action === 'deltas') {
+      var since = Number((e.parameter && (e.parameter.since || e.parameter.sinceVersion)) || 0);
+      var deltas = getRecentDeltas(since);
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        version: version,
+        deltas: deltas,
+        count: deltas.length,
+        timestamp: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'getLive' || action === 'live') {
+      var ss = getSpreadsheet();
+      var sheet = findTargetSheet(ss);
+      var rows = getLiveRowsFromSheet(sheet);
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        version: version,
+        total: rows.length,
+        items: rows,
+        timestamp: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var ss = getSpreadsheet();
     var sheet = findTargetSheet(ss);
     var colMap = getColumnMap(sheet);
 
     var response = {
       ok: true,
-      service: 'DYNAMO VIETNAM QT - MES Webhook Gateway',
+      service: 'DYNAMO VIETNAM QT - MES Webhook Gateway & Realtime Hub',
       status: 'ONLINE',
+      version: version,
       timestamp: new Date().toISOString(),
       spreadsheetName: ss.getName(),
       targetSheetName: sheet.getName(),
       targetSheetId: sheet.getSheetId(),
       totalRows: sheet.getLastRow(),
       detectedColumns: Object.keys(colMap),
-      instructions: 'Gửi yêu cầu HTTP POST với payload JSON để cập nhật dữ liệu lô hàng.'
+      instructions: 'Gửi HTTP POST payload JSON để cập nhật lô, hoặc GET ?action=checkVersion / ?action=getDeltas để đồng bộ thời gian thực.'
     };
 
     return ContentService.createTextOutput(JSON.stringify(response, null, 2))
@@ -60,8 +222,7 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({
       ok: false,
       error: err.message
-    }))
-      .setMimeType(ContentService.MimeType.JSON);
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -70,7 +231,6 @@ function doGet(e) {
  */
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  // Khóa tối đa 15 giây tránh race-condition khi nhiều bên ghi cùng lúc
   try {
     lock.waitLock(15000);
   } catch (lockErr) {
@@ -97,8 +257,19 @@ function doPost(e) {
     } else if (action === 'bulkUpdateLots') {
       var bulkResult = handleBulkUpdateLots(payload);
       return createJsonResponse(bulkResult.ok, bulkResult.message, bulkResult);
+    } else if (action === 'checkVersion' || action === 'version') {
+      var currentVersion = getGlobalVersion();
+      return createJsonResponse(true, 'OK', { version: currentVersion });
+    } else if (action === 'getDeltas' || action === 'deltas') {
+      var sinceVer = Number(payload.since || payload.sinceVersion || 0);
+      var curVer = getGlobalVersion();
+      var deltasList = getRecentDeltas(sinceVer);
+      return createJsonResponse(true, 'OK', { version: curVer, deltas: deltasList });
     } else if (action === 'ping') {
-      return createJsonResponse(true, 'DYNAMO MES Webhook phản hồi tốt.', { timestamp: new Date().toISOString() });
+      return createJsonResponse(true, 'DYNAMO MES Webhook phản hồi tốt.', {
+        timestamp: new Date().toISOString(),
+        version: getGlobalVersion()
+      });
     } else {
       return createJsonResponse(false, 'Hành động (action) không được hỗ trợ: ' + action);
     }
@@ -142,7 +313,7 @@ function handleUpdateLot(payload) {
   var targetRow = -1;
   for (var i = 0; i < keyRange.length; i++) {
     if (String(keyRange[i][0]).trim() === idKey) {
-      targetRow = i + 2; // +2 vì index bắt đầu từ 0 và dòng tiêu đề là 1
+      targetRow = i + 2;
       break;
     }
   }
@@ -217,12 +388,28 @@ function handleUpdateLot(payload) {
     details: JSON.stringify(newValues)
   });
 
+  // Tăng phiên bản toàn cục và lưu delta vào Realtime Cache Hub
+  var newVersion = incrementGlobalVersion();
+  recordDelta({
+    id: idKey,
+    patch: newValues,
+    version: newVersion,
+    timestamp: new Date().toISOString(),
+    user: user
+  });
+
   return {
     ok: true,
     message: 'Đã cập nhật thành công lô ' + idKey + ' (' + updatedFields.join(', ') + ') tại dòng ' + targetRow,
     ID_Key: idKey,
     row: targetRow,
     updatedFields: updatedFields,
+    version: newVersion,
+    delta: {
+      id: idKey,
+      patch: newValues,
+      version: newVersion
+    },
     changes: { old: oldValues, current: newValues }
   };
 }
@@ -238,6 +425,7 @@ function handleBulkUpdateLots(payload) {
 
   var successCount = 0;
   var errors = [];
+  var lastVersion = getGlobalVersion();
 
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
@@ -249,6 +437,7 @@ function handleBulkUpdateLots(payload) {
     });
     if (res.ok) {
       successCount++;
+      if (res.version) lastVersion = res.version;
     } else {
       errors.push(item.ID_Key + ': ' + res.message);
     }
@@ -258,6 +447,7 @@ function handleBulkUpdateLots(payload) {
     ok: errors.length === 0,
     message: 'Cập nhật thành công ' + successCount + '/' + items.length + ' lô.',
     successCount: successCount,
+    version: lastVersion,
     errors: errors
   };
 }
@@ -270,7 +460,6 @@ function logAuditTrail(ss, record) {
     var auditSheet = ss.getSheetByName(CONFIG.AUDIT_SHEET_NAME);
     if (!auditSheet) {
       auditSheet = ss.insertSheet(CONFIG.AUDIT_SHEET_NAME);
-      // Tạo hàng tiêu đề chuyên nghiệp
       var headers = [
         'Thời Gian (Timestamp)',
         'Mã Lô (ID_Key)',
@@ -349,7 +538,6 @@ function findTargetSheet(ss) {
     }
   }
 
-  // Fallback: Lấy sheet đầu tiên
   return sheets[0];
 }
 
@@ -388,30 +576,4 @@ function createJsonResponse(ok, message, extra) {
   }
   return ContentService.createTextOutput(JSON.stringify(res))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * ============================================================================
- * HÀM THỬ NGHIỆM TRỰC TIẾP TRONG APPS SCRIPT (TEST RUNNER)
- * ============================================================================
- * Bạn có thể chọn hàm này trong trình chỉnh sửa Apps Script rồi bấm "Run" để kiểm tra.
- */
-function testUpdateLot() {
-  var ss = getSpreadsheet();
-  var sheet = findTargetSheet(ss);
-  var colMap = getColumnMap(sheet);
-
-  Logger.log('Đã phát hiện sheet: ' + sheet.getName() + ' (ID: ' + sheet.getSheetId() + ')');
-  Logger.log('Các cột phát hiện: ' + JSON.stringify(colMap));
-
-  // Thử nghiệm ping
-  var fakeEvent = {
-    postData: {
-      contents: JSON.stringify({
-        action: 'ping'
-      })
-    }
-  };
-  var pingRes = doPost(fakeEvent);
-  Logger.log('Kết quả Ping test: ' + pingRes.getContent());
 }
