@@ -8,6 +8,8 @@ describe('DYNAMO QT-MES: Graphite Wireframe Design System Compliance Tests', () 
   const designSystemMdPath = path.join(rootDir, 'DESIGN-SYSTEM.md');
   const agentsMdPath = path.join(rootDir, 'AGENTS.md');
   const trackingTsxPath = path.join(rootDir, 'src/routes/tracking.tsx');
+  const dashboardTsxPath = path.join(rootDir, 'src/routes/dashboard.tsx');
+  const ordersTsxPath = path.join(rootDir, 'src/routes/orders.tsx');
 
   it('TC-DS-01: Tài liệu tối thượng DESIGN-SYSTEM.md tồn tại và được liên kết trong AGENTS.md', () => {
     expect(fs.existsSync(designSystemMdPath), 'DESIGN-SYSTEM.md phải tồn tại ở thư mục gốc').toBe(true);
@@ -74,5 +76,23 @@ describe('DYNAMO QT-MES: Graphite Wireframe Design System Compliance Tests', () 
     expect(trackingSrc).toContain('[WAIT]');
     expect(trackingSrc).toContain('[TRANSIT]');
     expect(trackingSrc).toContain('[STOCKED]');
+  });
+
+  it('TC-DS-05: Các trang Dashboard & Orders tuân thủ chuẩn bo góc tối thiểu 2px và font-mono tabular-nums', () => {
+    expect(fs.existsSync(dashboardTsxPath), 'dashboard.tsx phải tồn tại').toBe(true);
+    const dashboardSrc = fs.readFileSync(dashboardTsxPath, 'utf-8');
+    expect(dashboardSrc).not.toContain('rounded-lg');
+    expect(dashboardSrc).not.toContain('rounded-xl');
+    expect(dashboardSrc).not.toContain('rounded-2xl');
+    expect(dashboardSrc).toContain('font-mono');
+    expect(dashboardSrc).toContain('tabular-nums');
+
+    expect(fs.existsSync(ordersTsxPath), 'orders.tsx phải tồn tại').toBe(true);
+    const ordersSrc = fs.readFileSync(ordersTsxPath, 'utf-8');
+    expect(ordersSrc).not.toContain('rounded-lg');
+    expect(ordersSrc).not.toContain('rounded-xl');
+    expect(ordersSrc).not.toContain('rounded-2xl');
+    expect(ordersSrc).toContain('font-mono');
+    expect(ordersSrc).toContain('tabular-nums');
   });
 });

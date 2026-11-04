@@ -1,10 +1,10 @@
 ---
 title: DYNAMO QT-MES Design System Specification
 standard: Graphite Wireframe UI
-version: 2.0.0
+version: 2.1.0
 last_updated: 2026-11-04
 status: Active (Single Source of Truth)
-tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives]
+tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation]
 ---
 
 # DYNAMO QT-MES DESIGN SYSTEM
@@ -16,6 +16,7 @@ tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives]
 
 | Phiên bản | Ngày | Tác giả / Đội ngũ | Loại thay đổi | Nội dung tóm tắt |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.1.0** | 2026-11-04 | Dynamo MES Architecture Team | **ROUTING & ENHANCEMENT** | **Tái kích hoạt Dashboard & Orders và tinh gọn hệ thống:**<br>• Mở lại `/dashboard` (Tổng quan & Biên bản giao ca A4) và `/orders` (Chi tiết đơn hàng).<br>• Đồng bộ hóa toàn bộ góc bo 2px (`rounded-xs`) và lưới số liệu `font-mono tabular-nums` cho 2 trang mới mở.<br>• Dọn dẹp hoàn toàn 2 trang vệ tinh dư thừa `/materials` và `/audit-costs`.<br>• Mở rộng thanh điều hướng Header và Command Palette lên 4 trang chính thức: `[1] /tracking`, `[2] /dashboard`, `[3] /orders`, `[4] /sync`.<br>• Cập nhật bài kiểm tra tự động `TC-DS-05` và `app-routing.test.tsx`. |
 | **v2.0.0** | 2026-11-04 | Dynamo MES Architecture Team | **BREAKING / MAJOR** | **Chuyển đổi toàn diện sang chuẩn Graphite Wireframe UI:**<br>• Cố định bo góc tối thiểu 2px (`rounded-xs`) trên toàn hệ thống.<br>• Bảng biểu và số liệu định lượng bắt buộc sử dụng `font-mono tabular-nums`.<br>• Chuẩn hóa mã chỉ báo trạng thái công nghiệp `[WAIT]`, `[TRANSIT]`, `[STOCKED]`, `[PASS]`, `[FAIL]`.<br>• Loại bỏ toàn bộ `rounded-xl`, `rounded-2xl`, bóng mờ nặng `shadow-2xl` và gradient AI.<br>• Tích hợp bộ kiểm thử tự động `src/test/design-system-compliance.test.ts`. |
 | **v1.0.0** | 2026-10-14 | Dynamo MES Team | **INITIAL** | Khởi tạo giao diện MES trên TanStack Start, tích hợp Dark mode và bảng tính live Google Sheets. |
 
@@ -44,7 +45,7 @@ Hệ thống **DYNAMO QT-MES** là phần mềm điều hành xưởng nhiệt l
 ```
 TẦNG 1: DESIGN TOKENS        -> src/styles.css (@theme inline, :root, .dark)
 TẦNG 2: UI PRIMITIVES        -> src/components/ui/ (button, card, badge, dialog, input, table...)
-TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, telemetry, tracking, sync, login)
+TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, telemetry, tracking, dashboard, orders, sync, login)
 ```
 
 ### 2.1 Tầng 1: Design Tokens (`src/styles.css`)
@@ -103,7 +104,11 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 ### 2.3 Tầng 3: Composite Views & Layout
 
 #### 1. App Shell (`src/components/dynamo-shell.tsx`)
-- Navigation Tabs: `rounded-xs font-mono text-[12px] font-bold px-3 py-1.5`. Tab đang chọn có viền `border border-primary/40 bg-primary/15`.
+- Navigation Tabs: `rounded-xs font-mono text-[12px] font-bold px-3 py-1.5`.
+  - `[1] LUÂN CHUYỂN QT` (`/tracking`)
+  - `[2] TỔNG QUAN` (`/dashboard`)
+  - `[3] ĐƠN ĐẶT HÀNG` (`/orders`)
+  - `[4] LIÊN KẾT GOOGLE SHEETS` (`/sync`, phân quyền `admin`)
 - Profile Badge: Khối squircle 2px `size-6.5 rounded-xs font-mono font-black`.
 - Realtime Clock: Đồng hồ LED công nghiệp `led-clock rounded-xs font-mono tabular-nums`.
 
@@ -113,15 +118,25 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 
 #### 3. Main Tracking Dashboard (`src/routes/tracking.tsx`)
 - Cấu trúc bảng 17 cột: Header cố định (`sticky top-0 z-40`), Cột Checkbox (`sticky left-0`) và Mã lô (`sticky left-[44px]`).
-- Mã trạng thái Logistics:
+- Mã trạng thái Logistics & QC công nghiệp:
   - `Chờ xuất xưởng`: `border-warning/50 bg-warning/10 text-warning [WAIT]`
   - `Đang tại Vendor`: `border-info/50 bg-info/10 text-info [TRANSIT]`
   - `Đã nhập kho`: `border-run/50 bg-run/10 text-run [STOCKED]`
-- Mã trạng thái QC:
   - `Đạt`: `border-run/50 bg-run/10 text-run [QC:PASS]`
   - `Không đạt`: `border-destructive/50 bg-destructive/10 text-destructive andon-pulse [QC:FAIL]`
   - `Chưa kiểm tra`: `border-border/80 bg-secondary/60 text-muted-foreground [QC:PENDING]`
 - Thanh tác vụ nổi (Floating Batch Action Bar): Cố định đáy màn hình với `rounded-xs border border-border/80 bg-card/98 shadow-xl max-w-[calc(100vw-1.5rem)]`.
+
+#### 4. System Overview Dashboard (`src/routes/dashboard.tsx`)
+- 5 Thẻ chỉ báo KPI kỹ thuật với viền sắc 1px và thanh đồng hồ đo OTD (`meter`).
+- Pipeline tiến trình trực quan 4 công đoạn (`Chờ xuất xưởng` -> `Tại Vendor` -> `Về kho chờ QC` -> `Hoàn tất`).
+- Bảng phân tích điểm nghẽn (Bottlenecks) theo đối tác và phân xưởng với biểu đồ thanh tải tỷ lệ.
+- Hộp thoại Biên bản bàn giao ca sản xuất A4 tích hợp in chuẩn kỹ thuật (Printable SOP-MES-08).
+
+#### 5. Orders Management View (`src/routes/orders.tsx`)
+- Danh mục Master-Detail 2 cột: Cột trái liệt kê danh sách đơn đặt hàng với bộ lọc tức thì và số mã linh kiện.
+- Cột phải hiển thị chi tiết mã hàng, mác thép, độ cứng, kích thước, số lượng, đơn vị tính, đơn giá và thành tiền theo `font-mono tabular-nums`.
+- Nút chuyển đổi mật độ hiển thị (Nén / Vừa) và nút xuất dữ liệu CSV đơn hàng.
 
 ---
 
@@ -139,7 +154,8 @@ Khi can thiệp hoặc viết thêm mã nguồn mới, **TUYỆT ĐỐI KHÔNG**
 ## 🤖 4. Cơ Chế Tự Kiểm Tra & Duy Trì (Automated Enforcement)
 
 Mọi commit hoặc pull request phải vượt qua bài kiểm tra tự động tại:
-`src/test/design-system-compliance.test.ts`
+- `src/test/design-system-compliance.test.ts`
+- `src/test/app-routing.test.tsx`
 
 Quy trình kích hoạt:
 ```powershell
@@ -147,5 +163,6 @@ npm test
 ```
 Bài kiểm tra sẽ tự động quét mã nguồn và chặn đứng (throw error) nếu:
 - `--radius` trong `src/styles.css` khác `2px`.
-- Xuất hiện class cấm (`rounded-xl`, `rounded-2xl`, v.v.) trong `src/components/ui/` hoặc `src/routes/tracking.tsx`.
+- Xuất hiện class cấm (`rounded-lg`, `rounded-xl`, `rounded-2xl`, v.v.) trong `src/components/ui/` hoặc các màn hình chính (`tracking.tsx`, `dashboard.tsx`, `orders.tsx`).
 - Các cell số liệu trên bảng điều độ bị thiếu class `font-mono` hoặc `tabular-nums`.
+- Tuyến đường điều hướng trên App Shell không khớp với định tuyến hệ thống.
