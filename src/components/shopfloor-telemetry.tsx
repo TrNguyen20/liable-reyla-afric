@@ -112,11 +112,11 @@ export function ShopfloorTelemetry() {
             disabled={state === 'busy'}
             title="Làm mới dữ liệu tức thì từ Google Sheets (Phím tắt: Shift + R)"
             aria-label="Làm mới dữ liệu từ Google Sheets"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/80 bg-background/90 hover:bg-background px-2.5 py-1 text-[11px] font-bold text-foreground shadow-2xs hover:border-primary/50 transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xs border border-border/80 bg-background/90 hover:bg-background px-2.5 py-1 text-[11px] font-bold text-foreground shadow-2xs hover:border-primary/50 transition-all active:scale-95 cursor-pointer disabled:opacity-60"
           >
             <RefreshCw size={12} className={state === 'busy' ? 'animate-spin text-primary' : 'text-primary'} />
             <span>{state === 'busy' ? 'Đang tải…' : 'Làm mới'}</span>
-            <kbd className="hidden font-mono text-[9px] text-muted-foreground sm:inline-block bg-muted/80 px-1 py-0.2 rounded border border-border/50">
+            <kbd className="hidden font-mono text-[9px] text-muted-foreground sm:inline-block bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
               Shift+R
             </kbd>
           </button>

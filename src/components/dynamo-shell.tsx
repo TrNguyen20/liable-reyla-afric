@@ -3,8 +3,10 @@ import {
   ArrowLeftRight,
   CircleHelp,
   DatabaseZap,
+  LayoutDashboard,
   LogOut,
   Moon,
+  Package,
   Sun,
   WifiOff,
 } from 'lucide-react';
@@ -66,14 +68,16 @@ export function useDynamo() {
 }
 
 const nav: {
-  to: '/tracking' | '/sync';
+  to: '/tracking' | '/dashboard' | '/orders' | '/sync';
   label: string;
-  icon: typeof ArrowLeftRight | typeof DatabaseZap;
+  icon: typeof ArrowLeftRight | typeof LayoutDashboard | typeof Package | typeof DatabaseZap;
   section?: string;
   shortcut: string;
 }[] = [
   { to: '/tracking', label: 'LUÂN CHUYỂN QT', icon: ArrowLeftRight, section: 'ĐIỀU HÀNH', shortcut: '1' },
-  { to: '/sync', label: 'LIÊN KẾT GOOGLE SHEETS', icon: DatabaseZap, section: 'HỆ THỐNG', shortcut: '2' },
+  { to: '/dashboard', label: 'TỔNG QUAN', icon: LayoutDashboard, section: 'ĐIỀU HÀNH', shortcut: '2' },
+  { to: '/orders', label: 'ĐƠN ĐẶT HÀNG', icon: Package, section: 'ĐIỀU HÀNH', shortcut: '3' },
+  { to: '/sync', label: 'LIÊN KẾT GOOGLE SHEETS', icon: DatabaseZap, section: 'HỆ THỐNG', shortcut: '4' },
 ] as const;
 
 const LedClock = memo(function LedClock() {
@@ -93,7 +97,7 @@ const LedClock = memo(function LedClock() {
   const timeLabel = now.toLocaleTimeString('vi-VN', { hour12: false });
 
   return (
-    <div className="led-clock flex h-8 items-center gap-2 rounded-md px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
+    <div className="led-clock flex h-8 items-center gap-2 rounded-xs px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
       <span className="hidden text-[9px] font-semibold tracking-widest text-slate-400 sm:inline">
         {dateLabel}
       </span>
@@ -248,9 +252,11 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
         void pullLive();
         return;
       }
-      if (e.key >= '1' && e.key <= '2') {
-        const routes: ('/tracking' | '/sync')[] = [
+      if (e.key >= '1' && e.key <= '4') {
+        const routes: ('/tracking' | '/dashboard' | '/orders' | '/sync')[] = [
           '/tracking',
+          '/dashboard',
+          '/orders',
           '/sync',
         ];
         const targetRoute = routes[Number(e.key) - 1];
@@ -515,7 +521,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         key={n.to}
                         to={n.to}
                         title={`${n.label} (Phím [${n.shortcut}])`}
-                        className={`flex h-9 items-center gap-2 rounded-md px-3 text-[12px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
+                        className={`flex h-9 items-center gap-2 rounded-xs px-3 text-[12px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
                           isActive
                             ? 'bg-primary/15 text-primary border border-primary/30 shadow-2xs font-black'
                             : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
@@ -524,7 +530,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         <n.icon size={15} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                         <span>{n.label}</span>
                         <span
-                          className={`font-mono text-[9px] tabular-nums rounded px-1 py-0.2 hidden sm:inline-block ${
+                          className={`font-mono text-[9px] tabular-nums rounded-xs px-1 py-0.2 hidden sm:inline-block ${
                             isActive ? 'bg-primary/25 text-primary' : 'bg-muted/60 text-muted-foreground'
                           }`}
                         >
@@ -541,7 +547,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 {/* Role Impersonation Switcher (Chỉ cho Admin) */}
                 {role === 'admin' && (
                   <div
-                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-xs border px-2 py-1 text-xs transition-colors ${
                       impersonatedRole
                         ? 'border-warning bg-warning/15 text-warning font-bold'
                         : 'border-border/80 bg-secondary/70 text-foreground'
@@ -574,7 +580,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                       <button
                         type="button"
                         onClick={() => setImpersonatedRole(null)}
-                        className="rounded bg-destructive/20 px-1 py-0.5 text-[10px] font-bold text-destructive hover:bg-destructive/30 cursor-pointer"
+                        className="rounded-xs bg-destructive/20 px-1 py-0.5 text-[10px] font-bold text-destructive hover:bg-destructive/30 cursor-pointer"
                         title="Hủy giả lập"
                       >
                         ✕
@@ -601,8 +607,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 </Button>
 
                 {/* User Profile Pill */}
-                <div className="flex items-center gap-2 rounded-md border border-border/80 bg-secondary/50 px-2 py-1">
-                  <span className="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-black text-primary">
+                <div className="flex items-center gap-2 rounded-xs border border-border/80 bg-secondary/50 px-2 py-1">
+                  <span className="flex size-6.5 shrink-0 items-center justify-center rounded-xs bg-primary/20 text-[10px] font-mono font-black text-primary">
                     QT
                   </span>
                   <div className="hidden sm:flex flex-col text-left">

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
+  Package,
   RefreshCw,
   Search,
   Sun,
@@ -59,7 +60,7 @@ export function CommandPalette({
     return hits;
   }, [dataset, search]);
 
-  const handleSelectNav = (path: '/tracking' | '/sync') => {
+  const handleSelectNav = (path: '/tracking' | '/dashboard' | '/orders' | '/sync') => {
     onOpenChange(false);
     navigate({ to: path });
   };
@@ -120,10 +121,20 @@ export function CommandPalette({
             <span>Luân chuyển nhiệt luyện QT</span>
             <CommandShortcut>Phím 1</CommandShortcut>
           </CommandItem>
+          <CommandItem onSelect={() => handleSelectNav('/dashboard')}>
+            <LayoutDashboard className="mr-2 h-4 w-4 text-primary" />
+            <span>Tổng quan hệ thống</span>
+            <CommandShortcut>Phím 2</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelectNav('/orders')}>
+            <Package className="mr-2 h-4 w-4 text-primary" />
+            <span>Đơn đặt hàng & chi tiết</span>
+            <CommandShortcut>Phím 3</CommandShortcut>
+          </CommandItem>
           <CommandItem onSelect={() => handleSelectNav('/sync')}>
             <DatabaseZap className="mr-2 h-4 w-4 text-primary" />
             <span>Liên kết Google Sheets</span>
-            <CommandShortcut>Phím 2</CommandShortcut>
+            <CommandShortcut>Phím 4</CommandShortcut>
           </CommandItem>
         </CommandGroup>
 

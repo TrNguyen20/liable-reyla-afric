@@ -53,7 +53,7 @@ export function LotUpdateButton({ item }: { item: QTItem }) {
     toast.success(`Đã lưu và ghi lên Google Sheet: lô ${item.ID_Key}`); setOpen(false);
   };
 
-  const field = 'mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm';
+  const field = 'mt-1 h-10 w-full rounded-xs border border-input bg-background px-3 font-mono text-sm';
   const showDate = d.status === 'Kiểm tra QC' || d.status === 'Đã nhập kho' || !!item.ngay_nhan;
   const showHrc = d.status === 'Kiểm tra QC' || d.status === 'Đã nhập kho';
   return <>
@@ -61,7 +61,7 @@ export function LotUpdateButton({ item }: { item: QTItem }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader><DialogTitle>Cập nhật lô {item.ID_Key}</DialogTitle></DialogHeader>
-        <dl className="grid grid-cols-2 gap-2 rounded-sm border border-border bg-muted/40 p-3 text-xs">
+        <dl className="grid grid-cols-2 gap-2 rounded-xs border border-border bg-muted/40 p-3 text-xs">
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Mã hàng</dt><dd className="font-mono font-bold text-foreground">{item.ma_hang}</dd></div>
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Số đặt hàng</dt><dd className="font-mono text-foreground">{item.So_DatHang}</dd></div>
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Đơn vị gia công</dt><dd className="font-medium text-foreground">{formatVendorName(item.cty_QT, role)}</dd></div>

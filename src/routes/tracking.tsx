@@ -238,7 +238,7 @@ function HeaderSortControls({
         <button
           type="button"
           onClick={() => onSort(field, 'asc')}
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${isAsc
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-xs text-xs font-medium transition-all cursor-pointer ${isAsc
             ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
             : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
             }`}
@@ -252,7 +252,7 @@ function HeaderSortControls({
         <button
           type="button"
           onClick={() => onSort(field, 'desc')}
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${isDesc
+          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-xs text-xs font-medium transition-all cursor-pointer ${isDesc
             ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
             : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
             }`}
@@ -382,7 +382,7 @@ function HeaderFilterCell({
           <PopoverContent
             align={align === 'end' ? 'end' : 'start'}
             sideOffset={6}
-            className="w-80 max-w-[92vw] p-3 text-xs bg-popover text-popover-foreground shadow-2xl border border-border rounded-lg z-50 font-sans normal-case tracking-normal"
+            className="w-80 max-w-[92vw] p-3 text-xs bg-popover text-popover-foreground shadow-xl border border-border rounded-xs z-50 font-sans normal-case tracking-normal"
           >
             {open && children}
           </PopoverContent>
@@ -1340,7 +1340,7 @@ function Tracking() {
       >
       {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
       {activeFilters.length > 0 && (
-        <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-xs border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
           <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
             <Filter size={13} />
             Đang lọc ({activeFilters.length}):
@@ -1348,7 +1348,7 @@ function Tracking() {
           {activeFilters.map((af) => (
             <span
               key={af.key}
-              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-card px-2.5 py-0.5 text-[11px] font-medium text-foreground shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-primary/30 bg-card px-2.5 py-0.5 text-[11px] font-medium text-foreground shadow-2xs"
             >
               <span>{af.label}</span>
               <button
@@ -1368,7 +1368,7 @@ function Tracking() {
           <button
             type="button"
             onClick={resetAllFilters}
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
+            className="ml-auto inline-flex items-center gap-1 rounded-xs border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
             title="Xóa toàn bộ các bộ lọc trên bảng"
           >
             <Trash2 size={12} />
@@ -1381,10 +1381,10 @@ function Tracking() {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
         <div className="flex flex-wrap items-center gap-2">
           {/* Badge 1: Số lô khớp / Tổng số lô với đèn LED tín hiệu */}
-          <div className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
+          <div className="inline-flex items-center gap-2 rounded-xs border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
             <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              <span className="inline-block size-2 rounded-full fx-run-dot shrink-0" aria-hidden />
+
             </span>
             <span className="text-[11px] text-muted-foreground font-medium">Lô quản lý:</span>
             <span className="font-mono tabular-nums font-bold text-foreground">
@@ -1394,7 +1394,7 @@ function Tracking() {
           </div>
 
           {/* Badge 2: Tổng khối lượng (kg) */}
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
+          <div className="inline-flex items-center gap-1.5 rounded-xs border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
             <span className="text-[11px] text-muted-foreground font-medium">Khối lượng:</span>
             <span className="font-mono tabular-nums font-bold text-foreground">
               {number(totalKg, 1)} <span className="text-[11px] font-normal text-muted-foreground">kg</span>
@@ -1402,9 +1402,9 @@ function Tracking() {
           </div>
 
           {/* Badge 3: Phân xưởng */}
-          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
+          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-xs border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
             <span className="text-[11px] text-muted-foreground font-medium">Phân xưởng:</span>
-            <span className="font-semibold text-foreground truncate max-w-[200px]">
+            <span className="font-mono font-bold text-foreground truncate max-w-[200px]">
               {workshops.join(', ')}
             </span>
           </div>
@@ -1415,7 +1415,7 @@ function Tracking() {
           <button
             type="button"
             onClick={toggleTableFullscreen}
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${
+            className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${
               isTableFullscreen
                 ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                 : 'border-border/80 bg-card text-foreground hover:bg-secondary hover:border-primary/40'
@@ -1447,7 +1447,7 @@ function Tracking() {
           <button
             type="button"
             onClick={() => exportCsv(false)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
+            className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
             title="Xuất toàn bộ danh sách hiện tại ra file CSV"
           >
             <Download size={12} className="text-primary/90" />
@@ -1457,7 +1457,7 @@ function Tracking() {
           <button
             type="button"
             onClick={handleResetAllColWidths}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
+            className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
             title="Khôi phục kích thước mặc định cho toàn bộ cột"
           >
             <RotateCcw size={11} className="text-primary/80" />
@@ -1473,7 +1473,7 @@ function Tracking() {
       </div>
 
       {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
-      <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xs">
+      <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-border bg-card shadow-2xs">
         <div className="flex-1 min-h-0 overflow-auto">
           <table
             className="text-left text-xs border-collapse"
@@ -2158,7 +2158,7 @@ function Tracking() {
                                     : 'text-foreground'
                                   }`}
                               >
-                                {q}
+                                {q === 'Đạt' ? '[QC:PASS] Đạt' : q === 'Không đạt' ? '[QC:FAIL] K.Đạt' : q === 'Đang kiểm tra' ? '[QC:INSPECT] Đang KT' : '[QC:PENDING] Chưa KT'}
                               </span>
                             </span>
                             <span className="font-mono text-muted-foreground">{count}</span>
@@ -2488,7 +2488,7 @@ function Tracking() {
                       </td>
 
                       {/* 4. Xưởng */}
-                      <td className="whitespace-nowrap px-3.5 py-2.5 font-bold text-foreground">
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-foreground">
                         {r.phong_sx}
                       </td>
 
@@ -2504,7 +2504,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[130px] rounded border-2 border-primary bg-background px-2 font-mono text-xs font-bold text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[130px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs font-bold text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2530,7 +2530,7 @@ function Tracking() {
 
                       {/* 6. Vật liệu (Inline Quick-Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-medium text-foreground transition-all ${savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
                           }`}
                       >
                         {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
@@ -2540,7 +2540,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[110px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[110px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2576,7 +2576,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[90px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[90px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2610,7 +2610,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[80px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[80px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2647,7 +2647,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[80px] rounded border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[80px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2673,7 +2673,7 @@ function Tracking() {
 
                       {/* 10. Đối tác (Partner Privacy Masking & Admin Edit) */}
                       <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-medium text-foreground transition-all ${savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-semibold text-foreground transition-all ${savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
                           }`}
                       >
                         {isAdmin && editingCell?.id === r.ID_Key && editingCell.field === 'cty_QT' ? (
@@ -2682,7 +2682,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[110px] rounded border-2 border-primary bg-background px-1.5 font-semibold text-xs text-foreground outline-none shadow-xs cursor-pointer"
+                            className="h-7 w-full min-w-[110px] rounded-xs border-2 border-primary bg-background px-1.5 font-semibold text-xs text-foreground outline-none shadow-xs cursor-pointer"
                             autoFocus
                           >
                             <option value="YAMAICHI">YAMAICHI</option>
@@ -2729,7 +2729,7 @@ function Tracking() {
                             toast.success(`Đã chuyển lô ${r.ID_Key} sang: ${newStatus}`);
                             playAudioCue('success');
                           }}
-                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${r.TrangThai === 'Đã nhập kho'
+                          className={`h-6 rounded-xs px-2 text-[10px] font-mono font-bold tracking-tight border transition-colors outline-none cursor-pointer ${r.TrangThai === 'Đã nhập kho'
                             ? 'border-border bg-secondary text-muted-foreground'
                             : r.TrangThai === 'Đang tại Vendor'
                               ? 'border-primary/40 bg-primary/10 text-primary'
@@ -2738,7 +2738,7 @@ function Tracking() {
                         >
                           {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Status[]).map((s) => (
                             <option key={s} value={s} className="bg-popover text-popover-foreground">
-                              {s}
+                              {s === 'Chờ xuất xưởng' ? '[WAIT] Chờ xuất' : s === 'Đang tại Vendor' ? '[TRANSIT] Tại Vendor' : '[STOCKED] Đã nhập kho'}
                             </option>
                           ))}
                         </select>
@@ -2768,7 +2768,7 @@ function Tracking() {
                             toast.success(`Cập nhật QC lô ${r.ID_Key}: ${newQc}`);
                             playAudioCue('success');
                           }}
-                          className={`h-6 rounded px-1.5 text-[11px] font-semibold border transition-colors outline-none cursor-pointer ${qcOf(r) === 'Đạt'
+                          className={`h-6 rounded-xs px-2 text-[10px] font-mono font-bold tracking-tight border transition-colors outline-none cursor-pointer ${qcOf(r) === 'Đạt'
                             ? 'border-primary/40 bg-primary/10 text-primary'
                             : qcOf(r) === 'Không đạt'
                               ? 'border-destructive/40 bg-destructive/10 text-destructive'
@@ -2777,7 +2777,7 @@ function Tracking() {
                         >
                           {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => (
                             <option key={q} value={q} className="bg-popover text-popover-foreground">
-                              {q}
+                              {q === 'Đạt' ? '[QC:PASS] Đạt' : q === 'Không đạt' ? '[QC:FAIL] K.Đạt' : q === 'Đang kiểm tra' ? '[QC:INSPECT] Đang KT' : '[QC:PENDING] Chưa KT'}
                             </option>
                           ))}
                         </select>
@@ -2795,7 +2795,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[130px] rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[130px] rounded-xs border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2831,7 +2831,7 @@ function Tracking() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleCellKeyDown(e, r)}
                             onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[130px] rounded border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
+                            className="h-7 w-full min-w-[130px] rounded-xs border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
                             autoFocus
                           />
                         ) : (
@@ -2883,7 +2883,7 @@ function Tracking() {
                             onBlur={() => saveInlineEdit(r)}
                             rows={1}
                             style={{ resize: 'both' }}
-                            className="min-h-[34px] w-full rounded border-2 border-primary bg-background px-2 py-1 text-xs text-foreground outline-none shadow-xs leading-relaxed"
+                            className="min-h-[34px] w-full rounded-xs border-2 border-primary bg-background px-2 py-1 font-mono text-xs text-foreground outline-none shadow-xs leading-relaxed"
                             autoFocus
                           />
                         ) : (
@@ -2921,7 +2921,7 @@ function Tracking() {
               ) : (
                 <tr>
                   <td colSpan={16} className="px-4 py-16 text-center text-xs text-muted-foreground">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 border border-border/80 text-muted-foreground mb-3">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xs bg-muted/60 border border-border/80 text-muted-foreground mb-3">
                       <PackageOpen size={24} className="opacity-80 text-foreground" />
                     </div>
                     <p className="font-bold text-foreground text-sm">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
@@ -2932,7 +2932,7 @@ function Tracking() {
                       <button
                         type="button"
                         onClick={resetAllFilters}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer shadow-2xs active:scale-98"
+                        className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer shadow-2xs active:scale-98"
                       >
                         <RotateCcw size={12} />
                         <span>Xóa tất cả tiêu chí lọc & Tải lại</span>
@@ -2948,7 +2948,7 @@ function Tracking() {
         {/* Pagination & Export Bar - Monozukuri Ergonomic Control Bar (TASK-005) */}
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 border-t border-border bg-secondary/35 px-3.5 py-2 text-[11px] text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded border border-border/60 shadow-2xs">
+            <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded-xs border border-border/60 shadow-2xs">
               Đang xem <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}
               <b className="text-foreground">{number(Math.min((tablePage + 1) * pageSize, rows.length))}</b> /{' '}
               <span className="font-bold text-foreground">{number(rows.length)}</span> lô
@@ -2962,7 +2962,7 @@ function Tracking() {
                   setPageSize(Number(e.target.value));
                   setTablePage(0);
                 }}
-                className="rounded-md border border-input bg-background px-2.5 py-1 text-[11px] text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs cursor-pointer"
+                className="rounded-xs border border-input bg-background px-2.5 py-1 text-[11px] text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs cursor-pointer"
               >
                 {PAGE_SIZES.map((n) => (
                   <option key={n} value={n}>
@@ -2975,7 +2975,7 @@ function Tracking() {
             <button
               type="button"
               onClick={() => exportCsv(false)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
             >
               <Download size={13} className="text-primary/90" />
               <span>Xuất CSV toàn bộ</span>
@@ -2991,7 +2991,7 @@ function Tracking() {
                 playAudioCue('beep');
               }}
               title="Trang trước (Phím tắt: Alt + Mũi tên trái)"
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
+              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
             >
               <ChevronLeft size={13} />
               <span>Trang trước</span>
@@ -3000,7 +3000,7 @@ function Tracking() {
               </kbd>
             </button>
 
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
               <span className="text-muted-foreground font-sans">Trang</span>
               <span className="font-bold text-foreground text-xs">{tablePage + 1}</span>
               <span className="text-muted-foreground/60">/</span>
@@ -3015,7 +3015,7 @@ function Tracking() {
                 playAudioCue('beep');
               }}
               title="Trang sau (Phím tắt: Alt + Mũi tên phải)"
-              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
+              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
             >
               <span>Trang sau</span>
               <ChevronRight size={13} />
@@ -3032,11 +3032,11 @@ function Tracking() {
       {selectedLots.size > 0 && (
         <aside
           aria-label="Thao tác hàng loạt"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-45 flex flex-wrap items-center gap-2.5 rounded-xl border border-border/80 bg-card/95 px-4 py-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 text-xs"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-45 flex flex-wrap items-center gap-2.5 rounded-xs border border-border/80 bg-card/98 px-4 py-2 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 text-xs max-w-[calc(100vw-1.5rem)]"
         >
           {/* Segment 1: Selected Count & Telemetry */}
           <div className="flex items-center gap-2.5 pr-3 border-r border-border/80">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[11px] font-black text-primary-foreground shadow-2xs">
+            <span className="flex h-6 w-6 items-center justify-center rounded-xs bg-primary text-[11px] font-mono font-black text-primary-foreground shadow-2xs">
               {selectedLots.size}
             </span>
             <div className="flex flex-col">
@@ -3054,7 +3054,7 @@ function Tracking() {
             <button
               type="button"
               onClick={() => setBulkEditOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-xs active:scale-98"
+              className="inline-flex items-center gap-1.5 rounded-xs bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-xs active:scale-98"
             >
               <Zap size={13} />
               <span>Sửa hàng loạt</span>
@@ -3063,7 +3063,7 @@ function Tracking() {
             <button
               type="button"
               onClick={() => setBatchPrintOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
             >
               <Printer size={13} className="text-primary/80" />
               <span>In phiếu A4 ({selectedLots.size})</span>
@@ -3077,7 +3077,7 @@ function Tracking() {
             <button
               type="button"
               onClick={() => exportCsv(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
             >
               <Download size={13} className="text-primary/80" />
               <span>Xuất CSV</span>
@@ -3086,7 +3086,7 @@ function Tracking() {
             <button
               type="button"
               onClick={copySelectedIds}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
             >
               <Copy size={13} className="text-muted-foreground" />
               <span>Copy mã</span>
@@ -3102,7 +3102,7 @@ function Tracking() {
               setSelectedLots(new Set());
               playAudioCue('pop');
             }}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 rounded-xs px-2 py-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
             title="Bỏ chọn toàn bộ (Phím tắt: Esc)"
           >
             <X size={15} />
@@ -3237,7 +3237,7 @@ function BulkEditDialog({
       onClick={onClose}
     >
       <div
-        className="mes-card w-full max-w-xl overflow-hidden rounded-xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="mes-card w-full max-w-xl overflow-hidden rounded-xs p-6 shadow-xl max-h-[90vh] overflow-y-auto border border-border"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -3593,7 +3593,7 @@ function LotDetailDrawer({
 
           {/* If Editing Mode */}
           {isEditing ? (
-            <div className="space-y-3 rounded-lg border border-primary/30 bg-secondary/20 p-4 text-xs mb-4">
+            <div className="space-y-3 rounded-xs border border-primary/30 bg-secondary/20 p-4 text-xs mb-4">
               <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-1.5">
                 <Edit2 size={14} className="text-primary" /> Chỉnh sửa thông số lô {item.ID_Key}
               </h3>
@@ -3761,7 +3761,7 @@ function LotDetailDrawer({
           ) : (
             <>
               {/* Technical Specs Grid - Monozukuri Precision Grid (TASK-005) */}
-              <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/80 bg-secondary/30 p-3.5 text-xs mb-4">
+              <div className="grid grid-cols-2 gap-3 rounded-xs border border-border/80 bg-secondary/30 p-3.5 text-xs mb-4">
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider mb-0.5">
                     Mác thép / Vật liệu:
@@ -3857,7 +3857,7 @@ function LotDetailDrawer({
               </div>
 
               {/* Current Status Banner */}
-              <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3 mb-4">
+              <div className="flex items-center justify-between rounded-xs border border-primary/30 bg-primary/5 p-3 mb-4">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground">
                     Trạng thái luân chuyển:
@@ -3878,7 +3878,7 @@ function LotDetailDrawer({
               </span>
             </h3>
             {auditLogs.length ? (
-              <div className="max-h-48 overflow-y-auto space-y-2 rounded-lg border border-border/80 bg-background/50 p-2.5 text-[11px]">
+              <div className="max-h-48 overflow-y-auto space-y-2 rounded-xs border border-border/80 bg-background/50 p-2.5 text-[11px]">
                 {auditLogs.map((log) => (
                   <div key={log.id} className="border-l-2 border-primary/70 pl-2.5 py-1 bg-secondary/25 rounded-r pr-2 shadow-2xs">
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
@@ -3897,7 +3897,7 @@ function LotDetailDrawer({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground italic p-3 border border-border/60 rounded-lg text-center bg-secondary/20">
+              <p className="text-xs text-muted-foreground italic p-3 border border-border/60 rounded-xs text-center bg-secondary/20">
                 Chưa có thay đổi nào được ghi nhận cho lô này.
               </p>
             )}

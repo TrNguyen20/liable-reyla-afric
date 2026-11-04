@@ -228,12 +228,12 @@ function Sync() {
       {/* 2-Column Balanced Hub: Left Gateway (Inbound & Outbound) / Right Staging & Commit */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* COLUMN 1: KẾT NỐI HAI CHIỀU (INBOUND SHEETS + OUTBOUND APPS SCRIPT) */}
-        <section className="mes-card p-4 sm:p-5 rounded-lg flex flex-col justify-between border border-border/80 shadow-2xs space-y-4">
+        <section className="mes-card p-4 sm:p-5 rounded-xs flex flex-col justify-between border border-border/80 shadow-2xs space-y-4">
           <div className="space-y-4">
             {/* Header Column 1 */}
             <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2.5">
-                <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <span className="flex size-9 items-center justify-center rounded-xs bg-primary/10 text-primary">
                   <ArrowLeftRight size={18} />
                 </span>
                 <div>
@@ -251,7 +251,7 @@ function Sync() {
             </div>
 
             {/* BLOCK 1: INBOUND GOOGLE SHEETS */}
-            <div className="rounded-lg border border-border/70 bg-secondary/20 p-3.5 space-y-3">
+            <div className="rounded-xs border border-border/70 bg-secondary/20 p-3.5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Database size={15} className="text-primary" />
@@ -336,7 +336,7 @@ function Sync() {
             </div>
 
             {/* BLOCK 2: OUTBOUND GOOGLE APPS SCRIPT WEBHOOK */}
-            <div className="rounded-lg border border-border/70 bg-secondary/20 p-3.5 space-y-2.5">
+            <div className="rounded-xs border border-border/70 bg-secondary/20 p-3.5 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Globe size={15} className="text-primary" />
@@ -454,7 +454,7 @@ function Sync() {
         </section>
 
         {/* COLUMN 2: KIỂM SOÁT GIAO DỊCH & BỘ NHỚ ĐỆM (STAGING & COMMIT) */}
-        <section className="mes-card p-4 sm:p-5 rounded-lg flex flex-col justify-between border border-border/80 shadow-2xs space-y-4">
+        <section className="mes-card p-4 sm:p-5 rounded-xs flex flex-col justify-between border border-border/80 shadow-2xs space-y-4">
           <div className="space-y-4">
             {/* Header Column 2 */}
             <div className="flex items-center justify-between border-b border-border/70 pb-3">
@@ -539,14 +539,14 @@ function Sync() {
             </div>
 
             {/* Commit Mode Switcher */}
-            <div className="rounded-lg border border-border/70 bg-secondary/20 p-3 space-y-2">
+            <div className="rounded-xs border border-border/70 bg-secondary/20 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-xs text-foreground">Chế độ áp dụng vào hệ thống:</span>
                 <span className="font-mono text-[9px] font-semibold text-muted-foreground">TRANSACTION MODE</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <label
-                  className={`flex items-start gap-2 rounded-md border p-2 cursor-pointer transition-colors ${
+                  className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${
                     mode === 'replace'
                       ? 'border-primary bg-primary/10 text-primary font-bold'
                       : 'border-border bg-card text-muted-foreground hover:bg-secondary'
@@ -568,7 +568,7 @@ function Sync() {
                 </label>
 
                 <label
-                  className={`flex items-start gap-2 rounded-md border p-2 cursor-pointer transition-colors ${
+                  className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${
                     mode === 'merge'
                       ? 'border-primary bg-primary/10 text-primary font-bold'
                       : 'border-border bg-card text-muted-foreground hover:bg-secondary'
