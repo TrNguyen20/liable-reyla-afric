@@ -1,0 +1,37 @@
+{
+  "columns": {
+    "checkbox": "選択",
+    "lotId": "ロット番号",
+    "orderNo": "発注番号",
+    "itemCode": "品番",
+    "material": "材質",
+    "hardness": "硬度",
+    "quantity": "数量",
+    "weight": "重量(kg)",
+    "partner": "外注先",
+    "logistics": "物流状態",
+    "qc": "品質検査",
+    "sentDate": "発送日",
+    "dueDate": "納期",
+    "notes": "備考",
+    "ticket": "指示書A4"
+  },
+  "workshops": {
+    "title": "製造工場",
+    "all": "全工場",
+    "pin": "PIN工場",
+    "insert": "INSERT工場",
+    "mold": "MOLD工場"
+  },
+  "actions": {
+    "addNote": "+ 備考追加",
+    "notePlaceholder": "ロット備考を入力... (Enter: 保存, Shift+Enter: 改行, Tab: 次のセル)",
+    "selectPartner": "外注先を選択",
+    "selectedCount": "{count} 件選択中",
+    "clearFilter": "全絞り込み解除"
+  },
+  "density": {
+    "compact": "コンパクト",
+    "normal": "標準"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "save": "Save changes",
+  "delete": "Delete",
+  "close": "Close",
+  "refresh": "Refresh",
+  "exportCsv": "Export CSV",
+  "resetColWidths": "Reset widths",
+  "fullscreen": "Fullscreen",
+  "search": "Search...",
+  "filter": "Filter",
+  "all": "All",
+  "loading": "Loading data...",
+  "offlineAlert": "FACTORY NETWORK DISCONNECTED · RUNNING IN OFFLINE MODE (DATA SAVED LOCALLY)",
+  "roles": {
+    "admin": "Admin (Full access)",
+    "leader": "Leader (Workshop)",
+    "viewer": "Viewer (Masked partner)",
+    "qt_yamaichi": "Partner YAMAICHI",
+    "qt_provision": "Partner PROVISION"
+  },
+  "view": "View",
+  "logout": "Logout",
+  "themeLight": "Switch to Light mode",
+  "themeDark": "Switch to Dark mode"
+}

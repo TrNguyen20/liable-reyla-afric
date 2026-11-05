@@ -1,0 +1,8 @@
+{
+  "title": "データ同期管理",
+  "googleSheets": "スプレッドシート連携",
+  "biDirectional": "双方向同期",
+  "availableLots": "連携可能ロット",
+  "syncNow": "今すぐ同期",
+  "webhookStatus": "Webhook状態"
+}

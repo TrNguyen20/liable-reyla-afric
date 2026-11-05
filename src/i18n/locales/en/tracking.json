@@ -1,0 +1,37 @@
+{
+  "columns": {
+    "checkbox": "Select",
+    "lotId": "LOT ID",
+    "orderNo": "ORDER NO",
+    "itemCode": "ITEM CODE",
+    "material": "MATERIAL",
+    "hardness": "HARDNESS",
+    "quantity": "QTY",
+    "weight": "KG",
+    "partner": "PARTNER",
+    "logistics": "LOGISTICS",
+    "qc": "QC",
+    "sentDate": "SENT DATE",
+    "dueDate": "DUE DATE",
+    "notes": "NOTES",
+    "ticket": "TICKET"
+  },
+  "workshops": {
+    "title": "Workshop",
+    "all": "All workshops",
+    "pin": "PIN shop",
+    "insert": "INSERT shop",
+    "mold": "MOLD shop"
+  },
+  "actions": {
+    "addNote": "+ Add note",
+    "notePlaceholder": "Enter note for lot... (Enter: save, Shift+Enter: newline, Tab: next cell)",
+    "selectPartner": "Select partner",
+    "selectedCount": "{count} lots selected",
+    "clearFilter": "Clear all filters"
+  },
+  "density": {
+    "compact": "Compact",
+    "normal": "Normal"
+  }
+}

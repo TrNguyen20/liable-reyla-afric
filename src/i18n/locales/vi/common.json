@@ -1,0 +1,27 @@
+{
+  "confirm": "Xác nhận",
+  "cancel": "Hủy",
+  "save": "Lưu thay đổi",
+  "delete": "Xóa",
+  "close": "Đóng",
+  "refresh": "Làm mới",
+  "exportCsv": "Xuất CSV",
+  "resetColWidths": "Khôi phục cỡ cột",
+  "fullscreen": "Toàn màn hình",
+  "search": "Tìm kiếm...",
+  "filter": "Lọc",
+  "all": "Tất cả",
+  "loading": "Đang tải dữ liệu...",
+  "offlineAlert": "MẤT KẾT NỐI MẠNG NHÀ MÁY · ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (DỮ LIỆU ĐƯỢC LƯU CỤC BỘ)",
+  "roles": {
+    "admin": "Admin (Toàn quyền)",
+    "leader": "Leader (Phân xưởng)",
+    "viewer": "Viewer (Mã hóa đối tác)",
+    "qt_yamaichi": "Đối tác YAMAICHI",
+    "qt_provision": "Đối tác PROVISION"
+  },
+  "view": "Góc nhìn",
+  "logout": "Đăng xuất",
+  "themeLight": "Chuyển Light mode",
+  "themeDark": "Chuyển Dark mode"
+}

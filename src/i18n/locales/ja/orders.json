@@ -1,0 +1,6 @@
+{
+  "title": "発注詳細一覧",
+  "searchPlaceholder": "発注番号、品番、部品名で検索...",
+  "totalOrders": "総発注件数",
+  "activeOrders": "仕掛発注件数"
+}

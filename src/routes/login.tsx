@@ -414,7 +414,7 @@ function Login() {
 
                 {/* Industrial Touchscreen Virtual Numpad */}
                 {kioskMode && (
-                  <div className="mt-3 overflow-hidden rounded-md border border-border bg-card p-2.5 shadow-xs">
+                  <div className="mt-3 overflow-hidden rounded-xs border border-border bg-card p-2.5 shadow-2xs">
                     <p className="mb-2 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)
                     </p>

@@ -1,0 +1,10 @@
+{
+  "shift": "Working Shift",
+  "shiftName": "Shift {shift}",
+  "liveHub": "LIVE HUB CONNECTED",
+  "localCache": "LOCAL CACHE",
+  "totalLots": "Total Lots",
+  "externalHeatTreatment": "EXTERNAL SUBCONTRACT",
+  "workshopLoad": "WORKSHOP LOAD",
+  "updatedAt": "Updated at"
+}

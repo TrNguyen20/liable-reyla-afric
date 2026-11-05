@@ -19,7 +19,7 @@ export const roleLabel = (role: Role) => {
   if (v) return `Đối tác: ${v}`;
   return role === 'admin' ? 'Admin Điều hành' : role === 'leader' ? 'Leader Phân xưởng' : 'Viewer (Chỉ xem)';
 };
-export const roleBadge = (role: Role) => getVendorScope(role) ? 'bg-warning/20 text-warning' : role === 'admin' ? 'bg-dynamo/20 text-dynamo' : role === 'leader' ? 'bg-sidebar-primary/20 text-sidebar-primary' : 'bg-info/20 text-info';
+export const roleBadge = (role: Role) => getVendorScope(role) ? 'bg-warning/15 text-warning border border-warning/40 font-mono rounded-xs' : role === 'admin' ? 'bg-dynamo/15 text-dynamo border border-dynamo/40 font-mono rounded-xs' : role === 'leader' ? 'bg-sidebar-primary/15 text-sidebar-primary border border-sidebar-primary/40 font-mono rounded-xs' : 'bg-info/15 text-info border border-info/40 font-mono rounded-xs';
 
 const RESTRICTED = ['/sync'];
 export const canAccessRoute = (role: Role, path: string) => {

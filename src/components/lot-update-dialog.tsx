@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { ArrowRight, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useDynamo } from '@/components/dynamo-shell';
 import { getVendorScope, formatVendorName } from '@/lib/dynamo-auth';
 import { date, type QTItem, type Status } from '@/lib/dynamo-data';
 import { appendAudit, nextMoves, validateUpdate, type Draft } from '@/lib/dynamo-workflow';
 import { updateLotProgress } from '@/lib/auth.functions';
 
-export function LotUpdateButton({ item }: { item: QTItem }) {
+export function LotUpdateButton({ item, variant = 'button' }: { item: QTItem; variant?: 'icon' | 'button' }) {
   const { role, updateItem } = useDynamo();
   const vendor = getVendorScope(role);
   const isAdmin = role === 'admin';
@@ -53,38 +53,92 @@ export function LotUpdateButton({ item }: { item: QTItem }) {
     toast.success(`Đã lưu và ghi lên Google Sheet: lô ${item.ID_Key}`); setOpen(false);
   };
 
-  const field = 'mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm';
+  const field = 'mt-1 h-8.5 w-full rounded-xs border border-input bg-background px-2.5 font-mono text-xs focus:outline-hidden focus:border-primary/80 focus:ring-1 focus:ring-primary/40 transition-colors';
   const showDate = d.status === 'Kiểm tra QC' || d.status === 'Đã nhập kho' || !!item.ngay_nhan;
   const showHrc = d.status === 'Kiểm tra QC' || d.status === 'Đã nhập kho';
+
   return <>
-    <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => { setD(fresh()); setErrs([]); setConfirm(false); setOpen(true); }}><Zap size={13} />Cập nhật</Button>
+    {variant === 'icon' ? (
+      <Button
+        size="icon"
+        variant="outline"
+        className="size-7 rounded-xs border-border text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer shadow-2xs"
+        title={`Cập nhật tiến độ lô ${item.ID_Key}`}
+        onClick={() => { setD(fresh()); setErrs([]); setConfirm(false); setOpen(true); }}
+      >
+        <Zap size={13} className="text-primary" />
+        <span className="sr-only">Cập nhật</span>
+      </Button>
+    ) : (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 gap-1 rounded-xs text-xs cursor-pointer shadow-2xs"
+        onClick={() => { setD(fresh()); setErrs([]); setConfirm(false); setOpen(true); }}
+      >
+        <Zap size={13} className="text-primary" />
+        Cập nhật
+      </Button>
+    )}
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Cập nhật lô {item.ID_Key}</DialogTitle></DialogHeader>
-        <dl className="grid grid-cols-2 gap-2 rounded-sm border border-border bg-muted/40 p-3 text-xs">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-sm font-bold">Cập nhật lô {item.ID_Key}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Cập nhật trạng thái luân chuyển và thông số kiểm tra nhiệt luyện lô hàng
+          </DialogDescription>
+        </DialogHeader>
+        <dl className="grid grid-cols-2 gap-2 rounded-xs border border-border bg-muted/40 p-3 text-xs">
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Mã hàng</dt><dd className="font-mono font-bold text-foreground">{item.ma_hang}</dd></div>
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Số đặt hàng</dt><dd className="font-mono text-foreground">{item.So_DatHang}</dd></div>
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Đơn vị gia công</dt><dd className="font-medium text-foreground">{formatVendorName(item.cty_QT, role)}</dd></div>
           <div><dt className="text-[10px] font-bold text-muted-foreground uppercase">Hạn trả</dt><dd className="font-mono tabular-nums text-foreground">{item.han_tra ? date(item.han_tra) : 'Chưa có'}</dd></div>
         </dl>
         <div className="space-y-3 text-sm">
-          <label className="block">Trạng thái mới
+          <label className="block text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trạng thái mới</span>
             <select className={field} value={d.status} onChange={e => set({ status: e.target.value as Status })}>
               <option value={item.TrangThai}>{item.TrangThai} (giữ nguyên)</option>
               {moves.map(m => <option key={m.to} value={m.to}>{m.to}{m.reason ? ' — cần lý do' : ''}</option>)}
             </select>
           </label>
           {d.status !== item.TrangThai && <p className="flex items-center gap-2 text-xs font-semibold"><span className="text-muted-foreground">{item.TrangThai}</span><ArrowRight size={13} /><span className="text-primary">{d.status}</span></p>}
-          {showDate && <label className="block">Ngày nhận thực tế<input type="date" className={field} value={d.ngay_nhan} onChange={e => set({ ngay_nhan: e.target.value })} /></label>}
-          {showHrc && <label className="block">Độ cứng thực tế<input className={field} value={d.do_cung} placeholder="58-62 HRC" onChange={e => set({ do_cung: e.target.value })} /></label>}
-          {d.status === 'Đã nhập kho' && item.TrangThai !== 'Đã nhập kho' && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={d.qcPassed} onChange={e => set({ qcPassed: e.target.checked })} />Tôi xác nhận lô đã QC đạt</label>}
-          {needsReason && <label className="block">Lý do<textarea className={`${field} h-20 py-2`} value={d.reason} onChange={e => set({ reason: e.target.value })} placeholder="VD: Độ cứng không đạt, trả vendor gia công lại" /></label>}
-          {errs.length > 0 && <ul role="alert" className="space-y-1 border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{errs.map(e => <li key={e}>{e}</li>)}</ul>}
-          {confirm && <p className="border border-warning/40 bg-warning/10 p-3 text-xs">Xác nhận chuyển <b>{item.TrangThai}</b> → <b>{d.status}</b>? Bấm lại để lưu.</p>}
+          {showDate && (
+            <label className="block text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ngày nhận thực tế</span>
+              <input type="date" className={field} value={d.ngay_nhan} onChange={e => set({ ngay_nhan: e.target.value })} />
+            </label>
+          )}
+          {showHrc && (
+            <label className="block text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Độ cứng thực tế</span>
+              <input className={field} value={d.do_cung} placeholder="58-62 HRC" onChange={e => set({ do_cung: e.target.value })} />
+            </label>
+          )}
+          {d.status === 'Đã nhập kho' && item.TrangThai !== 'Đã nhập kho' && (
+            <label className="flex items-center gap-2 text-xs">
+              <input type="checkbox" className="rounded-xs accent-primary" checked={d.qcPassed} onChange={e => set({ qcPassed: e.target.checked })} />
+              <span>Tôi xác nhận lô đã QC đạt</span>
+            </label>
+          )}
+          {needsReason && (
+            <label className="block text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Lý do</span>
+              <textarea className={`${field} h-20 py-2`} value={d.reason} onChange={e => set({ reason: e.target.value })} placeholder="VD: Độ cứng không đạt, trả vendor gia công lại" />
+            </label>
+          )}
+          {errs.length > 0 && <ul role="alert" className="space-y-1 rounded-xs border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{errs.map(e => <li key={e}>{e}</li>)}</ul>}
+          {confirm && <p className="rounded-xs border border-warning/40 bg-warning/10 p-3 text-xs">Xác nhận chuyển <b>{item.TrangThai}</b> → <b>{d.status}</b>? Bấm lại để lưu.</p>}
         </div>
-        <DialogFooter><Button disabled={busy} onClick={save}>{busy ? 'Đang ghi…' : confirm ? 'Xác nhận & lưu' : errs.some(e => e.startsWith('Chưa ghi')) ? 'Thử lại' : 'Lưu & ghi lên Sheet'}</Button></DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button type="button" variant="ghost" className="h-8.5 rounded-xs text-xs cursor-pointer" onClick={() => setOpen(false)}>
+            Hủy bỏ
+          </Button>
+          <Button className="h-8.5 rounded-xs text-xs cursor-pointer" disabled={busy} onClick={save}>
+            {busy ? 'Đang ghi…' : confirm ? 'Xác nhận & lưu' : errs.some(e => e.startsWith('Chưa ghi')) ? 'Thử lại' : 'Lưu & ghi lên Sheet'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </>;
 }
-

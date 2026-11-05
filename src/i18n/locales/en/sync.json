@@ -1,0 +1,8 @@
+{
+  "title": "DATA SYNCHRONIZATION",
+  "googleSheets": "GOOGLE SHEETS INTEGRATION",
+  "biDirectional": "BI-DIRECTIONAL SYNC",
+  "availableLots": "AVAILABLE LOTS",
+  "syncNow": "Sync Now",
+  "webhookStatus": "Webhook Status"
+}

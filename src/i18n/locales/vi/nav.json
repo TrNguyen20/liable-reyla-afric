@@ -1,0 +1,14 @@
+{
+  "tracking": "LUÂN CHUYỂN",
+  "dashboard": "TỔNG QUAN",
+  "orders": "ĐƠN ĐẶT HÀNG",
+  "sync": "ĐỒNG BỘ",
+  "trackingShortcut": "Phím [1]",
+  "dashboardShortcut": "Phím [2]",
+  "ordersShortcut": "Phím [3]",
+  "syncShortcut": "Phím [4]",
+  "route1Title": "[1] LUÂN CHUYỂN",
+  "route2Title": "[2] TỔNG QUAN",
+  "route3Title": "[3] ĐƠN ĐẶT HÀNG",
+  "route4Title": "[4] ĐỒNG BỘ"
+}

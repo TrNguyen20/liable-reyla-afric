@@ -107,15 +107,15 @@ export function playWarningBeep(): void {
   }
 }
 
-export type AudioCueType = 'beep' | 'success' | 'warning';
+export type AudioCueType = 'beep' | 'success' | 'warning' | 'pop' | 'trash' | 'error';
 
 /** Unified sound dispatcher for MES actions */
 export function playAudioCue(type: AudioCueType): void {
-  if (type === 'beep') {
+  if (type === 'beep' || type === 'pop') {
     playBarcodeBeep();
   } else if (type === 'success') {
     playSuccessChime();
-  } else if (type === 'warning') {
+  } else if (type === 'warning' || type === 'trash' || type === 'error') {
     playWarningBeep();
   }
 }

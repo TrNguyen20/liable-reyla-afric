@@ -1,0 +1,14 @@
+{
+  "tracking": "工程管理",
+  "dashboard": "ダッシュボード",
+  "orders": "注文管理",
+  "sync": "データ連携",
+  "trackingShortcut": "キー [1]",
+  "dashboardShortcut": "キー [2]",
+  "ordersShortcut": "キー [3]",
+  "syncShortcut": "キー [4]",
+  "route1Title": "[1] 工程管理",
+  "route2Title": "[2] ダッシュボード",
+  "route3Title": "[3] 注文管理",
+  "route4Title": "[4] データ連携"
+}
