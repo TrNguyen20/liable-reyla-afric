@@ -1,0 +1,10 @@
+{
+  "shift": "勤務直",
+  "shiftName": "{shift}直",
+  "liveHub": "リアルタイム接続中",
+  "localCache": "ローカルキャッシュ",
+  "totalLots": "総ロット数",
+  "externalHeatTreatment": "外注熱処理中",
+  "workshopLoad": "工場別負荷",
+  "updatedAt": "最終更新"
+}

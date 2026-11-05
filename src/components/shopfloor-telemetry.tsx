@@ -1,13 +1,9 @@
-import { Link } from '@tanstack/react-router';
-import { fetchScopedSheet } from '@/lib/sheet.functions';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Clock, RefreshCw, Zap } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { useDynamo } from '@/components/dynamo-shell';
-import { isDueSoon, isOpen, isOverdue, onTimeRate } from '@/lib/dynamo-rules';
+import { isOpen } from '@/lib/dynamo-rules';
 import { number } from '@/lib/dynamo-data';
 import { LIVE_SHEET_URL } from '@/lib/live-sheet';
-
-import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
 
 export { LIVE_SHEET_URL };
@@ -22,6 +18,28 @@ function getShift(d = new Date()): string {
 export function ShopfloorTelemetry() {
   const { filtered, dataset, sourceLabel, syncedAt, pullLive, loading, loadError } = useDynamo();
   const [shiftName, setShiftName] = useState('');
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('dynamo-telemetry-collapsed');
+        return saved === 'true';
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('dynamo-telemetry-collapsed', String(next));
+      } catch {}
+      playAudioCue('pop');
+      return next;
+    });
+  };
 
   useEffect(() => {
     setShiftName(getShift(new Date()));
@@ -41,6 +59,7 @@ export function ShopfloorTelemetry() {
 
     for (let i = 0; i < filtered.length; i++) {
       const r = filtered[i];
+      if (!r) continue;
       if (r.TrangThai === 'Chờ xuất xưởng') waiting++;
       else if (r.TrangThai === 'Đang tại Vendor') atVendor++;
       else if (r.TrangThai === 'Đã nhập kho') stocked++;
@@ -85,8 +104,65 @@ export function ShopfloorTelemetry() {
       ? `Cập nhật lúc ${new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}`
       : 'Sẵn sàng đồng bộ';
 
+  // Chế độ 1: Thu gọn siêu nhỏ (Compact Status Bar cao 26px - Chiến lược 1)
+  if (isCollapsed) {
+    return (
+      <div className="relative border-b border-border/80 bg-secondary/40 backdrop-blur-xs select-none">
+        <div className="flex h-[26px] items-center justify-between gap-2 px-3 text-[11px]">
+          {/* Trái: LED nhịp xung + Trạng thái đồng bộ + Ca làm việc + Số dòng dataset */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`size-1.5 shrink-0 rounded-full transition-colors ${led}`} aria-hidden />
+            <span className="font-bold text-foreground tracking-tight text-[11px] truncate">{syncText}</span>
+            {shiftName && (
+              <span className="hidden font-mono text-[9px] font-bold text-muted-foreground sm:inline rounded-xs bg-muted/60 px-1 py-0.2">
+                {shiftName}
+              </span>
+            )}
+            <span className="hidden md:inline font-mono text-[10px] text-muted-foreground tabular-nums">
+              · {number(dataset.length)} dòng · {sourceLabel}
+            </span>
+          </div>
+
+          {/* Giữa: Tóm tắt Micro-metrics dạng inline wireframe */}
+          <div className="hidden lg:flex items-center gap-3 text-muted-foreground font-mono text-[10px] tabular-nums">
+            <span>
+              Hàng ngoài: <b className="text-foreground">{number(m.kg, 1)}</b> kg / <b className="text-foreground">{number(m.pcs)}</b> pcs
+            </span>
+            <span className="text-border/70">|</span>
+            <span>
+              Tải: <b className="text-foreground">{number(m.open)}</b> lô mở
+            </span>
+            <span className="text-border/70">|</span>
+            <div className="flex items-center gap-2">
+              {m.ws.map((x) => (
+                <span key={x.w}>
+                  <b className="font-semibold text-foreground/80">{x.w}</b> {Math.round((x.n / totalWs) * 100)}%
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Phải: Nút Mở rộng Chevron */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Mở rộng dải chỉ số KPI xưởng (Fitts's Law)"
+              aria-label="Mở rộng dải chỉ số KPI"
+              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background/90 hover:bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground shadow-2xs hover:border-primary/50 transition-all active:scale-95 cursor-pointer"
+            >
+              <ChevronDown size={11} className="text-primary" />
+              <span className="hidden sm:inline">Chỉ số KPI</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Chế độ 2: Dải Ribbon mở rộng 3 cột đầy đủ (Expanded KPI Ribbon)
   return (
-    <div className="relative border-b border-border/80 bg-secondary/40 backdrop-blur-xs">
+    <div className="relative border-b border-border/80 bg-secondary/40 backdrop-blur-xs select-none">
       <div className="grid grid-cols-1 divide-y divide-border/60 text-[11px] md:grid-cols-3 md:divide-y-0 md:divide-x lg:grid-cols-[1.5fr_1fr_1.5fr]">
         {/* Cột 1: Trạng thái kết nối Sheet & Nút Làm Mới Tinh Gọn */}
         <div className="flex items-center justify-between gap-3 px-4 py-2 xl:px-6">
@@ -106,20 +182,6 @@ export function ShopfloorTelemetry() {
               </p>
             </div>
           </div>
-
-          <button
-            onClick={() => void pullLive(true)}
-            disabled={state === 'busy'}
-            title="Làm mới dữ liệu tức thì từ Google Sheets (Phím tắt: Shift + R)"
-            aria-label="Làm mới dữ liệu từ Google Sheets"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xs border border-border/80 bg-background/90 hover:bg-background px-2.5 py-1 text-[11px] font-bold text-foreground shadow-2xs hover:border-primary/50 transition-all active:scale-95 cursor-pointer disabled:opacity-60"
-          >
-            <RefreshCw size={12} className={state === 'busy' ? 'animate-spin text-primary' : 'text-primary'} />
-            <span>{state === 'busy' ? 'Đang tải…' : 'Làm mới'}</span>
-            <kbd className="hidden font-mono text-[9px] text-muted-foreground sm:inline-block bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
-              Shift+R
-            </kbd>
-          </button>
         </div>
 
         {/* Cột 2: Khối lượng hàng ngoài xưởng */}
@@ -132,29 +194,42 @@ export function ShopfloorTelemetry() {
           </p>
         </div>
 
-        {/* Cột 3: Tải theo phân xưởng */}
-        <div className="px-4 py-2 xl:px-6">
-          <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span className="font-bold tracking-wider uppercase">Tải theo xưởng</span>
-            <span className="font-mono font-bold tabular-nums text-foreground">{number(m.open)} lô mở</span>
+        {/* Cột 3: Tải theo phân xưởng & Nút Thu Gọn */}
+        <div className="flex items-center justify-between gap-3 px-4 py-2 xl:px-6">
+          <div className="flex-1 min-w-0">
+            <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
+              <span className="font-bold tracking-wider uppercase">Tải theo xưởng</span>
+              <span className="font-mono font-bold tabular-nums text-foreground">{number(m.open)} lô mở</span>
+            </div>
+            <div className="flex h-1.5 gap-0.5 overflow-hidden rounded-xs bg-border/80">
+              {m.ws.map((x, i) => (
+                <span
+                  key={x.w}
+                  title={`${x.w}: ${x.n} lô (${Math.round((x.n / totalWs) * 100)}%)`}
+                  style={{ width: `${(x.n / totalWs) * 100}%` }}
+                  className={['bg-info', 'bg-primary', 'bg-warning'][i]}
+                />
+              ))}
+            </div>
+            <p className="mt-1 flex gap-3 font-mono text-[10px] text-muted-foreground tabular-nums">
+              {m.ws.map((x) => (
+                <span key={x.w}>
+                  <b className="font-semibold text-foreground/80">{x.w}</b> {Math.round((x.n / totalWs) * 100)}%
+                </span>
+              ))}
+            </p>
           </div>
-          <div className="flex h-1.5 gap-0.5 overflow-hidden rounded-xs bg-border/80">
-            {m.ws.map((x, i) => (
-              <span
-                key={x.w}
-                title={`${x.w}: ${x.n} lô (${Math.round((x.n / totalWs) * 100)}%)`}
-                style={{ width: `${(x.n / totalWs) * 100}%` }}
-                className={['bg-info', 'bg-primary', 'bg-warning'][i]}
-              />
-            ))}
-          </div>
-          <p className="mt-1 flex gap-3 font-mono text-[10px] text-muted-foreground tabular-nums">
-            {m.ws.map((x) => (
-              <span key={x.w}>
-                <b className="font-semibold text-foreground/80">{x.w}</b> {Math.round((x.n / totalWs) * 100)}%
-              </span>
-            ))}
-          </p>
+
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            title="Thu gọn dải chỉ số KPI để tối ưu không gian hiển thị bảng"
+            aria-label="Thu gọn dải chỉ số KPI"
+            className="inline-flex shrink-0 items-center gap-1 rounded-xs border border-border/80 bg-background/90 hover:bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground shadow-2xs hover:border-primary/50 transition-all active:scale-95 cursor-pointer self-start"
+          >
+            <ChevronUp size={11} className="text-primary" />
+            <span className="hidden sm:inline">Thu gọn</span>
+          </button>
         </div>
       </div>
     </div>

@@ -1,10 +1,10 @@
 ---
 title: DYNAMO QT-MES Design System Specification
 standard: Graphite Wireframe UI
-version: 2.1.0
-last_updated: 2026-11-04
+version: 2.2.0
+last_updated: 2026-11-05
 status: Active (Single Source of Truth)
-tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation]
+tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, modern-glass]
 ---
 
 # DYNAMO QT-MES DESIGN SYSTEM
@@ -16,8 +16,9 @@ tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, na
 
 | Phiên bản | Ngày | Tác giả / Đội ngũ | Loại thay đổi | Nội dung tóm tắt |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.2.0** | 2026-11-05 | Dynamo MES Architecture Team | **UX & DESIGN SYSTEM UPGRADE** | **Hiện đại hóa hệ thống Popover/Dialog và Tối ưu trải nghiệm điều độ Tracking:**<br>• Nâng cấp toàn bộ Radix Popover sang chuẩn Modern Industrial Glass: bo góc 12px (`rounded-xl`), viền sáng nhẹ `border-border/40`, hiệu ứng kính mờ `bg-popover/85 backdrop-blur-md`, đổ bóng nhiều lớp `shadow-2xl`.<br>• Tái cấu trúc chuyển động Popover: thời lượng 300ms với đường cong gia tốc `cubic-bezier(0.16, 1, 0.3, 1)`, scale-up 0.98 -> 1 và trượt 10px.<br>• Bổ sung hiệu ứng `backdrop-blur-sm` cho màn phủ nền (Dialog Overlay).<br>• Tách bộ lọc Phân xưởng (PIN / INSERT / MOLD) thành nút chuyên dụng trên Cụm Trái của Toolbar.<br>• Khắc phục triệt để tràn viền input Date picker ở cột Ngày gửi & Hạn trả, loại bỏ tag (+7d) dư thừa.<br>• Chuyển đổi cột Đối tác sang dropdown tương tự Logistics & QC.<br>• Ẩn biểu tượng bút chỉnh sửa (`opacity-0`) và chỉ hiển thị khi rê chuột (`group-hover/edit:opacity-100`).<br>• Tối ưu Header 16 cột: giảm padding `px-2 py-2`, khoảng cách `gap-1`, tăng diện tích nút phễu lọc 30% (`size-7`). |
 | **v2.1.0** | 2026-11-04 | Dynamo MES Architecture Team | **ROUTING & ENHANCEMENT** | **Tái kích hoạt Dashboard & Orders và tinh gọn hệ thống:**<br>• Mở lại `/dashboard` (Tổng quan & Biên bản giao ca A4) và `/orders` (Chi tiết đơn hàng).<br>• Đồng bộ hóa toàn bộ góc bo 2px (`rounded-xs`) và lưới số liệu `font-mono tabular-nums` cho 2 trang mới mở.<br>• Dọn dẹp hoàn toàn 2 trang vệ tinh dư thừa `/materials` và `/audit-costs`.<br>• Mở rộng thanh điều hướng Header và Command Palette lên 4 trang chính thức: `[1] /tracking`, `[2] /dashboard`, `[3] /orders`, `[4] /sync`.<br>• Cập nhật bài kiểm tra tự động `TC-DS-05` và `app-routing.test.tsx`. |
-| **v2.0.0** | 2026-11-04 | Dynamo MES Architecture Team | **BREAKING / MAJOR** | **Chuyển đổi toàn diện sang chuẩn Graphite Wireframe UI:**<br>• Cố định bo góc tối thiểu 2px (`rounded-xs`) trên toàn hệ thống.<br>• Bảng biểu và số liệu định lượng bắt buộc sử dụng `font-mono tabular-nums`.<br>• Chuẩn hóa mã chỉ báo trạng thái công nghiệp `[WAIT]`, `[TRANSIT]`, `[STOCKED]`, `[PASS]`, `[FAIL]`.<br>• Loại bỏ toàn bộ `rounded-xl`, `rounded-2xl`, bóng mờ nặng `shadow-2xl` và gradient AI.<br>• Tích hợp bộ kiểm thử tự động `src/test/design-system-compliance.test.ts`. |
+| **v2.0.0** | 2026-11-04 | Dynamo MES Architecture Team | **BREAKING / MAJOR** | **Chuyển đổi toàn diện sang chuẩn Graphite Wireframe UI:**<br>• Cố định bo góc tối thiểu 2px (`rounded-xs`) trên toàn hệ thống.<br>• Bảng biểu và số liệu định lượng bắt buộc sử dụng `font-mono tabular-nums`.<br>• Chuẩn hóa mã chỉ báo trạng thái công nghiệp `WAIT`, `TRANSIT`, `STOCKED`, `[PASS]`, `[FAIL]`.<br>• Loại bỏ toàn bộ `rounded-xl`, `rounded-2xl`, bóng mờ nặng `shadow-2xl` và gradient AI.<br>• Tích hợp bộ kiểm thử tự động `src/test/design-system-compliance.test.ts`. |
 | **v1.0.0** | 2026-10-14 | Dynamo MES Team | **INITIAL** | Khởi tạo giao diện MES trên TanStack Start, tích hợp Dark mode và bảng tính live Google Sheets. |
 
 ---
@@ -35,7 +36,7 @@ Hệ thống **DYNAMO QT-MES** là phần mềm điều hành xưởng nhiệt l
 3. **Bố cục Bảng biểu Monospaced (`font-mono tabular-nums`)**:
    - Mọi dữ liệu kỹ thuật: Mã lô (`ID_Key`), Số đặt hàng (`So_DatHang`), Mã hàng (`ma_hang`), Mác thép (`vat_lieu`), Độ cứng (`do_cung`), Khối lượng (`kg_Lot`), Số lượng (`so_luong`), Ngày tháng (`ngay_gui_QT`, `han_tra`) phải hiển thị bằng font đơn cách để gióng hàng thẳng tắp theo trục dọc.
 4. **Chỉ báo Trạng thái Công nghiệp (Industrial Instrumentation & Andon)**:
-   - Trạng thái phản ánh như bảng đồng hồ kỹ thuật: kèm tiền tố mã hóa viền wireframe (`[WAIT]`, `[TRANSIT]`, `[STOCKED]`, `[PASS]`, `[FAIL]`).
+   - Trạng thái phản ánh như bảng đồng hồ kỹ thuật: kèm tiền tố mã hóa viền wireframe (`WAIT`, `TRANSIT`, `STOCKED`, `[PASS]`, `[FAIL]`).
    - Đèn LED tín hiệu sử dụng nhịp xung công nghiệp (`fx-run-dot`, `andon-pulse`), không dùng hiệu ứng ping tiêu dùng.
 
 ---
@@ -84,7 +85,7 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 
 #### Typography:
 - **Font Display / Giao diện chính**: `"Be Vietnam Pro", system-ui, sans-serif`.
-- **Font Monospaced / Kỹ thuật & Bảng biểu**: `"JetBrains Mono", ui-monospace, monospace` (kèm `tabular-nums` cho số liệu).
+- **Font Monospaced / Kỹ thuật & Bảng biểu**: `"Be Vietnam Pro", system-ui, sans-serif` (ép cứng toàn hệ thống, kết hợp `tabular-nums` cho số liệu để gióng thẳng hàng cột).
 
 ---
 
@@ -97,6 +98,7 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 | **Badge** | `src/components/ui/badge.tsx` | `rounded-xs font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5`. |
 | **Dialog / Modal** | `src/components/ui/dialog.tsx` | `sm:rounded-xs border border-border shadow-lg p-5`. Header có đường kẻ phân cách wireframe. |
 | **Input / Select** | `src/components/ui/input.tsx` | `rounded-xs border border-input bg-background font-mono text-xs px-2.5 py-1.5`. |
+| **Popover & Overlay** | `src/components/ui/popover.tsx` | Modern Industrial Glass UI (v2.2.0): Bo góc 12px (`rounded-xl`), viền sáng nhẹ `border-border/40`, nền kính mờ `bg-popover/85 backdrop-blur-md`, đổ bóng nhiều lớp `shadow-2xl`. Hoạt cảnh 300ms `cubic-bezier(0.16, 1, 0.3, 1)`, scale 0.98 -> 1, trượt 10px. Màn phủ nền (Overlay) hỗ trợ `backdrop-blur-sm`. |
 | **Table** | `src/components/ui/table.tsx` | Bảng gióng hàng theo layout `table-layout: fixed`, `font-mono tabular-nums` cho các ô số liệu. |
 
 ---
@@ -104,27 +106,28 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 ### 2.3 Tầng 3: Composite Views & Layout
 
 #### 1. App Shell (`src/components/dynamo-shell.tsx`)
-- Navigation Tabs: `rounded-xs font-mono text-[12px] font-bold px-3 py-1.5`.
-  - `[1] LUÂN CHUYỂN QT` (`/tracking`)
+- Navigation Tabs: `h-[48px]`, Segmented Nav Rail `rounded-xs font-mono text-[11px] font-bold px-2.5 py-1`.
+  - `[1] LUÂN CHUYỂN` (`/tracking`)
   - `[2] TỔNG QUAN` (`/dashboard`)
   - `[3] ĐƠN ĐẶT HÀNG` (`/orders`)
-  - `[4] LIÊN KẾT GOOGLE SHEETS` (`/sync`, phân quyền `admin`)
+  - `[4] ĐỒNG BỘ` (`/sync`, phân quyền `admin`)
+- Trilingual Switcher: Segmented Micro-Pill `[VI] [EN] [JA]` chuyển đổi tức thời 1-click.
 - Profile Badge: Khối squircle 2px `size-6.5 rounded-xs font-mono font-black`.
 - Realtime Clock: Đồng hồ LED công nghiệp `led-clock rounded-xs font-mono tabular-nums`.
 
 #### 2. Shopfloor Telemetry Live Bar (`src/components/shopfloor-telemetry.tsx`)
 - Thanh tải phân xưởng PIN / INSERT / MOLD với vạch chia wireframe 1px, tỷ lệ hiển thị `font-mono tabular-nums`.
-- Nút Làm Mới Tinh Gọn (Shift+R): Bo góc `rounded-xs`, hiệu ứng xoay đồng bộ.
+- Tinh gọn nút bấm: Nút Làm Mới được quy hoạch tập trung tại Toolbar bảng điều độ (Shift+R).
 
 #### 3. Main Tracking Dashboard (`src/routes/tracking.tsx`)
-- Cấu trúc bảng 17 cột: Header cố định (`sticky top-0 z-40`), Cột Checkbox (`sticky left-0`) và Mã lô (`sticky left-[44px]`).
+- Cấu trúc bảng 15 cột tinh gọn (ẩn cột Xưởng do đã có bộ lọc trên Toolbar): Header cố định (`sticky top-0 z-40`), Ghim cố định 2 đầu: Checkbox (`sticky left-0`, 40px) và Mã lô (`sticky left-[40px]`, 130px) ở mép trái; Phiếu A4 (`sticky right-0`, 58px) ở mép phải. 4 cột cố định không co giãn, 11 cột cuộn giữa với bộ đệm an toàn 10px.
 - Mã trạng thái Logistics & QC công nghiệp:
-  - `Chờ xuất xưởng`: `border-warning/50 bg-warning/10 text-warning [WAIT]`
-  - `Đang tại Vendor`: `border-info/50 bg-info/10 text-info [TRANSIT]`
-  - `Đã nhập kho`: `border-run/50 bg-run/10 text-run [STOCKED]`
-  - `Đạt`: `border-run/50 bg-run/10 text-run [QC:PASS]`
-  - `Không đạt`: `border-destructive/50 bg-destructive/10 text-destructive andon-pulse [QC:FAIL]`
-  - `Chưa kiểm tra`: `border-border/80 bg-secondary/60 text-muted-foreground [QC:PENDING]`
+  - `Chờ xuất xưởng`: `border-warning/50 bg-warning/10 text-warning WAIT`
+  - `Đang tại Vendor`: `border-info/50 bg-info/10 text-info TRANSIT`
+  - `Đã nhập kho`: `border-run/50 bg-run/10 text-run STOCKED`
+  - `Đạt`: `border-run/50 bg-run/10 text-run PASS`
+  - `Không đạt`: `border-destructive/50 bg-destructive/10 text-destructive andon-pulse FAIL`
+  - `Chưa kiểm tra`: `border-border/80 bg-secondary/60 text-muted-foreground PENDING`
 - Thanh tác vụ nổi (Floating Batch Action Bar): Cố định đáy màn hình với `rounded-xs border border-border/80 bg-card/98 shadow-xl max-w-[calc(100vw-1.5rem)]`.
 
 #### 4. System Overview Dashboard (`src/routes/dashboard.tsx`)
@@ -143,8 +146,8 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 ## 🚫 3. Điều Kiện Phủ Định Tuyệt Đối (Negative Constraints)
 
 Khi can thiệp hoặc viết thêm mã nguồn mới, **TUYỆT ĐỐI KHÔNG**:
-1. ❌ **KHÔNG** sử dụng các class bo tròn lớn: `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-3xl`, `rounded-full` (ngoại lệ duy nhất cho `rounded-full` là các chấm tròn đèn LED tín hiệu `size-1.5` hoặc `size-2`).
-2. ❌ **KHÔNG** sử dụng bóng mờ nhòe lớn: `shadow-md`, `shadow-lg`, `shadow-xl`, `shadow-2xl`. Chỉ sử dụng `shadow-2xs` hoặc viền `border border-border`.
+1. ❌ **KHÔNG** sử dụng các class bo tròn lớn: `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-3xl`, `rounded-full` (ngoại lệ duy nhất cho `rounded-full` là các chấm tròn đèn LED tín hiệu `size-1.5` hoặc `size-2`; ngoại lệ được phê chuẩn từ v2.2.0 cho các lớp popup nổi Radix Popover/Overlay sử dụng `rounded-xl` chuẩn Modern Industrial Glass).
+2. ❌ **KHÔNG** sử dụng bóng mờ nhòe lớn: `shadow-md`, `shadow-lg`, `shadow-xl`, `shadow-2xl` trên các card/bảng tĩnh (ngoại lệ duy nhất cho lớp popup nổi Popover dùng `shadow-2xl` phân tầng). Chỉ sử dụng `shadow-2xs` hoặc viền `border border-border`.
 3. ❌ **KHÔNG** sử dụng gradient màu tím AI (`from-purple-500`, `to-indigo-500`, v.v.).
 4. ❌ **KHÔNG** hiển thị số lượng, khối lượng hoặc mã kỹ thuật bằng font proportional thông thường; bắt buộc dùng `font-mono tabular-nums`.
 5. ❌ **KHÔNG** phá vỡ cấu trúc responsive trên máy tính xưởng: thanh công cụ và dialog không được tràn màn hình theo chiều ngang (`overflow-x-hidden`, `max-w-[calc(100vw-X)]`).

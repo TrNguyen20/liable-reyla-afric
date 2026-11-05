@@ -224,7 +224,36 @@ function Sync() {
   const cacheSizeMb = (JSON.stringify(dataset).length / (1024 * 1024)).toFixed(1);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-start">
+    <div className="flex-1 min-h-0 flex flex-col justify-start space-y-3">
+      {/* Sub-Header Wireframe Card (v2.2.0 Route 4) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xs border border-border bg-card/90 px-3 py-1.5 shadow-2xs">
+        {/* Left: View Identity & Sync Scope */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground">
+            [4] ĐỒNG BỘ
+          </span>
+          <span className="rounded-xs border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+            KẾT NỐI HAI CHIỀU
+          </span>
+          <span className="rounded-xs border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-muted-foreground">
+            {number(activeData.length)} LÔ KHẢ DỤNG
+          </span>
+        </div>
+
+        {/* Right: Realtime Telemetry Indicator */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/40 px-2 text-[11px] text-muted-foreground shadow-2xs">
+            <span className="size-1.5 rounded-full bg-primary fx-run-dot" />
+            <span className="font-mono text-[10px]">{sourceLabel}</span>
+            {syncedAt ? (
+              <span className="font-mono text-[10px] tabular-nums text-foreground/80">
+                · {new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
       {/* 2-Column Balanced Hub: Left Gateway (Inbound & Outbound) / Right Staging & Commit */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* COLUMN 1: KẾT NỐI HAI CHIỀU (INBOUND SHEETS + OUTBOUND APPS SCRIPT) */}

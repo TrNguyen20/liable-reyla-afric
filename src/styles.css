@@ -70,8 +70,9 @@
   --color-breakdown: var(--breakdown);
   --color-wait: var(--wait);
   --color-setup: var(--setup);
-  --font-display: "Be Vietnam Pro", system-ui, sans-serif;
-  --font-sans: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-display: "Be Vietnam Pro", "Noto Sans JP", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  --font-sans: "Be Vietnam Pro", "Noto Sans JP", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  --font-mono: "Be Vietnam Pro", "Noto Sans JP", monospace;
 }
 
 :root {
@@ -268,9 +269,11 @@
     print-color-adjust: exact !important;
   }
 
-  /* When printing from ticket dialog, hide the main app shell in the background */
+  /* When printing from ticket or handover dialog, hide the main app shell in the background */
   body:has(.job-ticket-dialog) > #root,
-  body:has(.job-ticket-dialog) > div:first-child {
+  body:has(.job-ticket-dialog) > div:first-child,
+  body:has(.handover-dialog) > #root,
+  body:has(.handover-dialog) > div:first-child {
     display: none !important;
   }
 
@@ -283,13 +286,15 @@
   .job-ticket-studio-header,
   .job-ticket-actions,
   .job-ticket-dialog > button,
+  .handover-dialog > button,
   .no-print {
     display: none !important;
   }
 
   /* Explicitly ensure ticket header stays visible */
   .a4-sheet header,
-  .job-ticket header {
+  .job-ticket header,
+  .handover-sheet header {
     display: flex !important;
   }
 
@@ -301,7 +306,8 @@
   }
 
   /* Reset DialogContent positioning so it flows naturally on paper without clipping */
-  .job-ticket-dialog {
+  .job-ticket-dialog,
+  .handover-dialog {
     position: static !important;
     inset: auto !important;
     top: auto !important;
@@ -398,4 +404,14 @@
 @utility touch-target {
   min-height: 48px;
   min-width: 48px;
+}
+
+/* Modern Industrial Glassmorphism & Popover Motion (Design System v2.2.0) */
+@utility mes-glass-popover {
+  background-color: color-mix(in oklch, var(--popover) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklch, var(--border) 40%, transparent);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
 }

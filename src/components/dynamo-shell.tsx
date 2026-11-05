@@ -32,6 +32,7 @@ import { fetchScopedSheet } from '@/lib/sheet.functions';
 import { LIVE_LABEL, LIVE_SHEET_URL } from '@/lib/live-sheet';
 import { ShopfloorTelemetry } from '@/components/shopfloor-telemetry';
 import { CommandPalette } from '@/components/command-palette';
+import { useTranslation, type Locale } from '@/i18n';
 
 type Filter = 'Tất cả' | Workshop;
 type AppContextType = {
@@ -69,18 +70,19 @@ export function useDynamo() {
 
 const nav: {
   to: '/tracking' | '/dashboard' | '/orders' | '/sync';
+  labelKey: string;
   label: string;
   icon: typeof ArrowLeftRight | typeof LayoutDashboard | typeof Package | typeof DatabaseZap;
   section?: string;
   shortcut: string;
 }[] = [
-  { to: '/tracking', label: 'LUÂN CHUYỂN QT', icon: ArrowLeftRight, section: 'ĐIỀU HÀNH', shortcut: '1' },
-  { to: '/dashboard', label: 'TỔNG QUAN', icon: LayoutDashboard, section: 'ĐIỀU HÀNH', shortcut: '2' },
-  { to: '/orders', label: 'ĐƠN ĐẶT HÀNG', icon: Package, section: 'ĐIỀU HÀNH', shortcut: '3' },
-  { to: '/sync', label: 'LIÊN KẾT GOOGLE SHEETS', icon: DatabaseZap, section: 'HỆ THỐNG', shortcut: '4' },
+  { to: '/tracking', labelKey: 'nav.tracking', label: 'LUÂN CHUYỂN', icon: ArrowLeftRight, section: 'ĐIỀU HÀNH', shortcut: '1' },
+  { to: '/dashboard', labelKey: 'nav.dashboard', label: 'TỔNG QUAN', icon: LayoutDashboard, section: 'ĐIỀU HÀNH', shortcut: '2' },
+  { to: '/orders', labelKey: 'nav.orders', label: 'ĐƠN ĐẶT HÀNG', icon: Package, section: 'ĐIỀU HÀNH', shortcut: '3' },
+  { to: '/sync', labelKey: 'nav.sync', label: 'ĐỒNG BỘ', icon: DatabaseZap, section: 'HỆ THỐNG', shortcut: '4' },
 ] as const;
 
-const LedClock = memo(function LedClock() {
+const LedClock = memo(function LedClock({ locale = 'vi' }: { locale?: Locale }) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -88,16 +90,18 @@ const LedClock = memo(function LedClock() {
     return () => clearInterval(id);
   }, []);
 
-  const dateLabel = now.toLocaleDateString('vi-VN', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-  const timeLabel = now.toLocaleTimeString('vi-VN', { hour12: false });
+  const dateLabel = locale === 'ja'
+    ? `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日`
+    : now.toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN', {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+  const timeLabel = now.toLocaleTimeString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN', { hour12: false });
 
   return (
-    <div className="led-clock flex h-8 items-center gap-2 rounded-xs px-2.5 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
+    <div className="led-clock flex h-7 items-center gap-1.5 rounded-xs px-2 text-xs font-bold" aria-label="Đồng hồ thời gian thực">
       <span className="hidden text-[9px] font-semibold tracking-widest text-slate-400 sm:inline">
         {dateLabel}
       </span>
@@ -108,6 +112,7 @@ const LedClock = memo(function LedClock() {
 });
 
 export function DynamoShell({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
+  const { locale, setLocale, t, locales } = useTranslation();
   const [workshop, setWorkshopState] = useState<Filter>('Tất cả');
   const [search, setSearch] = useState('');
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -202,6 +207,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   const location = useLocation();
   const navigate = useNavigate();
   const isTracking = location.pathname === '/tracking';
+  const isCockpitRoute = ['/tracking', '/orders'].includes(location.pathname);
 
   useEffect(() => {
     const saved = window.localStorage.getItem('dynamo-theme');
@@ -502,36 +508,37 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
           {/* Top Header Navigation */}
           <header className="shrink-0 sticky top-0 z-30 border-b border-border bg-card/95 text-foreground backdrop-blur-md transition-colors dark:bg-[#12161f]/95 dark:text-slate-100">
-            <div className="flex min-h-[58px] items-center justify-between gap-2 px-3 py-1.5 md:px-5 xl:px-6">
+            <div className="flex h-[48px] items-center justify-between gap-2 px-3 md:px-5 xl:px-6">
               {/* Left Area: Logo & Inline Navigation Tabs */}
-              <div className="flex items-center gap-3 md:gap-5 min-w-0">
-                <Link to="/tracking" className="flex items-center gap-2.5 shrink-0" aria-label="DYNAMO VIETNAM QT - MES">
-                  <img src={logo} alt="Dynamo Vietnam" className="h-8 md:h-9 w-auto max-w-[145px] md:max-w-[175px] object-contain" />
-                  <span className="hidden xl:inline-block rounded-xs bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-wider text-primary">
+              <div className="flex items-center gap-2.5 md:gap-4 min-w-0">
+                <Link to="/tracking" className="flex items-center gap-2 shrink-0" aria-label="DYNAMO VIETNAM QT - MES">
+                  <img src={logo} alt="Dynamo Vietnam" className="h-7 md:h-8 w-auto max-w-[135px] md:max-w-[160px] object-contain" />
+                  <span className="hidden xl:inline-block rounded-xs bg-primary/10 border border-primary/20 px-1.5 py-0.2 text-[9px] font-mono font-bold tracking-wider text-primary">
                     MES
                   </span>
                 </Link>
 
-                {/* Inline Nav Tabs */}
-                <nav className="flex items-center gap-1 overflow-x-auto py-0.5" aria-label="Thanh điều hướng chính">
+                {/* Inline Nav Tabs with Segmented Rail Styling */}
+                <nav className="flex items-center gap-0.5 rounded-xs border border-border/70 bg-secondary/35 p-0.5 overflow-x-auto" aria-label="Thanh điều hướng chính">
                   {visibleNav.map((n) => {
                     const isActive = location.pathname === n.to;
+                    const label = t(n.labelKey) || n.label;
                     return (
                       <Link
                         key={n.to}
                         to={n.to}
-                        title={`${n.label} (Phím [${n.shortcut}])`}
-                        className={`flex h-9 items-center gap-2 rounded-xs px-3 text-[12px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
+                        title={`${label} (Phím [${n.shortcut}])`}
+                        className={`flex h-7.5 items-center gap-1.5 rounded-xs px-2.5 text-[11px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
                           isActive
-                            ? 'bg-primary/15 text-primary border border-primary/30 shadow-2xs font-black'
-                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
+                            ? 'bg-card text-foreground border border-border/80 shadow-2xs font-black'
+                            : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground border border-transparent'
                         }`}
                       >
-                        <n.icon size={15} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span>{n.label}</span>
+                        <n.icon size={13.5} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span>{label}</span>
                         <span
                           className={`font-mono text-[9px] tabular-nums rounded-xs px-1 py-0.2 hidden sm:inline-block ${
-                            isActive ? 'bg-primary/25 text-primary' : 'bg-muted/60 text-muted-foreground'
+                            isActive ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-muted/60 text-muted-foreground/80'
                           }`}
                         >
                           [{n.shortcut}]
@@ -542,12 +549,12 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 </nav>
               </div>
 
-              {/* Right Area: Controls, Role Switcher, Clock, Theme, User & Logout */}
-              <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
+              {/* Right Area: Controls, Role Switcher, Clock, Language Switcher, Theme, User & Logout */}
+              <div className="flex items-center gap-1 md:gap-2 shrink-0">
                 {/* Role Impersonation Switcher (Chỉ cho Admin) */}
                 {role === 'admin' && (
                   <div
-                    className={`flex items-center gap-1.5 rounded-xs border px-2 py-1 text-xs transition-colors ${
+                    className={`flex h-7 items-center gap-1 rounded-xs border px-1.5 text-xs transition-colors ${
                       impersonatedRole
                         ? 'border-warning bg-warning/15 text-warning font-bold'
                         : 'border-border/80 bg-secondary/70 text-foreground'
@@ -555,7 +562,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                     title="Chuyển đổi góc nhìn kiểm tra phân quyền"
                   >
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden 2xl:inline">
-                      Góc nhìn:
+                      {t('common.view') || 'Góc nhìn'}:
                     </span>
                     <select
                       value={impersonatedRole ?? 'admin'}
@@ -568,19 +575,19 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                             : `Đang giả lập góc nhìn: ${roleLabel(val as Role)}`,
                         );
                       }}
-                      className="bg-transparent text-[11px] font-bold text-foreground outline-none cursor-pointer"
+                      className="bg-transparent text-[10px] font-bold text-foreground outline-none cursor-pointer"
                     >
-                      <option value="admin" className="bg-popover text-popover-foreground">🛡️ Admin (Toàn quyền)</option>
-                      <option value="leader" className="bg-popover text-popover-foreground">👷 Leader (Phân xưởng)</option>
-                      <option value="viewer" className="bg-popover text-popover-foreground">👁️ Viewer (Mã hóa đối tác)</option>
-                      <option value="qt_yamaichi" className="bg-popover text-popover-foreground">🏭 Đối tác YAMAICHI</option>
-                      <option value="qt_provision" className="bg-popover text-popover-foreground">🏭 Đối tác PROVISION</option>
+                      <option value="admin" className="bg-popover text-popover-foreground">🛡️ {t('common.roles.admin') || 'Admin (Toàn quyền)'}</option>
+                      <option value="leader" className="bg-popover text-popover-foreground">👷 {t('common.roles.leader') || 'Leader (Phân xưởng)'}</option>
+                      <option value="viewer" className="bg-popover text-popover-foreground">👁️ {t('common.roles.viewer') || 'Viewer (Mã hóa đối tác)'}</option>
+                      <option value="qt_yamaichi" className="bg-popover text-popover-foreground">🏭 {t('common.roles.qt_yamaichi') || 'Đối tác YAMAICHI'}</option>
+                      <option value="qt_provision" className="bg-popover text-popover-foreground">🏭 {t('common.roles.qt_provision') || 'Đối tác PROVISION'}</option>
                     </select>
                     {impersonatedRole && (
                       <button
                         type="button"
                         onClick={() => setImpersonatedRole(null)}
-                        className="rounded-xs bg-destructive/20 px-1 py-0.5 text-[10px] font-bold text-destructive hover:bg-destructive/30 cursor-pointer"
+                        className="rounded-xs bg-destructive/20 px-1 py-0.2 text-[9px] font-bold text-destructive hover:bg-destructive/30 cursor-pointer"
                         title="Hủy giả lập"
                       >
                         ✕
@@ -591,34 +598,64 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
                 {/* Digital LED Real-time Clock */}
                 <div className="hidden lg:block">
-                  <LedClock />
+                  <LedClock locale={locale} />
+                </div>
+
+                {/* Trilingual Segmented Micro-Pill Switcher (VI | EN | JA) */}
+                <div
+                  className="flex items-center rounded-xs border border-border/80 bg-secondary/50 p-0.5"
+                  title="Chuyển đổi ngôn ngữ / Switch Language / 言語切替"
+                  role="group"
+                  aria-label="Chọn ngôn ngữ hệ thống"
+                >
+                  {locales.map((item) => {
+                    const isCurrent = locale === item.code;
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          setLocale(item.code);
+                          playAudioCue('beep');
+                        }}
+                        className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-primary text-primary-foreground shadow-2xs font-black'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                        }`}
+                        title={`${item.label} (${item.nativeName})`}
+                      >
+                        {item.shortLabel}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Theme Toggle Button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8.5 w-8.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'}
+                  className="h-7 w-7 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title={theme === 'light' ? t('common.themeDark') || 'Chuyển Dark mode' : t('common.themeLight') || 'Chuyển Light mode'}
                   aria-label={theme === 'light' ? 'Chuyển Dark mode' : 'Chuyển Light mode'}
                   onClick={toggleTheme}
                 >
-                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                  {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
                 </Button>
 
                 {/* User Profile Pill */}
-                <div className="flex items-center gap-2 rounded-xs border border-border/80 bg-secondary/50 px-2 py-1">
-                  <span className="flex size-6.5 shrink-0 items-center justify-center rounded-xs bg-primary/20 text-[10px] font-mono font-black text-primary">
+                <div className="flex h-7 items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/50 px-2 py-0.5">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-xs bg-primary/20 text-[9px] font-mono font-black text-primary">
                     QT
                   </span>
                   <div className="hidden sm:flex flex-col text-left">
-                    <span className="text-[11px] font-bold leading-tight truncate max-w-[120px]">{user}</span>
+                    <span className="text-[10px] font-bold leading-none truncate max-w-[100px]">{user}</span>
                     <div className="flex items-center gap-1">
-                      <span className={`inline-block rounded-xs px-1 py-0.2 text-[8px] font-bold tracking-wide ${roleBadge(effectiveRole)}`}>
+                      <span className={`inline-block rounded-xs px-0.5 py-0 text-[7px] font-bold tracking-wide ${roleBadge(effectiveRole)}`}>
                         {roleLabel(effectiveRole).toUpperCase()}
                       </span>
                       {impersonatedRole && (
-                        <span className="text-[8px] text-warning font-mono font-bold">
+                        <span className="text-[7px] text-warning font-mono font-bold">
                           (GIẢ LẬP)
                         </span>
                       )}
@@ -630,12 +667,12 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8.5 w-8.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
-                  title="Đăng xuất khỏi hệ thống"
+                  className="h-7 w-7 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                  title={t('common.logout') || 'Đăng xuất khỏi hệ thống'}
                   aria-label="Đăng xuất"
                   onClick={logout}
                 >
-                  <LogOut size={16} />
+                  <LogOut size={14} />
                 </Button>
               </div>
             </div>
@@ -647,7 +684,11 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
           </div>
 
           {/* Main Page Content */}
-          <main className="w-full flex-1 min-h-0 flex flex-col px-2.5 py-1.5 md:px-4 md:py-2 overflow-y-auto md:overflow-hidden">
+          <main
+            className={`w-full flex-1 min-h-0 flex flex-col px-2.5 py-1.5 md:px-4 md:py-2 ${
+              isTracking ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto'
+            }`}
+          >
             {!ready ? (
               <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">
                 Đang tải dữ liệu phân quyền…
@@ -670,7 +711,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
           {/* Footer */}
           <footer
             className={`flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-2 text-[10px] text-muted-foreground xl:px-6 shrink-0 ${
-              isTracking ? 'md:hidden' : ''
+              isCockpitRoute ? 'md:hidden' : ''
             }`}
           >
             <span>© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ</span>

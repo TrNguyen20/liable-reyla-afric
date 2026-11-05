@@ -10,10 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuditCostsRouteImport } from './routes/audit-costs'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as SyncRouteImport } from './routes/sync'
 import { Route as TrackingRouteImport } from './routes/tracking'
@@ -21,11 +19,6 @@ import { Route as TrackingRouteImport } from './routes/tracking'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuditCostsRoute = AuditCostsRouteImport.update({
-  id: '/audit-costs',
-  path: '/audit-costs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -36,11 +29,6 @@ const DashboardRoute = DashboardRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MaterialsRoute = MaterialsRouteImport.update({
-  id: '/materials',
-  path: '/materials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -61,20 +49,16 @@ const TrackingRoute = TrackingRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/audit-costs': typeof AuditCostsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/materials': typeof MaterialsRoute
   '/orders': typeof OrdersRoute
   '/sync': typeof SyncRoute
   '/tracking': typeof TrackingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/audit-costs': typeof AuditCostsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/materials': typeof MaterialsRoute
   '/orders': typeof OrdersRoute
   '/sync': typeof SyncRoute
   '/tracking': typeof TrackingRoute
@@ -82,42 +66,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/audit-costs': typeof AuditCostsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/materials': typeof MaterialsRoute
   '/orders': typeof OrdersRoute
   '/sync': typeof SyncRoute
   '/tracking': typeof TrackingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/audit-costs'
-    | '/dashboard'
-    | '/login'
-    | '/materials'
-    | '/orders'
-    | '/sync'
-    | '/tracking'
+  fullPaths: '/' | '/dashboard' | '/login' | '/orders' | '/sync' | '/tracking'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/audit-costs'
-    | '/dashboard'
-    | '/login'
-    | '/materials'
-    | '/orders'
-    | '/sync'
-    | '/tracking'
+  to: '/' | '/dashboard' | '/login' | '/orders' | '/sync' | '/tracking'
   id:
     | '__root__'
     | '/'
-    | '/audit-costs'
     | '/dashboard'
     | '/login'
-    | '/materials'
     | '/orders'
     | '/sync'
     | '/tracking'
@@ -125,10 +89,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuditCostsRoute: typeof AuditCostsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
-  MaterialsRoute: typeof MaterialsRoute
   OrdersRoute: typeof OrdersRoute
   SyncRoute: typeof SyncRoute
   TrackingRoute: typeof TrackingRoute
@@ -143,13 +105,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/audit-costs': {
-      id: '/audit-costs'
-      path: '/audit-costs'
-      fullPath: '/audit-costs'
-      preLoaderRoute: typeof AuditCostsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -162,13 +117,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/materials': {
-      id: '/materials'
-      path: '/materials'
-      fullPath: '/materials'
-      preLoaderRoute: typeof MaterialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -197,10 +145,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuditCostsRoute: AuditCostsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
-  MaterialsRoute: MaterialsRoute,
   OrdersRoute: OrdersRoute,
   SyncRoute: SyncRoute,
   TrackingRoute: TrackingRoute,

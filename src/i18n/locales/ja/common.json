@@ -1,0 +1,27 @@
+{
+  "confirm": "確認",
+  "cancel": "キャンセル",
+  "save": "変更を保存",
+  "delete": "削除",
+  "close": "閉じる",
+  "refresh": "更新",
+  "exportCsv": "CSV出力",
+  "resetColWidths": "列幅リセット",
+  "fullscreen": "全画面表示",
+  "search": "検索...",
+  "filter": "絞り込み",
+  "all": "すべて",
+  "loading": "データを読み込み中...",
+  "offlineAlert": "工場ネットワーク切断中 · オフラインモードで動作中（データはローカルに保存されます）",
+  "roles": {
+    "admin": "管理者（全権限）",
+    "leader": "班長（現場工場）",
+    "viewer": "閲覧者（取引先マスク）",
+    "qt_yamaichi": "取引先 YAMAICHI",
+    "qt_provision": "取引先 PROVISION"
+  },
+  "view": "視点切替",
+  "logout": "ログアウト",
+  "themeLight": "ライトモードに切替",
+  "themeDark": "ダークモードに切替"
+}

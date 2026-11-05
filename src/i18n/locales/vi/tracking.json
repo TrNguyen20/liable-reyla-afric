@@ -1,0 +1,37 @@
+{
+  "columns": {
+    "checkbox": "Chọn",
+    "lotId": "MÃ LÔ",
+    "orderNo": "ĐƠN HÀNG",
+    "itemCode": "MÃ HÀNG",
+    "material": "VẬT LIỆU",
+    "hardness": "ĐỘ CỨNG",
+    "quantity": "SL",
+    "weight": "KG",
+    "partner": "ĐỐI TÁC",
+    "logistics": "LOGISTICS",
+    "qc": "QC",
+    "sentDate": "NGÀY GỬI",
+    "dueDate": "HẠN TRẢ",
+    "notes": "GHI CHÚ",
+    "ticket": "PHIẾU A4"
+  },
+  "workshops": {
+    "title": "Phân xưởng",
+    "all": "Tất cả xưởng",
+    "pin": "Xưởng PIN",
+    "insert": "Xưởng INSERT",
+    "mold": "Xưởng MOLD"
+  },
+  "actions": {
+    "addNote": "+ Thêm ghi chú",
+    "notePlaceholder": "Nhập ghi chú cho lô... (Enter: lưu, Shift+Enter: xuống dòng, Tab: ô tiếp)",
+    "selectPartner": "Chọn đối tác",
+    "selectedCount": "Đang chọn {count} lô",
+    "clearFilter": "Xóa tất cả lọc"
+  },
+  "density": {
+    "compact": "Gọn gàng (Compact)",
+    "normal": "Tiêu chuẩn (Normal)"
+  }
+}

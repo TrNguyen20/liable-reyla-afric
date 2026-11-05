@@ -1,0 +1,14 @@
+{
+  "tracking": "TRACKING",
+  "dashboard": "OVERVIEW",
+  "orders": "ORDERS",
+  "sync": "SYNC",
+  "trackingShortcut": "Key [1]",
+  "dashboardShortcut": "Key [2]",
+  "ordersShortcut": "Key [3]",
+  "syncShortcut": "Key [4]",
+  "route1Title": "[1] TRACKING",
+  "route2Title": "[2] OVERVIEW",
+  "route3Title": "[3] ORDERS",
+  "route4Title": "[4] SYNC"
+}

@@ -43,6 +43,10 @@ import { updateLotProgress } from '@/lib/auth.functions';
 import { isMaterialEquivalent } from '@/lib/materials-data';
 import {
   hasValidDue,
+  isDone,
+  isDueSoon,
+  isOpen,
+  isOverdue,
   logisticsOf,
   qcOf,
   type Logistics,
@@ -61,15 +65,28 @@ export const Route = createFileRoute('/tracking')({
       { name: 'twitter:card', content: 'summary' },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { focus?: Focus; material?: string } => ({
+  validateSearch: (s: Record<string, unknown>): {
+    focus?: Focus;
+    material?: string;
+    vendor?: string;
+    workshop?: Workshop;
+    logistics?: Logistics;
+  } => ({
     ...(FOCUS.some((f) => f.key === s['focus']) ? { focus: s['focus'] as Focus } : {}),
     ...(typeof s['material'] === 'string' && s['material'].trim() ? { material: s['material'].trim() } : {}),
+    ...(typeof s['vendor'] === 'string' && s['vendor'].trim() ? { vendor: s['vendor'].trim() } : {}),
+    ...(typeof s['workshop'] === 'string' && s['workshop'].trim() ? { workshop: s['workshop'].trim() as Workshop } : {}),
+    ...(typeof s['logistics'] === 'string' && s['logistics'].trim() ? { logistics: s['logistics'].trim() as Logistics } : {}),
   }),
   component: Tracking,
 });
 
-type Focus = 'est_due' | 'sync_failed' | 'no_qc' | 'qc_fail';
+export type Focus = 'overdue' | 'due_soon' | 'est_due' | 'sync_failed' | 'no_qc' | 'qc_fail' | 'open' | 'stocked';
 const FOCUS: { key: Focus; label: string; tone: string }[] = [
+  { key: 'overdue', label: 'Lô quá hạn', tone: 'border-destructive/60 bg-destructive/15 text-destructive' },
+  { key: 'due_soon', label: 'Cận hạn 48h', tone: 'border-warning/60 bg-warning/15 text-warning' },
+  { key: 'open', label: 'Lô đang mở', tone: 'border-info/60 bg-info/15 text-info' },
+  { key: 'stocked', label: 'Đã hoàn tất', tone: 'border-run/60 bg-run/15 text-run' },
   { key: 'est_due', label: 'Hạn trả ước tính', tone: 'border-border bg-secondary text-muted-foreground' },
   { key: 'sync_failed', label: 'Ghi Sheet lỗi', tone: 'border-warning/60 bg-warning/15 text-warning' },
   { key: 'no_qc', label: 'Nhập kho chưa QC', tone: 'border-info/60 bg-info/15 text-info' },
@@ -102,7 +119,6 @@ export type ColumnKey =
   | 'checkbox'
   | 'ID_Key'
   | 'So_DatHang'
-  | 'phong_sx'
   | 'ma_hang'
   | 'vat_lieu'
   | 'do_cung'
@@ -116,44 +132,44 @@ export type ColumnKey =
   | 'ghi_chu'
   | 'ticket';
 
+export type TableDensity = 'compact' | 'normal';
+
 const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
-  checkbox: 44,
-  ID_Key: 140,
-  So_DatHang: 140,
-  phong_sx: 90,
-  ma_hang: 145,
-  vat_lieu: 120,
-  do_cung: 115,
-  so_luong: 85,
-  kg_Lot: 85,
-  cty_QT: 130,
-  TrangThai: 145,
-  qc: 140,
-  ngay_gui_QT: 125,
-  han_tra: 125,
-  ghi_chu: 240,
-  ticket: 90,
+  checkbox: 40,
+  ID_Key: 130,
+  So_DatHang: 110,
+  ma_hang: 110,
+  vat_lieu: 100,
+  do_cung: 100,
+  so_luong: 70,
+  kg_Lot: 70,
+  cty_QT: 125,
+  TrangThai: 110,
+  qc: 100,
+  ngay_gui_QT: 115,
+  han_tra: 115,
+  ghi_chu: 180,
+  ticket: 58,
 };
 
 // Minimum content-aware widths: prevents columns from collapsing below title/icon/cell content
 // Calibrated so that when collapsed to minimum, every column retains an even ~12px padding
 const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
-  checkbox: 44,
-  ID_Key: 120,
-  So_DatHang: 130,
-  phong_sx: 85,
-  ma_hang: 125,
-  vat_lieu: 105,
-  do_cung: 105,
-  so_luong: 75,
-  kg_Lot: 75,
+  checkbox: 40,
+  ID_Key: 130,
+  So_DatHang: 110,
+  ma_hang: 100,
+  vat_lieu: 90,
+  do_cung: 90,
+  so_luong: 60,
+  kg_Lot: 60,
   cty_QT: 115,
-  TrangThai: 135,
-  qc: 130,
-  ngay_gui_QT: 115,
-  han_tra: 115,
-  ghi_chu: 150,
-  ticket: 80,
+  TrangThai: 100,
+  qc: 90,
+  ngay_gui_QT: 105,
+  han_tra: 105,
+  ghi_chu: 160,
+  ticket: 58,
 };
 
 interface TableFilterState {
@@ -178,6 +194,12 @@ interface TableFilterState {
   missingDueOnly: boolean;
   noteSearch: string;
   hasNoteOnly: boolean;
+  overdueOnly: boolean;
+  dueSoonOnly: boolean;
+  openOnly: boolean;
+  stockedOnly: boolean;
+  noQcOnly: boolean;
+  syncFailedOnly: boolean;
 }
 
 const defaultFilters: TableFilterState = {
@@ -202,6 +224,12 @@ const defaultFilters: TableFilterState = {
   missingDueOnly: false,
   noteSearch: '',
   hasNoteOnly: false,
+  overdueOnly: false,
+  dueSoonOnly: false,
+  openOnly: false,
+  stockedOnly: false,
+  noQcOnly: false,
+  syncFailedOnly: false,
 };
 
 function HeaderSortControls({
@@ -314,13 +342,11 @@ function HeaderFilterCell({
 
   return (
     <th
-      className={`whitespace-nowrap px-3 py-2.5 font-bold uppercase tracking-wider text-muted-foreground select-none ${
-        isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
-      } ${stickyClass} ${className} ${
-        isStickyLast
+      className={`whitespace-nowrap px-2 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none ${isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
+        } ${stickyClass} ${className} ${isStickyLast
           ? 'border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
           : ''
-      }`}
+        }`}
       style={{
         ...(width !== undefined ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : {}),
         ...(stickyLeft !== undefined ? { left: `${stickyLeft}px` } : {}),
@@ -328,9 +354,8 @@ function HeaderFilterCell({
       }}
     >
       <div
-        className={`flex items-center gap-1.5 ${
-          align === 'end' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-between'
-        }`}
+        className={`flex items-center gap-1 ${align === 'end' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-between'
+          }`}
       >
         <button
           type="button"
@@ -338,13 +363,14 @@ function HeaderFilterCell({
           className="flex items-center gap-1 text-left group/th cursor-pointer hover:text-foreground transition-colors outline-none truncate"
           title={
             field
-              ? `Nhấp để sắp xếp: ${
-                  isSorted
-                    ? sortDir === 'asc'
-                      ? 'Tăng dần → Giảm dần'
-                      : 'Giảm dần → Mặc định'
-                    : 'A → Z (Tăng dần)'
-                }`
+              ? `Nhấp để sắp xếp: ${isSorted
+                ? sortDir === 'asc'
+                  ? 'Tăng dần → Giảm dần'
+                  : field === 'ngay_gui_QT'
+                    ? 'Giảm dần → Tăng dần'
+                    : 'Giảm dần → Mặc định'
+                : 'A → Z (Tăng dần)'
+              }`
               : undefined
           }
         >
@@ -369,20 +395,19 @@ function HeaderFilterCell({
             <button
               type="button"
               onClick={(e) => e.stopPropagation()}
-              className={`inline-flex size-6 shrink-0 items-center justify-center rounded-sm transition-all cursor-pointer touch-manipulation active:scale-95 ${
-                isFiltered
-                  ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
-                  : 'text-muted-foreground/70 hover:bg-background/80 hover:text-foreground'
-              }`}
+              className={`inline-flex size-7 shrink-0 items-center justify-center rounded-xs transition-all cursor-pointer touch-manipulation active:scale-95 ${isFiltered
+                ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
+                : 'text-muted-foreground/70 hover:bg-background/80 hover:text-foreground'
+                }`}
               title={`Mở bộ lọc ${title}`}
             >
-              <Filter size={11} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
+              <Filter size={12} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
             </button>
           </PopoverTrigger>
           <PopoverContent
             align={align === 'end' ? 'end' : 'start'}
             sideOffset={6}
-            className="w-80 max-w-[92vw] p-3 text-xs bg-popover text-popover-foreground shadow-xl border border-border rounded-xs z-50 font-sans normal-case tracking-normal"
+            className="w-80 max-w-[92vw] p-3 text-xs z-50 font-sans normal-case tracking-normal"
           >
             {open && children}
           </PopoverContent>
@@ -409,7 +434,7 @@ function HeaderFilterCell({
 }
 
 function Tracking() {
-  const { filtered: all, role, updateItem, bulkUpdateItems } = useDynamo();
+  const { filtered: all, role, updateItem, bulkUpdateItems, loading, pullLive } = useDynamo();
   const searchParams = Route.useSearch();
 
   // Column Resizing state with localStorage persistence and MIN_COL_WIDTHS content clamping
@@ -425,7 +450,7 @@ function Tracking() {
           });
           return validated as Record<ColumnKey, number>;
         }
-      } catch {}
+      } catch { }
     }
     return DEFAULT_COL_WIDTHS;
   });
@@ -451,7 +476,7 @@ function Tracking() {
       setColWidths((curr) => {
         try {
           window.localStorage.setItem('dynamo-tracking-col-widths', JSON.stringify(curr));
-        } catch {}
+        } catch { }
         return curr;
       });
     };
@@ -466,7 +491,7 @@ function Tracking() {
       const next = { ...prev, [colKey]: DEFAULT_COL_WIDTHS[colKey] };
       try {
         window.localStorage.setItem('dynamo-tracking-col-widths', JSON.stringify(next));
-      } catch {}
+      } catch { }
       return next;
     });
   };
@@ -475,7 +500,7 @@ function Tracking() {
     setColWidths(DEFAULT_COL_WIDTHS);
     try {
       window.localStorage.removeItem('dynamo-tracking-col-widths');
-    } catch {}
+    } catch { }
     toast.success('Đã khôi phục kích thước cột mặc định.');
     playAudioCue('pop');
   };
@@ -485,12 +510,49 @@ function Tracking() {
     [colWidths],
   );
 
+  // Row Density State with localStorage persistence ('compact' | 'normal')
+  const [density, setDensity] = useState<TableDensity>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('dynamo-tracking-density');
+        if (saved === 'compact' || saved === 'normal') {
+          return saved;
+        }
+      } catch { }
+    }
+    return 'compact';
+  });
+
+  const handleSetDensity = (newDensity: TableDensity) => {
+    setDensity(newDensity);
+    try {
+      window.localStorage.setItem('dynamo-tracking-density', newDensity);
+    } catch { }
+  };
+
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const f = () => setFailedIds(failedSyncIds());
+    f();
+    window.addEventListener('dynamo-audit', f);
+    return () => window.removeEventListener('dynamo-audit', f);
+  }, []);
+
   // Integrated Google Sheets Filter State
   const [filters, setFilters] = useState<TableFilterState>(() => ({
     ...defaultFilters,
     materials: searchParams.material ? [searchParams.material] : [],
     missingDueOnly: searchParams.focus === 'est_due',
     qcStates: searchParams.focus === 'qc_fail' ? ['Không đạt'] : [],
+    vendors: searchParams.vendor ? [searchParams.vendor] : [],
+    workshops: searchParams.workshop ? [searchParams.workshop] : [],
+    logistics: searchParams.logistics ? [searchParams.logistics] : [],
+    overdueOnly: searchParams.focus === 'overdue',
+    dueSoonOnly: searchParams.focus === 'due_soon',
+    openOnly: searchParams.focus === 'open',
+    stockedOnly: searchParams.focus === 'stocked',
+    noQcOnly: searchParams.focus === 'no_qc',
+    syncFailedOnly: searchParams.focus === 'sync_failed',
   }));
 
   // Sorting state - default to newest sent date
@@ -499,6 +561,10 @@ function Tracking() {
 
   // Search inside material popover
   const [materialSearchText, setMaterialSearchText] = useState('');
+
+  // Global Search state across operational columns (Chiến lược 3)
+  const [globalSearch, setGlobalSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Pagination states
   const [tablePage, setTablePage] = useState(0);
@@ -528,7 +594,7 @@ function Tracking() {
         }
       } else {
         if (typeof document !== 'undefined' && document.fullscreenElement && document.exitFullscreen) {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen().catch(() => { });
         }
       }
       return next;
@@ -541,6 +607,14 @@ function Tracking() {
       if (e.altKey && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         toggleTableFullscreen();
+      } else if (
+        e.key === '/' &&
+        !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName) &&
+        !(e.target as HTMLElement)?.isContentEditable
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -575,13 +649,19 @@ function Tracking() {
   const handleToggleSort = (field: SortField) => {
     if (sortCol !== field) {
       setSortCol(field);
-      setSortDir('asc');
+      setSortDir(field === 'ngay_gui_QT' ? 'desc' : 'asc');
     } else if (sortDir === 'asc') {
       setSortDir('desc');
     } else {
-      // Bấm lần 3: Khôi phục sắp xếp mặc định theo ngày gửi mới nhất
-      setSortCol('ngay_gui_QT');
-      setSortDir('desc');
+      // Khi đang là desc (mũi tên xuống):
+      // Nếu là cột ngày gửi (cột mặc định), tiếp tục tuần tự đảo sang asc (mũi tên lên)
+      // Nếu là cột khác, click lần 3 sẽ hoàn trả về sắp xếp mặc định (ngay_gui_QT, desc)
+      if (field === 'ngay_gui_QT') {
+        setSortDir('asc');
+      } else {
+        setSortCol('ngay_gui_QT');
+        setSortDir('desc');
+      }
     }
     setTablePage(0);
     playAudioCue('beep');
@@ -653,6 +733,7 @@ function Tracking() {
 
     for (let i = 0; i < all.length; i++) {
       const it = all[i];
+      if (!it) continue;
       ws[it.phong_sx] = (ws[it.phong_sx] || 0) + 1;
       const v = String(it.cty_QT);
       ven[v] = (ven[v] || 0) + 1;
@@ -670,6 +751,23 @@ function Tracking() {
   const rows = useMemo(() => {
     return all
       .filter((row) => {
+        // 0. Global Search across multiple technical fields (Chiến lược 3)
+        if (globalSearch.trim()) {
+          const q = globalSearch.trim().toLowerCase();
+          const matches =
+            row.ID_Key.toLowerCase().includes(q) ||
+            row.So_DatHang.toLowerCase().includes(q) ||
+            row.ma_hang.toLowerCase().includes(q) ||
+            (row.vat_lieu && row.vat_lieu.toLowerCase().includes(q)) ||
+            (row.do_cung && row.do_cung.toLowerCase().includes(q)) ||
+            String(row.cty_QT).toLowerCase().includes(q) ||
+            row.phong_sx.toLowerCase().includes(q) ||
+            row.TrangThai.toLowerCase().includes(q) ||
+            qcOf(row).toLowerCase().includes(q) ||
+            (row.ghi_chu && row.ghi_chu.toLowerCase().includes(q));
+          if (!matches) return false;
+        }
+
         // 1. ID_Key
         if (filters.idKeySearch && !row.ID_Key.toLowerCase().includes(filters.idKeySearch.toLowerCase())) {
           return false;
@@ -730,6 +828,13 @@ function Tracking() {
         if (filters.hasNoteOnly && !row.ghi_chu) {
           return false;
         }
+        // 15. Special focus filters
+        if (filters.overdueOnly && !isOverdue(row)) return false;
+        if (filters.dueSoonOnly && !isDueSoon(row)) return false;
+        if (filters.openOnly && !isOpen(row)) return false;
+        if (filters.stockedOnly && !isDone(row)) return false;
+        if (filters.noQcOnly && (!isDone(row) || qcOf(row) === 'Đạt')) return false;
+        if (filters.syncFailedOnly && !failedIds.has(row.ID_Key)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -781,11 +886,21 @@ function Tracking() {
         }
         return sortDir === 'asc' ? cmp : -cmp;
       });
-  }, [all, filters, sortCol, sortDir]);
+  }, [all, filters, sortCol, sortDir, failedIds, globalSearch]);
 
   // Đề xuất 3: Danh sách các bộ lọc đang kích hoạt để tạo thanh pill tóm tắt 1-chạm
   const activeFilters = useMemo(() => {
     const list: { key: string; label: string; onClear: () => void }[] = [];
+    if (globalSearch.trim()) {
+      list.push({
+        key: 'globalSearch',
+        label: `Tìm: "${globalSearch.trim()}"`,
+        onClear: () => {
+          setGlobalSearch('');
+          setTablePage(0);
+        },
+      });
+    }
     if (filters.idKeySearch) {
       list.push({
         key: 'idKey',
@@ -906,13 +1021,56 @@ function Tracking() {
         onClear: () => setFilters((f) => ({ ...f, hasNoteOnly: false })),
       });
     }
+    if (filters.overdueOnly) {
+      list.push({
+        key: 'overdue',
+        label: 'Quá hạn',
+        onClear: () => setFilters((f) => ({ ...f, overdueOnly: false })),
+      });
+    }
+    if (filters.dueSoonOnly) {
+      list.push({
+        key: 'dueSoon',
+        label: 'Cận hạn 48h',
+        onClear: () => setFilters((f) => ({ ...f, dueSoonOnly: false })),
+      });
+    }
+    if (filters.openOnly) {
+      list.push({
+        key: 'openOnly',
+        label: 'Lô đang mở',
+        onClear: () => setFilters((f) => ({ ...f, openOnly: false })),
+      });
+    }
+    if (filters.stockedOnly) {
+      list.push({
+        key: 'stockedOnly',
+        label: 'Đã hoàn tất',
+        onClear: () => setFilters((f) => ({ ...f, stockedOnly: false })),
+      });
+    }
+    if (filters.noQcOnly) {
+      list.push({
+        key: 'noQcOnly',
+        label: 'Chưa đạt QC',
+        onClear: () => setFilters((f) => ({ ...f, noQcOnly: false })),
+      });
+    }
+    if (filters.syncFailedOnly) {
+      list.push({
+        key: 'syncFailedOnly',
+        label: 'Lỗi ghi Sheet',
+        onClear: () => setFilters((f) => ({ ...f, syncFailedOnly: false })),
+      });
+    }
     return list;
-  }, [filters, role]);
+  }, [filters, role, globalSearch]);
 
   const totalKg = useMemo(() => rows.reduce((a, i) => a + i.kg_Lot, 0), [rows]);
 
   const resetAllFilters = () => {
     setFilters(defaultFilters);
+    setGlobalSearch('');
     setSortCol('ngay_gui_QT');
     setSortDir('desc');
     setTablePage(0);
@@ -1012,9 +1170,26 @@ function Tracking() {
     });
   };
 
-  const exportCsv = (selectedOnly = false) => {
-    const targetRows = selectedOnly ? rows.filter((r) => selectedLots.has(r.ID_Key)) : rows;
-    if (!targetRows.length) return;
+  const exportCsv = (mode: boolean | 'selected' | 'page' | 'filtered' | 'all' = 'filtered') => {
+    let targetRows: QTItem[] = [];
+    let filename = 'luan-chuyen-qt.csv';
+    if (mode === true || mode === 'selected') {
+      targetRows = rows.filter((r) => selectedLots.has(r.ID_Key));
+      filename = `luan-chuyen-qt-${targetRows.length}-lo-chon.csv`;
+    } else if (mode === 'page') {
+      targetRows = tableRows;
+      filename = `luan-chuyen-qt-trang-${tablePage + 1}.csv`;
+    } else if (mode === 'all') {
+      targetRows = all;
+      filename = `luan-chuyen-qt-toan-bo-${all.length}-lo.csv`;
+    } else {
+      targetRows = rows;
+      filename = `luan-chuyen-qt-${rows.length}-lo.csv`;
+    }
+    if (!targetRows.length) {
+      toast.error('Không có dữ liệu phù hợp để xuất CSV');
+      return;
+    }
     const head = [
       'Mã lô (ID_Key)',
       'Số đặt hàng (PO)',
@@ -1054,10 +1229,11 @@ function Tracking() {
     );
     const a = document.createElement('a');
     a.href = url;
-    a.download = selectedOnly ? `luan-chuyen-qt-${targetRows.length}-lo.csv` : 'luan-chuyen-qt-toan-bo.csv';
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     playAudioCue('success');
+    toast.success(`Đã xuất ${targetRows.length} lô ra file CSV`);
   };
 
   const copySelectedIds = () => {
@@ -1332,1701 +1508,1797 @@ function Tracking() {
     <>
       <div
         ref={tableWrapperRef}
-        className={`isolate flex flex-col transition-all duration-200 ${
-          isTableFullscreen
-            ? 'fixed inset-0 z-40 bg-background p-2.5 sm:p-3.5 overflow-hidden h-screen w-screen'
-            : 'flex-1 min-h-0 w-full overflow-hidden'
-        }`}
+        className={`isolate flex flex-col transition-all duration-200 ${isTableFullscreen
+          ? 'fixed inset-0 z-40 bg-background p-2.5 sm:p-3.5 overflow-hidden h-screen w-screen'
+          : 'flex-1 min-h-0 w-full overflow-hidden'
+          }`}
       >
-      {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
-      {activeFilters.length > 0 && (
-        <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-xs border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
-          <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
-            <Filter size={13} />
-            Đang lọc ({activeFilters.length}):
-          </span>
-          {activeFilters.map((af) => (
-            <span
-              key={af.key}
-              className="inline-flex items-center gap-1.5 rounded-xs border border-primary/30 bg-card px-2.5 py-0.5 text-[11px] font-medium text-foreground shadow-2xs"
+        {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
+        {activeFilters.length > 0 && (
+          <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-xs border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
+              <Filter size={13} />
+              Đang lọc ({activeFilters.length}):
+            </span>
+            {activeFilters.map((af) => (
+              <span
+                key={af.key}
+                className="inline-flex items-center gap-1.5 rounded-xs border border-primary/30 bg-card px-2.5 py-0.5 text-[11px] font-medium text-foreground shadow-2xs"
+              >
+                <span>{af.label}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    af.onClear();
+                    setTablePage(0);
+                    playAudioCue('beep');
+                  }}
+                  className="text-muted-foreground hover:text-destructive cursor-pointer rounded-xs"
+                  title="Bỏ tiêu chí này"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="ml-auto inline-flex items-center gap-1 rounded-xs border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
+              title="Xóa toàn bộ các bộ lọc trên bảng"
             >
-              <span>{af.label}</span>
+              <Trash2 size={12} />
+              Xóa tất cả lọc
+            </button>
+          </div>
+        )}
+
+        {/* Unified Operational Action Bar - Master Craftsmanship Layout (Chiến lược 2) */}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xs border border-border bg-card/90 px-3 py-1.5 shadow-2xs text-xs shrink-0">
+          {/* Cụm Trái: Route Identity, Local / View Actions & Search */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground">
+              [1] LUÂN CHUYỂN
+            </span>
+            {/* 1. Ô Global Search tích hợp phím tắt '/' */}
+            <div className="relative inline-flex items-center">
+              <Search size={13} className="absolute left-2.5 text-muted-foreground/70 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={globalSearch}
+                onChange={(e) => {
+                  setGlobalSearch(e.target.value);
+                  setTablePage(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setGlobalSearch('');
+                    searchInputRef.current?.blur();
+                  }
+                }}
+                placeholder="Tìm nhanh (nhấn /)..."
+                className="h-8 w-52 sm:w-64 rounded-xs border border-input bg-card pl-8 pr-7 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 shadow-2xs focus:outline-hidden focus:border-primary/80 focus:ring-1 focus:ring-primary/40 transition-all"
+              />
+              {globalSearch ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGlobalSearch('');
+                    setTablePage(0);
+                    searchInputRef.current?.focus();
+                  }}
+                  title="Xóa tìm kiếm (Phím tắt: Esc)"
+                  className="absolute right-2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-xs"
+                >
+                  <X size={12} />
+                </button>
+              ) : (
+                <kbd className="hidden sm:inline-block absolute right-2 text-[9px] font-mono text-muted-foreground/60 border border-border/60 rounded-xs px-1 py-0.2 bg-muted/50">
+                  /
+                </kbd>
+              )}
+            </div>
+
+            {/* 2. Badge đếm lọc động (chỉ hiện khi có lọc/tìm kiếm để triệt tiêu redundancy) */}
+            {(activeFilters.length > 0 || globalSearch.trim()) && (
+              <div className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs shadow-2xs animate-in fade-in">
+                <span className="size-1.5 rounded-full bg-primary fx-run-dot" />
+                <span className="text-[11px] text-primary font-bold font-mono tabular-nums">
+                  Khớp: {number(rows.length)} <span className="font-normal opacity-70">/ {number(all.length)} lô</span>
+                </span>
+              </div>
+            )}
+
+            {/* 3. Bộ lọc Phân xưởng độc lập (Cụm Trái Toolbar) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation ${
+                    filters.workshops.length > 0
+                      ? 'border-primary/60 bg-primary/10 text-primary font-bold'
+                      : 'border-border/80 bg-card text-foreground hover:bg-secondary'
+                  }`}
+                  title="Lọc nhanh theo phân xưởng gia công"
+                >
+                  <Layers size={12} className={filters.workshops.length > 0 ? 'text-primary' : 'text-primary/80'} />
+                  <span>
+                    Xưởng: {filters.workshops.length === 0 ? 'Tất cả' : filters.workshops.join(', ')}
+                  </span>
+                  <ChevronDown size={11} className="text-muted-foreground" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-56 p-2.5 font-sans">
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-border/40 px-1 font-semibold text-xs text-foreground">
+                    <span>Chọn Phân Xưởng</span>
+                    {filters.workshops.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters((f) => ({ ...f, workshops: [] }));
+                          setTablePage(0);
+                        }}
+                        className="text-[10px] text-primary hover:underline cursor-pointer"
+                      >
+                        Bỏ chọn
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilters((f) => ({ ...f, workshops: [] }));
+                      setTablePage(0);
+                    }}
+                    className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${
+                      filters.workshops.length === 0 ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
+                    }`}
+                  >
+                    <span>Tất cả phân xưởng</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length}</span>
+                  </button>
+                  {(['PIN', 'INSERT', 'MOLD'] as Workshop[]).map((ws) => {
+                    const isWsSelected = filters.workshops.includes(ws);
+                    const wsCount = counts.ws[ws] || 0;
+                    return (
+                      <button
+                        key={ws}
+                        type="button"
+                        onClick={() => {
+                          setFilters((f) => ({
+                            ...f,
+                            workshops: isWsSelected
+                              ? f.workshops.filter((x) => x !== ws)
+                              : [...f.workshops, ws],
+                          }));
+                          setTablePage(0);
+                        }}
+                        className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${
+                          isWsSelected ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`size-2 rounded-full ${ws === 'PIN' ? 'bg-info' : ws === 'INSERT' ? 'bg-primary' : 'bg-warning'}`} />
+                          <span>Xưởng {ws}</span>
+                        </div>
+                        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{wsCount}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* 3. Density toggle button (Row Density Switcher - Tuân thủ TC-DS-09) */}
+            <div className="flex rounded-xs border border-border bg-secondary/50 p-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => {
-                  af.onClear();
-                  setTablePage(0);
-                  playAudioCue('beep');
-                }}
-                className="text-muted-foreground hover:text-destructive cursor-pointer rounded-xs"
-                title="Bỏ tiêu chí này"
+                onClick={() => handleSetDensity('compact')}
+                title="Chế độ nén dòng cao độ (~32px)"
+                className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${density === 'compact'
+                  ? 'bg-card text-foreground shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
-                <X size={12} />
+                <span>Nén</span>
               </button>
-            </span>
-          ))}
-          <button
-            type="button"
-            onClick={resetAllFilters}
-            className="ml-auto inline-flex items-center gap-1 rounded-xs border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-            title="Xóa toàn bộ các bộ lọc trên bảng"
-          >
-            <Trash2 size={12} />
-            Xóa tất cả lọc
-          </button>
-        </div>
-      )}
+              <button
+                type="button"
+                onClick={() => handleSetDensity('normal')}
+                title="Chế độ dòng tiêu chuẩn (~42px)"
+                className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${density === 'normal'
+                  ? 'bg-card text-foreground shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <span>Chuẩn</span>
+              </button>
+            </div>
 
-      {/* KPI Summary Toolbar - Monozukuri Micro-Control Bar (TASK-002) */}
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Badge 1: Số lô khớp / Tổng số lô với đèn LED tín hiệu */}
-          <div className="inline-flex items-center gap-2 rounded-xs border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="inline-block size-2 rounded-full fx-run-dot shrink-0" aria-hidden />
-
-            </span>
-            <span className="text-[11px] text-muted-foreground font-medium">Lô quản lý:</span>
-            <span className="font-mono tabular-nums font-bold text-foreground">
-              {number(rows.length)}
-              <span className="text-muted-foreground/60 font-normal ml-1">/ {number(all.length)}</span>
-            </span>
+            {/* 4. Khôi phục cỡ cột */}
+            <button
+              type="button"
+              onClick={handleResetAllColWidths}
+              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
+              title="Khôi phục kích thước mặc định cho toàn bộ cột"
+            >
+              <RotateCcw size={11} className="text-primary/80" />
+              <span className="hidden sm:inline">Khôi phục cỡ cột</span>
+            </button>
           </div>
 
-          {/* Badge 2: Tổng khối lượng (kg) */}
-          <div className="inline-flex items-center gap-1.5 rounded-xs border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
-            <span className="text-[11px] text-muted-foreground font-medium">Khối lượng:</span>
-            <span className="font-mono tabular-nums font-bold text-foreground">
-              {number(totalKg, 1)} <span className="text-[11px] font-normal text-muted-foreground">kg</span>
-            </span>
-          </div>
+          {/* Cụm Phải: Global / Primary Actions (Refresh, Zen Fullscreen, Export CSV Dropdown) */}
+          <div className="flex items-center gap-2 text-[11px]">
+            {/* Nút Làm Mới (Shift+R) - Đồng bộ từ Shell về Toolbar */}
+            <button
+              type="button"
+              onClick={() => void pullLive(true)}
+              disabled={loading}
+              title="Làm mới dữ liệu từ Google Sheets (Phím tắt: Shift + R)"
+              aria-label="Làm mới dữ liệu từ Google Sheets"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation disabled:opacity-60"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin text-primary' : 'text-primary'} />
+              <span>{loading ? 'Đang tải…' : 'Làm mới'}</span>
+              <kbd className="hidden md:inline-block font-mono text-[9px] text-muted-foreground bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
+                Shift+R
+              </kbd>
+            </button>
 
-          {/* Badge 3: Phân xưởng */}
-          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-xs border border-border/70 bg-card/90 px-2.5 py-1 text-xs shadow-2xs">
-            <span className="text-[11px] text-muted-foreground font-medium">Phân xưởng:</span>
-            <span className="font-mono font-bold text-foreground truncate max-w-[200px]">
-              {workshops.join(', ')}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-[11px]">
-          {/* Nút Phóng to / Thu nhỏ Toàn Màn hình (TASK-007) */}
-          <button
-            type="button"
-            onClick={toggleTableFullscreen}
-            className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${
-              isTableFullscreen
+            {/* Nút Phóng to / Thu nhỏ Toàn Màn hình (Alt+F) */}
+            <button
+              type="button"
+              onClick={toggleTableFullscreen}
+              className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${isTableFullscreen
                 ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                 : 'border-border/80 bg-card text-foreground hover:bg-secondary hover:border-primary/40'
-            }`}
-            title={
-              isTableFullscreen
-                ? 'Thu nhỏ bảng về kích thước ban đầu (Phím tắt: Alt+F)'
-                : 'Phóng to bảng toàn màn hình để tập trung điều độ (Phím tắt: Alt+F)'
-            }
-          >
-            {isTableFullscreen ? (
-              <Minimize2 size={12} className={isTableFullscreen ? 'text-primary-foreground' : 'text-primary/90'} />
-            ) : (
-              <Maximize2 size={12} className="text-primary/90" />
-            )}
-            <span>{isTableFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
-            <kbd
-              className={`hidden sm:inline-block text-[9px] px-1 py-0.2 rounded font-mono border ${
+                }`}
+              title={
                 isTableFullscreen
+                  ? 'Thu nhỏ bảng về kích thước ban đầu (Phím tắt: Alt+F)'
+                  : 'Phóng to bảng toàn màn hình để tập trung điều độ (Phím tắt: Alt+F)'
+              }
+            >
+              {isTableFullscreen ? (
+                <Minimize2 size={12} className={isTableFullscreen ? 'text-primary-foreground' : 'text-primary/90'} />
+              ) : (
+                <Maximize2 size={12} className="text-primary/90" />
+              )}
+              <span>{isTableFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+              <kbd
+                className={`hidden sm:inline-block text-[9px] px-1 py-0.2 rounded font-mono border ${isTableFullscreen
                   ? 'bg-primary-foreground/20 border-primary-foreground/30 text-primary-foreground'
                   : 'bg-muted/70 border-border/60 text-muted-foreground'
-              }`}
-            >
-              Alt+F
-            </kbd>
-          </button>
+                  }`}
+              >
+                Alt+F
+              </kbd>
+            </button>
 
-          {/* Nút Xuất CSV tích hợp trực tiếp từ PageHeading cũ */}
-          <button
-            type="button"
-            onClick={() => exportCsv(false)}
-            className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
-            title="Xuất toàn bộ danh sách hiện tại ra file CSV"
-          >
-            <Download size={12} className="text-primary/90" />
-            <span>Xuất CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleResetAllColWidths}
-            className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
-            title="Khôi phục kích thước mặc định cho toàn bộ cột"
-          >
-            <RotateCcw size={11} className="text-primary/80" />
-            <span>Khôi phục cỡ cột</span>
-          </button>
-
-          <span className="text-muted-foreground/80 hidden xl:inline-flex items-center gap-1 text-[11px]">
-            <span>💡 Bấm</span>
-            <span className="inline-block px-1 py-0.2 bg-muted/60 text-[10px] rounded font-mono font-medium border border-border/60 text-foreground">▾ Lọc</span>
-            <span>đầu cột để lọc & sắp xếp</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
-      <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-border bg-card shadow-2xs">
-        <div className="flex-1 min-h-0 overflow-auto">
-          <table
-            className="text-left text-xs border-collapse"
-            style={{
-              tableLayout: 'fixed',
-              width: `${totalTableWidth}px`,
-              minWidth: `${totalTableWidth}px`,
-            }}
-          >
-            <colgroup>
-              <col style={{ width: `${colWidths.checkbox}px` }} />
-              <col style={{ width: `${colWidths.ID_Key}px` }} />
-              <col style={{ width: `${colWidths.So_DatHang}px` }} />
-              <col style={{ width: `${colWidths.phong_sx}px` }} />
-              <col style={{ width: `${colWidths.ma_hang}px` }} />
-              <col style={{ width: `${colWidths.vat_lieu}px` }} />
-              <col style={{ width: `${colWidths.do_cung}px` }} />
-              <col style={{ width: `${colWidths.so_luong}px` }} />
-              <col style={{ width: `${colWidths.kg_Lot}px` }} />
-              <col style={{ width: `${colWidths.cty_QT}px` }} />
-              <col style={{ width: `${colWidths.TrangThai}px` }} />
-              <col style={{ width: `${colWidths.qc}px` }} />
-              <col style={{ width: `${colWidths.ngay_gui_QT}px` }} />
-              <col style={{ width: `${colWidths.han_tra}px` }} />
-              <col style={{ width: `${colWidths.ghi_chu}px` }} />
-              <col style={{ width: `${colWidths.ticket}px` }} />
-            </colgroup>
-            <thead
-              className="sticky top-0 z-40 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs"
-              style={{ position: 'sticky', top: 0, zIndex: 40 }}
-            >
-              <tr>
-                {/* Column 1: Checkbox (Sticky top-0 left-0) */}
-                <th
-                  className="sticky top-0 left-0 z-50 px-3 py-2.5 text-center bg-secondary border-r border-border/50 select-none"
-                  style={{
-                    position: 'sticky',
-                    top: 0,
-                    left: 0,
-                    zIndex: 50,
-                    width: `${colWidths.checkbox}px`,
-                    minWidth: `${colWidths.checkbox}px`,
-                    maxWidth: `${colWidths.checkbox}px`,
-                  }}
+            {/* Nút Xuất CSV Dropdown đa năng (Chiến lược 2 & 4) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
+                  title="Tùy chọn xuất file CSV"
                 >
-                  <div className="flex items-center justify-center">
-                    <input
-                      ref={selectAllCheckboxRef}
-                      type="checkbox"
-                      aria-label="Chọn tất cả trên trang này"
-                      checked={isAllPageSelected}
-                      onChange={toggleSelectAllPage}
-                      className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
-                    />
-                  </div>
-                  <div
-                    role="separator"
-                    tabIndex={-1}
-                    aria-orientation="vertical"
-                    onMouseDown={(e) => handleResizeStart(e, 'checkbox')}
-                    onDoubleClick={() => handleResetColWidth('checkbox')}
-                    className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
-                    title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)"
+                  <Download size={12} className="text-primary/90" />
+                  <span>Xuất CSV</span>
+                  <ChevronDown size={11} className="text-muted-foreground" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-2.5 font-sans">
+                <div className="space-y-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => exportCsv('page')}
+                    className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-xs text-left text-[11px] font-medium text-foreground hover:bg-secondary cursor-pointer"
                   >
-                    <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
-                  </div>
-                </th>
+                    <span>Trang hiện tại</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{tableRows.length} lô</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportCsv('filtered')}
+                    className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-xs text-left text-[11px] font-medium text-foreground hover:bg-secondary cursor-pointer"
+                  >
+                    <span>Kết quả lọc</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{rows.length} lô</span>
+                  </button>
+                  <div className="h-px bg-border/80 my-1" />
+                  <button
+                    type="button"
+                    onClick={() => exportCsv('all')}
+                    className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-xs text-left text-[11px] font-bold text-primary hover:bg-secondary cursor-pointer"
+                  >
+                    <span>Toàn bộ hệ thống</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length} lô</span>
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
 
-                {/* Column 2: Mã lô (Sticky top-0 left-[checkbox]) */}
-                <HeaderFilterCell
-                  title="MÃ LÔ"
-                  field="ID_Key"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.idKeySearch}
-                  stickyClass="sticky top-0 z-50 bg-secondary"
-                  stickyLeft={colWidths.checkbox}
-                  width={colWidths.ID_Key}
-                  isStickyLast={true}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'ID_Key')}
-                  onResetWidth={() => handleResetColWidth('ID_Key')}
-                >
-                  <HeaderSortControls
+        {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
+        <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-border bg-card shadow-2xs">
+          <div className="flex-1 min-h-0 overflow-auto">
+            <table
+              className="text-left text-xs border-collapse"
+              style={{
+                tableLayout: 'fixed',
+                width: '100%',
+                minWidth: `${totalTableWidth}px`,
+              }}
+            >
+              <colgroup>
+                <col style={{ width: `${colWidths.checkbox}px` }} />
+                <col style={{ width: `${colWidths.ID_Key}px` }} />
+                <col style={{ width: `${colWidths.So_DatHang}px` }} />
+                <col style={{ width: `${colWidths.ma_hang}px` }} />
+                <col style={{ width: `${colWidths.vat_lieu}px` }} />
+                <col style={{ width: `${colWidths.do_cung}px` }} />
+                <col style={{ width: `${colWidths.so_luong}px` }} />
+                <col style={{ width: `${colWidths.kg_Lot}px` }} />
+                <col style={{ width: `${colWidths.cty_QT}px` }} />
+                <col style={{ width: `${colWidths.TrangThai}px` }} />
+                <col style={{ width: `${colWidths.qc}px` }} />
+                <col style={{ width: `${colWidths.ngay_gui_QT}px` }} />
+                <col style={{ width: `${colWidths.han_tra}px` }} />
+                <col style={{ width: `${colWidths.ghi_chu}px` }} />
+                <col style={{ width: `${colWidths.ticket}px` }} />
+              </colgroup>
+              <thead
+                className="sticky top-0 z-40 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs"
+                style={{ position: 'sticky', top: 0, zIndex: 40 }}
+              >
+                <tr>
+                  {/* Column 1: Checkbox (Sticky top-0 left-0) */}
+                  <th
+                    className="sticky top-0 left-0 z-50 px-2 py-2 text-center bg-secondary border-r border-border/50 select-none"
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      left: 0,
+                      zIndex: 50,
+                      width: `${colWidths.checkbox}px`,
+                      minWidth: `${colWidths.checkbox}px`,
+                      maxWidth: `${colWidths.checkbox}px`,
+                    }}
+                  >
+                    <div className="flex items-center justify-center">
+                      <input
+                        ref={selectAllCheckboxRef}
+                        type="checkbox"
+                        aria-label="Chọn tất cả trên trang này"
+                        checked={isAllPageSelected}
+                        onChange={toggleSelectAllPage}
+                        className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
+                      />
+                    </div>
+                  </th>
+
+                  {/* Column 2: Mã lô (Sticky top-0 left-[checkbox]) */}
+                  <HeaderFilterCell
+                    title="MÃ LÔ"
                     field="ID_Key"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Tìm kiếm mã lô:
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="VD: Q2605..."
-                        value={filters.idKeySearch}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, idKeySearch: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
-                        autoFocus
-                      />
-                      {filters.idKeySearch && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilters((f) => ({ ...f, idKeySearch: '' }));
-                            setTablePage(0);
-                          }}
-                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {filters.idKeySearch && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilters((f) => ({ ...f, idKeySearch: '' }));
-                        setTablePage(0);
-                      }}
-                      className="mt-2.5 w-full text-center text-[11px] font-bold text-destructive hover:underline cursor-pointer"
-                    >
-                      Xóa lọc mã lô
-                    </button>
-                  )}
-                </HeaderFilterCell>
-
-                {/* Column 3: Đơn hàng */}
-                <HeaderFilterCell
-                  title="ĐƠN HÀNG"
-                  field="So_DatHang"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.orderSearch}
-                  width={colWidths.So_DatHang}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'So_DatHang')}
-                  onResetWidth={() => handleResetColWidth('So_DatHang')}
-                >
-                  <HeaderSortControls
-                    field="So_DatHang"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Tìm số đơn hàng (PO):
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="VD: QT260515..."
-                        value={filters.orderSearch}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, orderSearch: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
-                      />
-                      {filters.orderSearch && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilters((f) => ({ ...f, orderSearch: '' }));
-                            setTablePage(0);
-                          }}
-                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 4: Xưởng */}
-                <HeaderFilterCell
-                  title="XƯỞNG"
-                  field="phong_sx"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={filters.workshops.length > 0}
-                  width={colWidths.phong_sx}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'phong_sx')}
-                  onResetWidth={() => handleResetColWidth('phong_sx')}
-                >
-                  <HeaderSortControls
-                    field="phong_sx"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Chọn phân xưởng:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilters((f) => ({
-                            ...f,
-                            workshops: f.workshops.length === workshops.length ? [] : [...workshops],
-                          }));
-                          setTablePage(0);
-                        }}
-                        className="text-[10px] text-primary hover:underline cursor-pointer"
-                      >
-                        {filters.workshops.length === workshops.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      {workshops.map((w) => {
-                        const count = counts.ws[w] || 0;
-                        return (
-                          <label
-                            key={w}
-                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={filters.workshops.includes(w)}
-                                onChange={() => {
-                                  setFilters((f) => ({ ...f, workshops: toggleInArray(f.workshops, w) }));
-                                  setTablePage(0);
-                                }}
-                                className="rounded text-primary focus:ring-primary accent-primary"
-                              />
-                              <span className="font-bold">{w}</span>
-                            </span>
-                            <span className="font-mono text-muted-foreground">{count}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 5: Mã hàng */}
-                <HeaderFilterCell
-                  title="MÃ HÀNG"
-                  field="ma_hang"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.itemSearch}
-                  width={colWidths.ma_hang}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'ma_hang')}
-                  onResetWidth={() => handleResetColWidth('ma_hang')}
-                >
-                  <HeaderSortControls
-                    field="ma_hang"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Tìm mã linh kiện:
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="VD: 9075-P3..."
-                        value={filters.itemSearch}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, itemSearch: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
-                      />
-                      {filters.itemSearch && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilters((f) => ({ ...f, itemSearch: '' }));
-                            setTablePage(0);
-                          }}
-                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 6: Vật liệu */}
-                <HeaderFilterCell
-                  title="VẬT LIỆU"
-                  field="vat_lieu"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={filters.materials.length > 0}
-                  width={colWidths.vat_lieu}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'vat_lieu')}
-                  onResetWidth={() => handleResetColWidth('vat_lieu')}
-                >
-                  <HeaderSortControls
-                    field="vat_lieu"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Mác thép ({allMaterials.length}):
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilters((f) => ({
-                            ...f,
-                            materials: f.materials.length === allMaterials.length ? [] : [...allMaterials],
-                          }));
-                          setTablePage(0);
-                        }}
-                        className="text-[10px] text-primary hover:underline cursor-pointer"
-                      >
-                        {filters.materials.length === allMaterials.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Tìm mác thép..."
-                      value={materialSearchText}
-                      onChange={(e) => setMaterialSearchText(e.target.value)}
-                      className="w-full rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground outline-none"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.idKeySearch}
+                    stickyClass="sticky top-0 z-50 bg-secondary"
+                    stickyLeft={colWidths.checkbox}
+                    width={colWidths.ID_Key}
+                    isStickyLast={true}
+                    onDirectSort={handleToggleSort}
+                  >
+                    <HeaderSortControls
+                      field="ID_Key"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
                     />
-                    <div className="max-h-44 overflow-y-auto space-y-1">
-                      {allMaterials
-                        .filter((m) => m.toLowerCase().includes(materialSearchText.toLowerCase()))
-                        .map((m) => {
-                          const count = counts.mat[m] || 0;
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tìm kiếm mã lô:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="VD: Q2605..."
+                          value={filters.idKeySearch}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, idKeySearch: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                          autoFocus
+                        />
+                        {filters.idKeySearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilters((f) => ({ ...f, idKeySearch: '' }));
+                              setTablePage(0);
+                            }}
+                            className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {filters.idKeySearch && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters((f) => ({ ...f, idKeySearch: '' }));
+                          setTablePage(0);
+                        }}
+                        className="mt-2.5 w-full text-center text-[11px] font-bold text-destructive hover:underline cursor-pointer"
+                      >
+                        Xóa lọc mã lô
+                      </button>
+                    )}
+                  </HeaderFilterCell>
+
+                  {/* Column 3: Đơn hàng */}
+                  <HeaderFilterCell
+                    title="ĐƠN HÀNG"
+                    field="So_DatHang"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.orderSearch}
+                    width={colWidths.So_DatHang}
+                    onDirectSort={handleToggleSort}
+                  >
+                    <HeaderSortControls
+                      field="So_DatHang"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tìm số đơn hàng (PO):
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="VD: QT260515..."
+                          value={filters.orderSearch}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, orderSearch: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                        />
+                        {filters.orderSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilters((f) => ({ ...f, orderSearch: '' }));
+                              setTablePage(0);
+                            }}
+                            className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 5: Mã hàng */}
+                  <HeaderFilterCell
+                    title="MÃ HÀNG"
+                    field="ma_hang"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.itemSearch}
+                    width={colWidths.ma_hang}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'ma_hang')}
+                    onResetWidth={() => handleResetColWidth('ma_hang')}
+                  >
+                    <HeaderSortControls
+                      field="ma_hang"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tìm mã linh kiện:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="VD: 9075-P3..."
+                          value={filters.itemSearch}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, itemSearch: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                        />
+                        {filters.itemSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilters((f) => ({ ...f, itemSearch: '' }));
+                              setTablePage(0);
+                            }}
+                            className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 6: Vật liệu */}
+                  <HeaderFilterCell
+                    title="VẬT LIỆU"
+                    field="vat_lieu"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={filters.materials.length > 0}
+                    width={colWidths.vat_lieu}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'vat_lieu')}
+                    onResetWidth={() => handleResetColWidth('vat_lieu')}
+                  >
+                    <HeaderSortControls
+                      field="vat_lieu"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Mác thép ({allMaterials.length}):
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters((f) => ({
+                              ...f,
+                              materials: f.materials.length === allMaterials.length ? [] : [...allMaterials],
+                            }));
+                            setTablePage(0);
+                          }}
+                          className="text-[10px] text-primary hover:underline cursor-pointer"
+                        >
+                          {filters.materials.length === allMaterials.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Tìm mác thép..."
+                        value={materialSearchText}
+                        onChange={(e) => setMaterialSearchText(e.target.value)}
+                        className="w-full rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground outline-none"
+                      />
+                      <div className="max-h-44 overflow-y-auto space-y-1">
+                        {allMaterials
+                          .filter((m) => m.toLowerCase().includes(materialSearchText.toLowerCase()))
+                          .map((m) => {
+                            const count = counts.mat[m] || 0;
+                            return (
+                              <label
+                                key={m}
+                                className="flex items-center justify-between rounded px-2 py-1 hover:bg-secondary cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={filters.materials.includes(m)}
+                                    onChange={() => {
+                                      setFilters((f) => ({ ...f, materials: toggleInArray(f.materials, m) }));
+                                      setTablePage(0);
+                                    }}
+                                    className="rounded text-primary focus:ring-primary accent-primary"
+                                  />
+                                  <span className="font-mono">{m}</span>
+                                </span>
+                                <span className="font-mono text-muted-foreground">{count}</span>
+                              </label>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 7: Độ cứng */}
+                  <HeaderFilterCell
+                    title="ĐỘ CỨNG"
+                    field="do_cung"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.hardnessSearch || filters.missingHardnessOnly}
+                    width={colWidths.do_cung}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'do_cung')}
+                    onResetWidth={() => handleResetColWidth('do_cung')}
+                  >
+                    <HeaderSortControls
+                      field="do_cung"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tìm độ cứng yêu cầu:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="VD: 58-62, 44±1..."
+                        value={filters.hardnessSearch}
+                        onChange={(e) => {
+                          setFilters((f) => ({ ...f, hardnessSearch: e.target.value }));
+                          setTablePage(0);
+                        }}
+                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
+                      />
+                      <label className="flex items-center gap-2 rounded px-1 py-1 hover:bg-secondary cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={filters.missingHardnessOnly}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, missingHardnessOnly: e.target.checked }));
+                            setTablePage(0);
+                          }}
+                          className="rounded text-primary focus:ring-primary accent-primary"
+                        />
+                        <span>Chỉ xem chưa có độ cứng (—)</span>
+                      </label>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 8: SL */}
+                  <HeaderFilterCell
+                    title="SL"
+                    field="so_luong"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.qtyMin || !!filters.qtyMax}
+                    align="end"
+                    width={colWidths.so_luong}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'so_luong')}
+                    onResetWidth={() => handleResetColWidth('so_luong')}
+                  >
+                    <HeaderSortControls
+                      field="so_luong"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                      ascLabel="Nhỏ nhất → Lớn nhất"
+                      descLabel="Lớn nhất → Nhỏ nhất"
+                    />
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Khoảng số lượng (pcs):
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          placeholder="Từ (Min)"
+                          value={filters.qtyMin}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, qtyMin: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                        />
+                        <span>→</span>
+                        <input
+                          type="number"
+                          placeholder="Đến (Max)"
+                          value={filters.qtyMax}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, qtyMax: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                        />
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 9: Kg */}
+                  <HeaderFilterCell
+                    title="KG"
+                    field="kg_Lot"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.kgMin || !!filters.kgMax}
+                    align="end"
+                    width={colWidths.kg_Lot}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'kg_Lot')}
+                    onResetWidth={() => handleResetColWidth('kg_Lot')}
+                  >
+                    <HeaderSortControls
+                      field="kg_Lot"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                      ascLabel="Nhẹ nhất → Nặng nhất"
+                      descLabel="Nặng nhất → Nhẹ nhất"
+                    />
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Khoảng khối lượng (kg):
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Min kg"
+                          value={filters.kgMin}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, kgMin: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                        />
+                        <span>→</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Max kg"
+                          value={filters.kgMax}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, kgMax: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
+                        />
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 10: Đối tác */}
+                  <HeaderFilterCell
+                    title="ĐỐI TÁC"
+                    field="cty_QT"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={filters.vendors.length > 0}
+                    width={colWidths.cty_QT}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'cty_QT')}
+                    onResetWidth={() => handleResetColWidth('cty_QT')}
+                  >
+                    <HeaderSortControls
+                      field="cty_QT"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Nhà thầu gia công:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters((f) => ({
+                              ...f,
+                              vendors: f.vendors.length === allVendors.length ? [] : [...allVendors],
+                            }));
+                            setTablePage(0);
+                          }}
+                          className="text-[10px] text-primary hover:underline cursor-pointer"
+                        >
+                          {filters.vendors.length === allVendors.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        {allVendors.map((v) => {
+                          const count = counts.ven[v] || 0;
                           return (
                             <label
-                              key={m}
-                              className="flex items-center justify-between rounded px-2 py-1 hover:bg-secondary cursor-pointer"
+                              key={v}
+                              className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
                             >
                               <span className="flex items-center gap-2">
                                 <input
                                   type="checkbox"
-                                  checked={filters.materials.includes(m)}
+                                  checked={filters.vendors.includes(v)}
                                   onChange={() => {
-                                    setFilters((f) => ({ ...f, materials: toggleInArray(f.materials, m) }));
+                                    setFilters((f) => ({ ...f, vendors: toggleInArray(f.vendors, v) }));
                                     setTablePage(0);
                                   }}
                                   className="rounded text-primary focus:ring-primary accent-primary"
                                 />
-                                <span className="font-mono">{m}</span>
+                                <span className="font-semibold">{formatVendorName(v, role)}</span>
                               </span>
                               <span className="font-mono text-muted-foreground">{count}</span>
                             </label>
                           );
                         })}
+                      </div>
                     </div>
-                  </div>
-                </HeaderFilterCell>
+                  </HeaderFilterCell>
 
-                {/* Column 7: Độ cứng */}
-                <HeaderFilterCell
-                  title="ĐỘ CỨNG"
-                  field="do_cung"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.hardnessSearch || filters.missingHardnessOnly}
-                  width={colWidths.do_cung}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'do_cung')}
-                  onResetWidth={() => handleResetColWidth('do_cung')}
-                >
-                  <HeaderSortControls
-                    field="do_cung"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Tìm độ cứng yêu cầu:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="VD: 58-62, 44±1..."
-                      value={filters.hardnessSearch}
-                      onChange={(e) => {
-                        setFilters((f) => ({ ...f, hardnessSearch: e.target.value }));
-                        setTablePage(0);
-                      }}
-                      className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground outline-none"
-                    />
-                    <label className="flex items-center gap-2 rounded px-1 py-1 hover:bg-secondary cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filters.missingHardnessOnly}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, missingHardnessOnly: e.target.checked }));
-                          setTablePage(0);
-                        }}
-                        className="rounded text-primary focus:ring-primary accent-primary"
-                      />
-                      <span>Chỉ xem chưa có độ cứng (—)</span>
-                    </label>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 8: SL */}
-                <HeaderFilterCell
-                  title="SL"
-                  field="so_luong"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.qtyMin || !!filters.qtyMax}
-                  align="end"
-                  width={colWidths.so_luong}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'so_luong')}
-                  onResetWidth={() => handleResetColWidth('so_luong')}
-                >
-                  <HeaderSortControls
-                    field="so_luong"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                    ascLabel="Nhỏ nhất → Lớn nhất"
-                    descLabel="Lớn nhất → Nhỏ nhất"
-                  />
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Khoảng số lượng (pcs):
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        placeholder="Từ (Min)"
-                        value={filters.qtyMin}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, qtyMin: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
-                      />
-                      <span>→</span>
-                      <input
-                        type="number"
-                        placeholder="Đến (Max)"
-                        value={filters.qtyMax}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, qtyMax: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
-                      />
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 9: Kg */}
-                <HeaderFilterCell
-                  title="KG"
-                  field="kg_Lot"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.kgMin || !!filters.kgMax}
-                  align="end"
-                  width={colWidths.kg_Lot}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'kg_Lot')}
-                  onResetWidth={() => handleResetColWidth('kg_Lot')}
-                >
-                  <HeaderSortControls
-                    field="kg_Lot"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                    ascLabel="Nhẹ nhất → Nặng nhất"
-                    descLabel="Nặng nhất → Nhẹ nhất"
-                  />
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Khoảng khối lượng (kg):
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.1"
-                        placeholder="Min kg"
-                        value={filters.kgMin}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, kgMin: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
-                      />
-                      <span>→</span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        placeholder="Max kg"
-                        value={filters.kgMax}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, kgMax: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs text-foreground"
-                      />
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 10: Đối tác */}
-                <HeaderFilterCell
-                  title="ĐỐI TÁC"
-                  field="cty_QT"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={filters.vendors.length > 0}
-                  width={colWidths.cty_QT}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'cty_QT')}
-                  onResetWidth={() => handleResetColWidth('cty_QT')}
-                >
-                  <HeaderSortControls
-                    field="cty_QT"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Nhà thầu gia công:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilters((f) => ({
-                            ...f,
-                            vendors: f.vendors.length === allVendors.length ? [] : [...allVendors],
-                          }));
-                          setTablePage(0);
-                        }}
-                        className="text-[10px] text-primary hover:underline cursor-pointer"
-                      >
-                        {filters.vendors.length === allVendors.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      {allVendors.map((v) => {
-                        const count = counts.ven[v] || 0;
-                        return (
-                          <label
-                            key={v}
-                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={filters.vendors.includes(v)}
-                                onChange={() => {
-                                  setFilters((f) => ({ ...f, vendors: toggleInArray(f.vendors, v) }));
-                                  setTablePage(0);
-                                }}
-                                className="rounded text-primary focus:ring-primary accent-primary"
-                              />
-                              <span className="font-semibold">{formatVendorName(v, role)}</span>
-                            </span>
-                            <span className="font-mono text-muted-foreground">{count}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 11: Logistics */}
-                <HeaderFilterCell
-                  title="LOGISTICS"
-                  field="TrangThai"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={filters.logistics.length > 0}
-                  width={colWidths.TrangThai}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'TrangThai')}
-                  onResetWidth={() => handleResetColWidth('TrangThai')}
-                >
-                  <HeaderSortControls
+                  {/* Column 11: Logistics */}
+                  <HeaderFilterCell
+                    title="LOGISTICS"
                     field="TrangThai"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Trạng thái luân chuyển:
-                    </span>
-                    <div className="space-y-1">
-                      {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map((l) => {
-                        const count = counts.log[l] || 0;
-                        return (
-                          <label
-                            key={l}
-                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={filters.logistics.includes(l)}
-                                onChange={() => {
-                                  setFilters((f) => ({ ...f, logistics: toggleInArray(f.logistics, l) }));
-                                  setTablePage(0);
-                                }}
-                                className="rounded text-primary focus:ring-primary accent-primary"
-                              />
-                              <span>{l}</span>
-                            </span>
-                            <span className="font-mono text-muted-foreground">{count}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 12: QC */}
-                <HeaderFilterCell
-                  title="QC"
-                  field="qc"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={filters.qcStates.length > 0}
-                  width={colWidths.qc}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'qc')}
-                  onResetWidth={() => handleResetColWidth('qc')}
-                >
-                  <HeaderSortControls
-                    field="qc"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Trạng thái kiểm tra QC:
-                    </span>
-                    <div className="space-y-1">
-                      {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => {
-                        const count = counts.qc[q] || 0;
-                        return (
-                          <label
-                            key={q}
-                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
-                          >
-                            <span className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={filters.qcStates.includes(q)}
-                                onChange={() => {
-                                  setFilters((f) => ({ ...f, qcStates: toggleInArray(f.qcStates, q) }));
-                                  setTablePage(0);
-                                }}
-                                className="rounded text-primary focus:ring-primary accent-primary"
-                              />
-                              <span
-                                className={`font-semibold ${q === 'Đạt'
-                                  ? 'text-primary'
-                                  : q === 'Không đạt'
-                                    ? 'text-destructive'
-                                    : 'text-foreground'
-                                  }`}
-                              >
-                                {q === 'Đạt' ? '[QC:PASS] Đạt' : q === 'Không đạt' ? '[QC:FAIL] K.Đạt' : q === 'Đang kiểm tra' ? '[QC:INSPECT] Đang KT' : '[QC:PENDING] Chưa KT'}
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={filters.logistics.length > 0}
+                    width={colWidths.TrangThai}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'TrangThai')}
+                    onResetWidth={() => handleResetColWidth('TrangThai')}
+                  >
+                    <HeaderSortControls
+                      field="TrangThai"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Trạng thái luân chuyển:
+                      </span>
+                      <div className="space-y-1">
+                        {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map((l) => {
+                          const count = counts.log[l] || 0;
+                          return (
+                            <label
+                              key={l}
+                              className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={filters.logistics.includes(l)}
+                                  onChange={() => {
+                                    setFilters((f) => ({ ...f, logistics: toggleInArray(f.logistics, l) }));
+                                    setTablePage(0);
+                                  }}
+                                  className="rounded text-primary focus:ring-primary accent-primary"
+                                />
+                                <span>{l}</span>
                               </span>
-                            </span>
-                            <span className="font-mono text-muted-foreground">{count}</span>
-                          </label>
-                        );
-                      })}
+                              <span className="font-mono text-muted-foreground">{count}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </HeaderFilterCell>
+                  </HeaderFilterCell>
 
-                {/* Column 13: Ngày gửi */}
-                <HeaderFilterCell
-                  title="NGÀY GỬI"
-                  field="ngay_gui_QT"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.sendFrom || !!filters.sendTo}
-                  width={colWidths.ngay_gui_QT}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'ngay_gui_QT')}
-                  onResetWidth={() => handleResetColWidth('ngay_gui_QT')}
-                >
-                  <HeaderSortControls
+                  {/* Column 12: QC */}
+                  <HeaderFilterCell
+                    title="QC"
+                    field="qc"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={filters.qcStates.length > 0}
+                    width={colWidths.qc}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'qc')}
+                    onResetWidth={() => handleResetColWidth('qc')}
+                  >
+                    <HeaderSortControls
+                      field="qc"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                    />
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Trạng thái kiểm tra QC:
+                      </span>
+                      <div className="space-y-1">
+                        {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => {
+                          const count = counts.qc[q] || 0;
+                          return (
+                            <label
+                              key={q}
+                              className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-secondary cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={filters.qcStates.includes(q)}
+                                  onChange={() => {
+                                    setFilters((f) => ({ ...f, qcStates: toggleInArray(f.qcStates, q) }));
+                                    setTablePage(0);
+                                  }}
+                                  className="rounded text-primary focus:ring-primary accent-primary"
+                                />
+                                <span
+                                  className={`font-semibold ${q === 'Đạt'
+                                    ? 'text-primary'
+                                    : q === 'Không đạt'
+                                      ? 'text-destructive'
+                                      : 'text-foreground'
+                                    }`}
+                                >
+                                  {q === 'Đạt' ? 'PASS' : q === 'Không đạt' ? 'FAIL' : q === 'Đang kiểm tra' ? 'INSPECT' : 'PENDING'}
+                                </span>
+                              </span>
+                              <span className="font-mono text-muted-foreground">{count}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 13: Ngày gửi */}
+                  <HeaderFilterCell
+                    title="NGÀY GỬI"
                     field="ngay_gui_QT"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                    ascLabel="Cũ nhất → Mới nhất"
-                    descLabel="Mới nhất → Cũ nhất"
-                  />
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Khoảng ngày gửi QT:
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="date"
-                        value={filters.sendFrom}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, sendFrom: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
-                      />
-                      <input
-                        type="date"
-                        value={filters.sendTo}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, sendTo: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 gap-1 pt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('send', 'today')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        Hôm nay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('send', '7days')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        7 ngày
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('send', 'this_month')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        Tháng này
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('send', 'all')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        Tất cả
-                      </button>
-                    </div>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 14: Hạn trả */}
-                <HeaderFilterCell
-                  title="HẠN TRẢ"
-                  field="han_tra"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.dueFrom || !!filters.dueTo || filters.missingDueOnly}
-                  width={colWidths.han_tra}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'han_tra')}
-                  onResetWidth={() => handleResetColWidth('han_tra')}
-                >
-                  <HeaderSortControls
-                    field="han_tra"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                    ascLabel="Gần nhất → Xa nhất"
-                    descLabel="Xa nhất → Gần nhất"
-                  />
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Khoảng hạn trả:
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="date"
-                        value={filters.dueFrom}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, dueFrom: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
-                      />
-                      <input
-                        type="date"
-                        value={filters.dueTo}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, dueTo: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 gap-1 pt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('due', 'today')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        Hôm nay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('due', '7days')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        7 ngày tới
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('due', 'this_month')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        Tháng này
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDatePreset('due', 'all')}
-                        className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                      >
-                        Tất cả
-                      </button>
-                    </div>
-                    <label className="flex items-center gap-2 rounded border border-warning/30 bg-warning/10 p-2 text-warning cursor-pointer mt-1">
-                      <input
-                        type="checkbox"
-                        checked={filters.missingDueOnly}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, missingDueOnly: e.target.checked }));
-                          setTablePage(0);
-                        }}
-                        className="rounded text-warning focus:ring-warning accent-warning"
-                      />
-                      <span className="font-bold text-[11px]">Chỉ xem lô thiếu hạn trả</span>
-                    </label>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 15: Ghi chú */}
-                <HeaderFilterCell
-                  title="GHI CHÚ"
-                  field="ghi_chu"
-                  sortCol={sortCol}
-                  sortDir={sortDir}
-                  isFiltered={!!filters.noteSearch || filters.hasNoteOnly}
-                  width={colWidths.ghi_chu}
-                  onDirectSort={handleToggleSort}
-                  onResize={(e) => handleResizeStart(e, 'ghi_chu')}
-                  onResetWidth={() => handleResetColWidth('ghi_chu')}
-                >
-                  <HeaderSortControls
-                    field="ghi_chu"
-                    currentField={sortCol}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                    ascLabel="A → Z (Theo ghi chú)"
-                    descLabel="Z → A (Theo ghi chú)"
-                  />
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                      Tìm kiếm ghi chú:
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Nội dung ghi chú..."
-                        value={filters.noteSearch}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, noteSearch: e.target.value }));
-                          setTablePage(0);
-                        }}
-                        className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-                      />
-                      {filters.noteSearch && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilters((f) => ({ ...f, noteSearch: '' }));
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.sendFrom || !!filters.sendTo}
+                    width={colWidths.ngay_gui_QT}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'ngay_gui_QT')}
+                    onResetWidth={() => handleResetColWidth('ngay_gui_QT')}
+                  >
+                    <HeaderSortControls
+                      field="ngay_gui_QT"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                      ascLabel="Cũ nhất → Mới nhất"
+                      descLabel="Mới nhất → Cũ nhất"
+                    />
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Khoảng ngày gửi QT:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={filters.sendFrom}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, sendFrom: e.target.value }));
                             setTablePage(0);
                           }}
-                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                    <label className="flex items-center gap-2 rounded px-1 py-1 hover:bg-secondary cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filters.hasNoteOnly}
-                        onChange={(e) => {
-                          setFilters((f) => ({ ...f, hasNoteOnly: e.target.checked }));
-                          setTablePage(0);
-                        }}
-                        className="rounded text-primary focus:ring-primary accent-primary"
-                      />
-                      <span className="text-[11px]">Chỉ xem lô có ghi chú</span>
-                    </label>
-                  </div>
-                </HeaderFilterCell>
-
-                {/* Column 16: Phiếu A4 */}
-                <th
-                  className="relative whitespace-nowrap px-3 py-2.5 text-center bg-secondary font-bold uppercase tracking-wider text-muted-foreground select-none"
-                  style={{ width: `${colWidths.ticket}px`, minWidth: `${colWidths.ticket}px` }}
-                >
-                  <span>PHIẾU A4</span>
-                  <div
-                    role="separator"
-                    tabIndex={-1}
-                    aria-orientation="vertical"
-                    title="Kéo để chỉnh độ rộng cột (Click đúp để khôi phục mặc định)"
-                    onMouseDown={(e) => handleResizeStart(e, 'ticket')}
-                    onDoubleClick={() => handleResetColWidth('ticket')}
-                    className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
-                  >
-                    <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/70">
-              {tableRows.length ? (
-                tableRows.map((r) => {
-                  const isSelected = selectedLots.has(r.ID_Key);
-
-                  return (
-                    <tr
-                      key={r.ID_Key}
-                      className={`group transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
-                        }`}
-                    >
-                      {/* 1. Checkbox */}
-                      <td
-                        className={`sticky left-0 z-20 px-3 py-2.5 text-center transition-colors border-r border-border/40 bg-card relative ${
-                          isSelected
-                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
-                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
-                        }`}
-                        style={{
-                          position: 'sticky',
-                          left: 0,
-                          zIndex: 20,
-                          width: `${colWidths.checkbox}px`,
-                          minWidth: `${colWidths.checkbox}px`,
-                          maxWidth: `${colWidths.checkbox}px`,
-                        }}
-                      >
-                        <div className="relative z-10 flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            aria-label={`Chọn lô ${r.ID_Key}`}
-                            checked={isSelected}
-                            onChange={() => toggleSelectLot(r.ID_Key)}
-                            className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
-                          />
-                        </div>
-                      </td>
-
-                      {/* 2. Mã lô (Green clickable link -> opens drawer) */}
-                      <td
-                        className={`sticky z-20 whitespace-nowrap px-3.5 py-2.5 transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative ${
-                          isSelected
-                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
-                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
-                        }`}
-                        style={{
-                          position: 'sticky',
-                          left: `${colWidths.checkbox}px`,
-                          zIndex: 20,
-                          width: `${colWidths.ID_Key}px`,
-                          minWidth: `${colWidths.ID_Key}px`,
-                          maxWidth: `${colWidths.ID_Key}px`,
-                        }}
-                      >
+                          className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                        />
+                        <input
+                          type="date"
+                          value={filters.sendTo}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, sendTo: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 gap-1 pt-1.5">
                         <button
                           type="button"
-                          onClick={() => setDetailLot(r)}
-                          className="relative z-10 font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
-                          title="Bấm để xem chi tiết & lịch sử lô"
+                          onClick={() => setDatePreset('send', 'today')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          {r.ID_Key}
+                          Hôm nay
                         </button>
-                      </td>
-
-                      {/* 3. Đơn hàng */}
-                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-muted-foreground">
-                        {r.So_DatHang}
-                      </td>
-
-                      {/* 4. Xưởng */}
-                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-foreground">
-                        {r.phong_sx}
-                      </td>
-
-                      {/* 5. Mã hàng (Inline Quick-Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-foreground transition-all ${savedCellKey === `${r.ID_Key}-ma_hang` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'ma_hang' ? (
-                          <input
-                            type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[130px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs font-bold text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
-                            className="flex items-center gap-1 group/edit cursor-pointer"
-                            title={canEdit ? 'Click đúp để sửa mã hàng' : undefined}
-                          >
-                            <span>{r.ma_hang}</span>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
-                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa mã hàng"
-                              >
-                                <Edit2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 6. Vật liệu (Inline Quick-Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-medium text-foreground transition-all ${savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
-                          <input
-                            type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[110px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
-                            className="flex items-center gap-1 group/edit cursor-pointer"
-                            title={canEdit ? 'Click đúp để sửa mác thép' : undefined}
-                          >
-                            <span>{r.vat_lieu}</span>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
-                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa mác thép"
-                              >
-                                <Edit2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 7. Độ cứng (Inline Quick-Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono text-foreground transition-all ${savedCellKey === `${r.ID_Key}-do_cung` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
-                          <input
-                            type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[90px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
-                            className="flex items-center gap-1.5 group/edit cursor-pointer"
-                            title="Click đúp để sửa nhanh độ cứng"
-                          >
-                            <span>{r.do_cung || '—'}</span>
-                            <button
-                              type="button"
-                              onClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
-                              className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                              title="Chạm để sửa độ cứng"
-                            >
-                              <Edit2 size={11} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 8. Số lượng (Inline Quick-Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-so_luong` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
-                          <input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[80px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
-                            className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                            title={canEdit ? 'Click đúp để sửa số lượng' : undefined}
-                          >
-                            <span>{number(r.so_luong)}</span>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
-                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa số lượng"
-                              >
-                                <Edit2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 9. Kg (Inline Quick-Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-kg_Lot` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[80px] rounded-xs border-2 border-primary bg-background px-2 font-mono text-xs text-right tabular-nums text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
-                            className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                            title={canEdit ? 'Click đúp để sửa khối lượng kg' : undefined}
-                          >
-                            <span>{number(r.kg_Lot, 1)}</span>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
-                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa kg"
-                              >
-                                <Edit2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 10. Đối tác (Partner Privacy Masking & Admin Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono font-semibold text-foreground transition-all ${savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {isAdmin && editingCell?.id === r.ID_Key && editingCell.field === 'cty_QT' ? (
-                          <select
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[110px] rounded-xs border-2 border-primary bg-background px-1.5 font-semibold text-xs text-foreground outline-none shadow-xs cursor-pointer"
-                            autoFocus
-                          >
-                            <option value="YAMAICHI">YAMAICHI</option>
-                            <option value="PROVISION">PROVISION</option>
-                          </select>
-                        ) : (
-                          <div
-                            onDoubleClick={() => isAdmin && startInlineEdit(r.ID_Key, 'cty_QT', String(r.cty_QT))}
-                            className="flex items-center gap-1 group/edit cursor-pointer"
-                            title={isAdmin ? 'Click đúp để đổi đối tác gia công' : undefined}
-                          >
-                            <span>{formatVendorName(r.cty_QT, role)}</span>
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'cty_QT', String(r.cty_QT))}
-                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để đổi đối tác gia công"
-                              >
-                                <Edit2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 11. Logistics (Inline Quick-Edit Dropdown) */}
-                      <td className="whitespace-nowrap px-3.5 py-2.5">
-                        <select
-                          value={r.TrangThai}
-                          onChange={(e) => {
-                            const newStatus = e.target.value as Status;
-                            updateItem(r.ID_Key, { TrangThai: newStatus });
-                            syncWriteBack(r.ID_Key, r.cty_QT, { TrangThai: newStatus });
-                            appendAudit({
-                              ID_Key: r.ID_Key,
-                              user: role,
-                              role,
-                              from: r.TrangThai,
-                              to: newStatus,
-                              changes: { TrangThai: [r.TrangThai, newStatus] },
-                              result: 'ok',
-                            });
-                            toast.success(`Đã chuyển lô ${r.ID_Key} sang: ${newStatus}`);
-                            playAudioCue('success');
-                          }}
-                          className={`h-6 rounded-xs px-2 text-[10px] font-mono font-bold tracking-tight border transition-colors outline-none cursor-pointer ${r.TrangThai === 'Đã nhập kho'
-                            ? 'border-border bg-secondary text-muted-foreground'
-                            : r.TrangThai === 'Đang tại Vendor'
-                              ? 'border-primary/40 bg-primary/10 text-primary'
-                              : 'border-warning/40 bg-warning/10 text-warning'
-                            }`}
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('send', '7days')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Status[]).map((s) => (
-                            <option key={s} value={s} className="bg-popover text-popover-foreground">
-                              {s === 'Chờ xuất xưởng' ? '[WAIT] Chờ xuất' : s === 'Đang tại Vendor' ? '[TRANSIT] Tại Vendor' : '[STOCKED] Đã nhập kho'}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      {/* 12. QC (Inline Quick-Edit) */}
-                      <td className="whitespace-nowrap px-3.5 py-2.5">
-                        <select
-                          value={qcOf(r)}
-                          onChange={(e) => {
-                            const newQc = e.target.value as QcState;
-                            const isPassed = newQc === 'Đạt';
-                            const statusPatch: Partial<QTItem> = isPassed ? { TrangThai: 'Đã nhập kho' } : {};
-                            updateItem(r.ID_Key, statusPatch);
-                            if (isPassed) {
-                              syncWriteBack(r.ID_Key, r.cty_QT, statusPatch);
-                            }
-                            appendAudit({
-                              ID_Key: r.ID_Key,
-                              user: role,
-                              role,
-                              from: qcOf(r),
-                              to: newQc,
-                              changes: { QC: [qcOf(r), newQc] },
-                              result: 'ok',
-                            });
-                            toast.success(`Cập nhật QC lô ${r.ID_Key}: ${newQc}`);
-                            playAudioCue('success');
-                          }}
-                          className={`h-6 rounded-xs px-2 text-[10px] font-mono font-bold tracking-tight border transition-colors outline-none cursor-pointer ${qcOf(r) === 'Đạt'
-                            ? 'border-primary/40 bg-primary/10 text-primary'
-                            : qcOf(r) === 'Không đạt'
-                              ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                              : 'border-border bg-secondary text-muted-foreground'
-                            }`}
+                          7 ngày
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('send', 'this_month')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => (
-                            <option key={q} value={q} className="bg-popover text-popover-foreground">
-                              {q === 'Đạt' ? '[QC:PASS] Đạt' : q === 'Không đạt' ? '[QC:FAIL] K.Đạt' : q === 'Đang kiểm tra' ? '[QC:INSPECT] Đang KT' : '[QC:PENDING] Chưa KT'}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      {/* 13. Ngày gửi (Inline Quick-Edit) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums text-muted-foreground transition-all ${savedCellKey === `${r.ID_Key}-ngay_gui_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? (
-                          <input
-                            type="date"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[130px] rounded-xs border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => canEdit && startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
-                            className="flex items-center gap-1 group/edit cursor-pointer"
-                            title={canEdit ? 'Click đúp để sửa ngày gửi' : undefined}
-                          >
-                            <span>{date(r.ngay_gui_QT)}</span>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
-                                className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa ngày gửi"
-                              >
-                                <Edit2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 14. Hạn trả (Inline Quick-Edit Date) */}
-                      <td
-                        className={`whitespace-nowrap px-3.5 py-2.5 font-mono tabular-nums transition-all ${savedCellKey === `${r.ID_Key}-han_tra` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                          }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'han_tra' ? (
-                          <input
-                            type="date"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            className="h-7 w-full min-w-[130px] rounded-xs border-2 border-primary bg-background px-1.5 font-mono text-xs text-foreground outline-none shadow-xs"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
-                            className="flex items-center gap-1 group/edit cursor-pointer"
-                            title="Click đúp để sửa hạn trả"
-                          >
-                            <span>{date(r.han_tra)}</span>
-                            {r.han_tra_est && (
-                              <span className="text-[9px] text-warning font-sans" title="Hạn ước tính +7d">
-                                (+7d)
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
-                              className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                              title="Chạm để sửa hạn trả"
-                            >
-                              <Edit2 size={11} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 15. Ghi chú (Inline Quick-Edit & Comment cho mọi role) */}
-                      <td
-                        className={`min-w-[160px] px-3.5 py-2 text-xs transition-all ${
-                          savedCellKey === `${r.ID_Key}-ghi_chu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
-                        }`}
-                      >
-                        {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
-                          <textarea
-                            value={editValue}
-                            placeholder="Nhập ghi chú cho lô... (Enter: lưu, Shift+Enter: xuống dòng, Tab: ô tiếp)"
-                            onChange={(e) => {
-                              setEditValue(e.target.value);
-                              e.target.style.height = 'auto';
-                              e.target.style.height = `${Math.max(34, e.target.scrollHeight)}px`;
-                            }}
-                            ref={(el) => {
-                              if (el) {
-                                el.style.height = 'auto';
-                                el.style.height = `${Math.max(34, el.scrollHeight)}px`;
-                              }
-                            }}
-                            onKeyDown={(e) => handleCellKeyDown(e, r)}
-                            onBlur={() => saveInlineEdit(r)}
-                            rows={1}
-                            style={{ resize: 'both' }}
-                            className="min-h-[34px] w-full rounded-xs border-2 border-primary bg-background px-2 py-1 font-mono text-xs text-foreground outline-none shadow-xs leading-relaxed"
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
-                            className="flex items-start justify-between gap-1 group/edit cursor-pointer py-0.5"
-                            title="Click đúp để viết hoặc chỉnh sửa ghi chú"
-                          >
-                            <span
-                              className={`text-xs break-words whitespace-pre-wrap leading-relaxed ${
-                                r.ghi_chu ? 'text-foreground' : 'text-muted-foreground/60 italic'
-                              }`}
-                            >
-                              {r.ghi_chu || '+ Thêm ghi chú...'}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
-                              className="opacity-40 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1 mt-0.5 p-0.5 rounded hover:bg-secondary cursor-pointer touch-manipulation"
-                              title="Chạm để sửa ghi chú"
-                            >
-                              <Edit2 size={11} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 16. Phiếu A4 */}
-                      <td className="whitespace-nowrap px-3.5 py-2.5 text-center">
-                        <JobTicketButton item={r} role={role} variant="icon" />
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={16} className="px-4 py-16 text-center text-xs text-muted-foreground">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xs bg-muted/60 border border-border/80 text-muted-foreground mb-3">
-                      <PackageOpen size={24} className="opacity-80 text-foreground" />
+                          Tháng này
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('send', 'all')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                        >
+                          Tất cả
+                        </button>
+                      </div>
                     </div>
-                    <p className="font-bold text-foreground text-sm">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
-                    <p className="mt-1.5 text-xs text-muted-foreground max-w-md mx-auto">
-                      Hiện tại không có bản ghi nào khớp với điều kiện lọc đang chọn. Bạn có thể xóa nhanh bộ lọc để tải lại toàn bộ danh sách.
-                    </p>
-                    <div className="mt-4 flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={resetAllFilters}
-                        className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer shadow-2xs active:scale-98"
-                      >
-                        <RotateCcw size={12} />
-                        <span>Xóa tất cả tiêu chí lọc & Tải lại</span>
-                      </button>
+                  </HeaderFilterCell>
+
+                  {/* Column 14: Hạn trả */}
+                  <HeaderFilterCell
+                    title="HẠN TRẢ"
+                    field="han_tra"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.dueFrom || !!filters.dueTo || filters.missingDueOnly}
+                    width={colWidths.han_tra}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'han_tra')}
+                    onResetWidth={() => handleResetColWidth('han_tra')}
+                  >
+                    <HeaderSortControls
+                      field="han_tra"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                      ascLabel="Gần nhất → Xa nhất"
+                      descLabel="Xa nhất → Gần nhất"
+                    />
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Khoảng hạn trả:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={filters.dueFrom}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, dueFrom: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                        />
+                        <input
+                          type="date"
+                          value={filters.dueTo}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, dueTo: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground font-mono"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 gap-1 pt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('due', 'today')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                        >
+                          Hôm nay
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('due', '7days')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                        >
+                          7 ngày tới
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('due', 'this_month')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                        >
+                          Tháng này
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDatePreset('due', 'all')}
+                          className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                        >
+                          Tất cả
+                        </button>
+                      </div>
+                      <label className="flex items-center gap-2 rounded border border-warning/30 bg-warning/10 p-2 text-warning cursor-pointer mt-1">
+                        <input
+                          type="checkbox"
+                          checked={filters.missingDueOnly}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, missingDueOnly: e.target.checked }));
+                            setTablePage(0);
+                          }}
+                          className="rounded text-warning focus:ring-warning accent-warning"
+                        />
+                        <span className="font-bold text-[11px]">Chỉ xem lô thiếu hạn trả</span>
+                      </label>
                     </div>
-                  </td>
+                  </HeaderFilterCell>
+
+                  {/* Column 15: Ghi chú */}
+                  <HeaderFilterCell
+                    title="GHI CHÚ"
+                    field="ghi_chu"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={!!filters.noteSearch || filters.hasNoteOnly}
+                    width={colWidths.ghi_chu}
+                    onDirectSort={handleToggleSort}
+                    onResize={(e) => handleResizeStart(e, 'ghi_chu')}
+                    onResetWidth={() => handleResetColWidth('ghi_chu')}
+                  >
+                    <HeaderSortControls
+                      field="ghi_chu"
+                      currentField={sortCol}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                      ascLabel="A → Z (Theo ghi chú)"
+                      descLabel="Z → A (Theo ghi chú)"
+                    />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tìm kiếm ghi chú:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Nội dung ghi chú..."
+                          value={filters.noteSearch}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, noteSearch: e.target.value }));
+                            setTablePage(0);
+                          }}
+                          className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+                        />
+                        {filters.noteSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilters((f) => ({ ...f, noteSearch: '' }));
+                              setTablePage(0);
+                            }}
+                            className="absolute right-2 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                      <label className="flex items-center gap-2 rounded px-1 py-1 hover:bg-secondary cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={filters.hasNoteOnly}
+                          onChange={(e) => {
+                            setFilters((f) => ({ ...f, hasNoteOnly: e.target.checked }));
+                            setTablePage(0);
+                          }}
+                          className="rounded text-primary focus:ring-primary accent-primary"
+                        />
+                        <span className="text-[11px]">Chỉ xem lô có ghi chú</span>
+                      </label>
+                    </div>
+                  </HeaderFilterCell>
+
+                  {/* Column 16: Phiếu A4 (Sticky Right Pin) */}
+                  <th
+                    className="sticky top-0 right-0 z-50 whitespace-nowrap px-2 py-2 text-center bg-secondary font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none border-l border-border/80 shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)]"
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      right: 0,
+                      zIndex: 50,
+                      width: `${colWidths.ticket}px`,
+                      minWidth: `${colWidths.ticket}px`,
+                      maxWidth: `${colWidths.ticket}px`,
+                    }}
+                  >
+                    <span className="text-[10px]">PHIẾU A4</span>
+                  </th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border/70">
+                {tableRows.length ? (
+                  tableRows.map((r) => {
+                    const isSelected = selectedLots.has(r.ID_Key);
+                    const padY = density === 'compact' ? 'py-1' : 'py-2.5';
 
-        {/* Pagination & Export Bar - Monozukuri Ergonomic Control Bar (TASK-005) */}
-        <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 border-t border-border bg-secondary/35 px-3.5 py-2 text-[11px] text-muted-foreground">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded-xs border border-border/60 shadow-2xs">
-              Đang xem <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}
-              <b className="text-foreground">{number(Math.min((tablePage + 1) * pageSize, rows.length))}</b> /{' '}
-              <span className="font-bold text-foreground">{number(rows.length)}</span> lô
-            </span>
+                    return (
+                      <tr
+                        key={r.ID_Key}
+                        className={`group transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'
+                          }`}
+                      >
+                        {/* 1. Checkbox */}
+                        <td
+                          className={`sticky left-0 z-20 px-3 ${padY} text-center transition-colors border-r border-border/40 bg-card relative ${isSelected
+                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
+                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
+                            }`}
+                          style={{
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 20,
+                            width: `${colWidths.checkbox}px`,
+                            minWidth: `${colWidths.checkbox}px`,
+                            maxWidth: `${colWidths.checkbox}px`,
+                          }}
+                        >
+                          <div className="relative z-10 flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              aria-label={`Chọn lô ${r.ID_Key}`}
+                              checked={isSelected}
+                              onChange={() => toggleSelectLot(r.ID_Key)}
+                              className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
+                            />
+                          </div>
+                        </td>
 
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground font-medium">Hiển thị:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setTablePage(0);
-                }}
-                className="rounded-xs border border-input bg-background px-2.5 py-1 text-[11px] text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs cursor-pointer"
-              >
-                {PAGE_SIZES.map((n) => (
-                  <option key={n} value={n}>
-                    {n} dòng/trang
-                  </option>
-                ))}
-              </select>
-            </div>
+                        {/* 2. Mã lô (Green clickable link -> opens drawer) */}
+                        <td
+                          className={`sticky z-20 whitespace-nowrap px-3.5 ${padY} transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative ${isSelected
+                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
+                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
+                            }`}
+                          style={{
+                            position: 'sticky',
+                            left: `${colWidths.checkbox}px`,
+                            zIndex: 20,
+                            width: `${colWidths.ID_Key}px`,
+                            minWidth: `${colWidths.ID_Key}px`,
+                            maxWidth: `${colWidths.ID_Key}px`,
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setDetailLot(r)}
+                            className="relative z-10 font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                            title="Bấm để xem chi tiết & lịch sử lô"
+                          >
+                            {r.ID_Key}
+                          </button>
+                        </td>
 
-            <button
-              type="button"
-              onClick={() => exportCsv(false)}
-              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98"
-            >
-              <Download size={13} className="text-primary/90" />
-              <span>Xuất CSV toàn bộ</span>
-            </button>
+                        {/* 3. Đơn hàng */}
+                        <td
+                          className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`}
+                          style={{ maxWidth: `${colWidths.So_DatHang}px` }}
+                          title={r.So_DatHang}
+                        >
+                          {r.So_DatHang}
+                        </td>
+
+                        {/* 5. Mã hàng (Inline Quick-Edit) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'ma_hang' ? 'px-1' : 'px-3.5'} ${padY} font-mono font-bold text-foreground transition-all truncate ${savedCellKey === `${r.ID_Key}-ma_hang` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                          style={{ maxWidth: `${colWidths.ma_hang}px` }}
+                          title={r.ma_hang}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ma_hang' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1.5 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
+                              className="flex items-center gap-1 group/edit cursor-pointer"
+                              title={canEdit ? 'Click đúp để sửa mã hàng' : undefined}
+                            >
+                              <span>{r.ma_hang}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Chạm để sửa mã hàng"
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 6. Vật liệu (Inline Quick-Edit) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? 'px-1' : 'px-2'} ${padY} text-center font-mono font-medium text-foreground transition-all truncate ${savedCellKey === `${r.ID_Key}-vat_lieu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                          style={{ maxWidth: `${colWidths.vat_lieu}px` }}
+                          title={r.vat_lieu}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-center font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
+                              className="flex items-center justify-center gap-1 group/edit cursor-pointer"
+                              title={canEdit ? 'Click đúp để sửa mác thép' : undefined}
+                            >
+                              <span className="truncate">{r.vat_lieu}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Chạm để sửa mác thép"
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 7. Độ cứng (Inline Quick-Edit) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? 'px-1' : 'px-2'} ${padY} text-center font-mono text-foreground transition-all ${savedCellKey === `${r.ID_Key}-do_cung` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-center font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
+                              className="flex items-center justify-center gap-1.5 group/edit cursor-pointer"
+                              title="Click đúp để sửa nhanh độ cứng"
+                            >
+                              <span>{r.do_cung || '—'}</span>
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
+                                className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa độ cứng"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 8. Số lượng (Inline Quick-Edit) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? 'px-1' : 'px-2'} ${padY} text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-so_luong` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
+                            <input
+                              type="number"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs tabular-nums text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title={canEdit ? 'Click đúp để sửa số lượng' : undefined}
+                            >
+                              <span>{number(r.so_luong)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Chạm để sửa số lượng"
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 9. Kg (Inline Quick-Edit) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? 'px-1' : 'px-2'} ${padY} text-right font-mono tabular-nums text-foreground transition-all ${savedCellKey === `${r.ID_Key}-kg_Lot` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs tabular-nums text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title={canEdit ? 'Click đúp để sửa khối lượng kg' : undefined}
+                            >
+                              <span>{number(r.kg_Lot, 1)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Chạm để sửa kg"
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 10. Đối tác (Direct Select tương tự Logistics & QC có phân quyền bảo mật) */}
+                        <td
+                          className={`whitespace-nowrap px-2.5 ${padY} font-mono transition-all truncate ${savedCellKey === `${r.ID_Key}-cty_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                          style={{ maxWidth: `${colWidths.cty_QT}px` }}
+                          title={formatVendorName(r.cty_QT, role)}
+                        >
+                          {isAdmin || role === 'leader' ? (
+                            <select
+                              value={String(r.cty_QT)}
+                              onChange={(e) => {
+                                const newVendor = e.target.value as Vendor;
+                                updateItem(r.ID_Key, { cty_QT: newVendor });
+                                syncWriteBack(r.ID_Key, newVendor, { cty_QT: newVendor });
+                                appendAudit({
+                                  ID_Key: r.ID_Key,
+                                  user: role,
+                                  role,
+                                  from: String(r.cty_QT),
+                                  to: String(newVendor),
+                                  changes: { cty_QT: [String(r.cty_QT), String(newVendor)] },
+                                  result: 'ok',
+                                });
+                                toast.success(`Đã chuyển đối tác lô ${r.ID_Key}: ${formatVendorName(newVendor, role)}`);
+                                playAudioCue('success');
+                              }}
+                              className="h-6 w-full max-w-[115px] rounded-xs px-1.5 text-[10px] font-mono font-bold tracking-tight border border-border/80 bg-secondary/80 text-foreground hover:border-primary/50 cursor-pointer outline-none transition-colors"
+                            >
+                              <option value="YAMAICHI" className="bg-popover text-popover-foreground">
+                                {formatVendorName('YAMAICHI', role)}
+                              </option>
+                              <option value="PROVISION" className="bg-popover text-popover-foreground">
+                                {formatVendorName('PROVISION', role)}
+                              </option>
+                            </select>
+                          ) : (
+                            <span className="font-mono text-xs font-semibold text-foreground/90">
+                              {formatVendorName(r.cty_QT, role)}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 11. Logistics (Inline Quick-Edit Dropdown) */}
+                        <td className={`whitespace-nowrap px-3.5 ${padY}`}>
+                          <select
+                            value={r.TrangThai}
+                            onChange={(e) => {
+                              const newStatus = e.target.value as Status;
+                              updateItem(r.ID_Key, { TrangThai: newStatus });
+                              syncWriteBack(r.ID_Key, r.cty_QT, { TrangThai: newStatus });
+                              appendAudit({
+                                ID_Key: r.ID_Key,
+                                user: role,
+                                role,
+                                from: r.TrangThai,
+                                to: newStatus,
+                                changes: { TrangThai: [r.TrangThai, newStatus] },
+                                result: 'ok',
+                              });
+                              toast.success(`Đã chuyển lô ${r.ID_Key} sang: ${newStatus}`);
+                              playAudioCue('success');
+                            }}
+                            className={`h-6 rounded-xs px-2 text-[10px] font-mono font-bold tracking-tight border transition-colors outline-none cursor-pointer ${r.TrangThai === 'Đã nhập kho'
+                              ? 'border-border bg-secondary text-muted-foreground'
+                              : r.TrangThai === 'Đang tại Vendor'
+                                ? 'border-primary/40 bg-primary/10 text-primary'
+                                : 'border-warning/40 bg-warning/10 text-warning'
+                              }`}
+                          >
+                            {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Status[]).map((s) => (
+                              <option key={s} value={s} className="bg-popover text-popover-foreground">
+                                {s === 'Chờ xuất xưởng' ? 'WAIT' : s === 'Đang tại Vendor' ? 'TRANSIT' : 'STOCKED'}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* 12. QC (Inline Quick-Edit) */}
+                        <td className={`whitespace-nowrap px-3.5 ${padY}`}>
+                          <select
+                            value={qcOf(r)}
+                            onChange={(e) => {
+                              const newQc = e.target.value as QcState;
+                              const isPassed = newQc === 'Đạt';
+                              const statusPatch: Partial<QTItem> = isPassed ? { TrangThai: 'Đã nhập kho' } : {};
+                              updateItem(r.ID_Key, statusPatch);
+                              if (isPassed) {
+                                syncWriteBack(r.ID_Key, r.cty_QT, statusPatch);
+                              }
+                              appendAudit({
+                                ID_Key: r.ID_Key,
+                                user: role,
+                                role,
+                                from: qcOf(r),
+                                to: newQc,
+                                changes: { QC: [qcOf(r), newQc] },
+                                result: 'ok',
+                              });
+                              toast.success(`Cập nhật QC lô ${r.ID_Key}: ${newQc}`);
+                              playAudioCue('success');
+                            }}
+                            className={`h-6 rounded-xs px-2 text-[10px] font-mono font-bold tracking-tight border transition-colors outline-none cursor-pointer ${qcOf(r) === 'Đạt'
+                              ? 'border-primary/40 bg-primary/10 text-primary'
+                              : qcOf(r) === 'Không đạt'
+                                ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                                : 'border-border bg-secondary text-muted-foreground'
+                              }`}
+                          >
+                            {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => (
+                              <option key={q} value={q} className="bg-popover text-popover-foreground">
+                                {q === 'Đạt' ? 'PASS' : q === 'Không đạt' ? 'FAIL' : q === 'Đang kiểm tra' ? 'INSPECT' : 'PENDING'}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* 13. Ngày gửi (Inline Quick-Edit) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? 'px-1' : 'px-2.5'} ${padY} text-center font-mono tabular-nums text-muted-foreground transition-all ${savedCellKey === `${r.ID_Key}-ngay_gui_QT` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-[11px] font-mono text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => canEdit && startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
+                              className="flex items-center justify-center gap-1 group/edit cursor-pointer"
+                              title={canEdit ? 'Click đúp để sửa ngày gửi' : undefined}
+                            >
+                              <span>{date(r.ngay_gui_QT)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Chạm để sửa ngày gửi"
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 14. Hạn trả (Inline Quick-Edit Date) */}
+                        <td
+                          className={`whitespace-nowrap ${editingCell?.id === r.ID_Key && editingCell.field === 'han_tra' ? 'px-1' : 'px-2.5'} ${padY} text-center font-mono tabular-nums transition-all ${savedCellKey === `${r.ID_Key}-han_tra` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'han_tra' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-7 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-[11px] font-mono text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
+                              className="flex items-center justify-center gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa hạn trả"
+                            >
+                              <span>{date(r.han_tra)}</span>
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
+                                className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                title="Chạm để sửa hạn trả"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 15. Ghi chú (Inline Quick-Edit & Comment cho mọi role) */}
+                        <td
+                          className={`min-w-[180px] px-3.5 ${density === 'compact' ? 'py-1' : 'py-1.5'} text-xs transition-all ${savedCellKey === `${r.ID_Key}-ghi_chu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                            }`}
+                          title={r.ghi_chu || undefined}
+                        >
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
+                            <textarea
+                              value={editValue}
+                              placeholder=""
+                              onChange={(e) => {
+                                setEditValue(e.target.value);
+                                e.target.style.height = 'auto';
+                                e.target.style.height = `${Math.max(34, e.target.scrollHeight)}px`;
+                              }}
+                              ref={(el) => {
+                                if (el) {
+                                  el.style.height = 'auto';
+                                  el.style.height = `${Math.max(34, el.scrollHeight)}px`;
+                                }
+                              }}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              onBlur={() => saveInlineEdit(r)}
+                              rows={1}
+                              style={{ resize: 'both' }}
+                              className="min-h-[34px] w-full rounded-xs border-2 border-primary bg-background px-2 py-1 font-mono text-xs text-foreground outline-none shadow-xs leading-relaxed"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
+                              className="flex items-start justify-between gap-1 group/edit cursor-pointer py-0.5"
+                              title="Click đúp để viết hoặc chỉnh sửa ghi chú"
+                            >
+                              <span
+                                className={`text-xs ${density === 'compact' ? 'line-clamp-1' : 'break-words whitespace-pre-wrap'} leading-relaxed ${r.ghi_chu ? 'text-foreground' : 'text-muted-foreground/60 italic'
+                                  }`}
+                              >
+                                {r.ghi_chu || '+ Thêm ghi chú...'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
+                                className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1 mt-0.5 p-0.5 rounded hover:bg-secondary cursor-pointer touch-manipulation"
+                                title="Chạm để sửa ghi chú"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 16. Phiếu A4 (Sticky Right Pin) */}
+                        <td
+                          className={`sticky right-0 z-20 whitespace-nowrap px-2 ${padY} text-center transition-colors border-l border-border/80 shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative ${isSelected
+                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
+                            : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
+                            }`}
+                          style={{
+                            position: 'sticky',
+                            right: 0,
+                            zIndex: 20,
+                            width: `${colWidths.ticket}px`,
+                            minWidth: `${colWidths.ticket}px`,
+                            maxWidth: `${colWidths.ticket}px`,
+                          }}
+                        >
+                          <div className="relative z-10 flex items-center justify-center">
+                            <JobTicketButton item={r} role={role} variant="icon" />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={16} className="px-4 py-16 text-center text-xs text-muted-foreground">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xs bg-muted/60 border border-border/80 text-muted-foreground mb-3">
+                        <PackageOpen size={24} className="opacity-80 text-foreground" />
+                      </div>
+                      <p className="font-bold text-foreground text-sm">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground max-w-md mx-auto">
+                        Hiện tại không có bản ghi nào khớp với điều kiện lọc đang chọn. Bạn có thể xóa nhanh bộ lọc để tải lại toàn bộ danh sách.
+                      </p>
+                      <div className="mt-4 flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={resetAllFilters}
+                          className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer shadow-2xs active:scale-98"
+                        >
+                          <RotateCcw size={12} />
+                          <span>Xóa tất cả tiêu chí lọc & Tải lại</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={tablePage === 0}
-              onClick={() => {
-                setTablePage((p) => Math.max(0, p - 1));
-                playAudioCue('beep');
-              }}
-              title="Trang trước (Phím tắt: Alt + Mũi tên trái)"
-              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
-            >
-              <ChevronLeft size={13} />
-              <span>Trang trước</span>
-              <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
-                Alt+←
-              </kbd>
-            </button>
+          {/* Minimal Pagination Bar (Chiến lược 4) */}
+          <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 border-t border-border bg-secondary/35 px-3.5 py-2 text-[11px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded-xs border border-border/60 shadow-2xs">
+                Đang xem <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}
+                <b className="text-foreground">{number(Math.min((tablePage + 1) * pageSize, rows.length))}</b> /{' '}
+                <span className="font-bold text-foreground">{number(rows.length)}</span> lô
+              </span>
 
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
-              <span className="text-muted-foreground font-sans">Trang</span>
-              <span className="font-bold text-foreground text-xs">{tablePage + 1}</span>
-              <span className="text-muted-foreground/60">/</span>
-              <span className="font-semibold text-muted-foreground">{number(totalPages)}</span>
-            </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground font-medium">Hiển thị:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setTablePage(0);
+                  }}
+                  className="rounded-xs border border-input bg-background px-2.5 py-1 text-[11px] text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs cursor-pointer"
+                >
+                  {PAGE_SIZES.map((n) => (
+                    <option key={n} value={n}>
+                      {n} dòng/trang
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-            <button
-              type="button"
-              disabled={tablePage + 1 >= totalPages}
-              onClick={() => {
-                setTablePage((p) => Math.min(totalPages - 1, p + 1));
-                playAudioCue('beep');
-              }}
-              title="Trang sau (Phím tắt: Alt + Mũi tên phải)"
-              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
-            >
-              <span>Trang sau</span>
-              <ChevronRight size={13} />
-              <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
-                Alt+→
-              </kbd>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={tablePage === 0}
+                onClick={() => {
+                  setTablePage((p) => Math.max(0, p - 1));
+                  playAudioCue('beep');
+                }}
+                title="Trang trước (Phím tắt: Alt + Mũi tên trái)"
+                className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
+              >
+                <ChevronLeft size={13} />
+                <span>Trang trước</span>
+                <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
+                  Alt+←
+                </kbd>
+              </button>
+
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
+                <span className="text-muted-foreground font-sans">Trang</span>
+                <span className="font-bold text-foreground text-xs">{tablePage + 1}</span>
+                <span className="text-muted-foreground/60">/</span>
+                <span className="font-semibold text-muted-foreground">{number(totalPages)}</span>
+              </span>
+
+              <button
+                type="button"
+                disabled={tablePage + 1 >= totalPages}
+                onClick={() => {
+                  setTablePage((p) => Math.min(totalPages - 1, p + 1));
+                  playAudioCue('beep');
+                }}
+                title="Trang sau (Phím tắt: Alt + Mũi tên phải)"
+                className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
+              >
+                <span>Trang sau</span>
+                <ChevronRight size={13} />
+                <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
+                  Alt+→
+                </kbd>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
       {/* Proposal 2 & 5: Floating Bulk Action Bar - Monozukuri Control Dock (TASK-008) */}
       {selectedLots.size > 0 && (
