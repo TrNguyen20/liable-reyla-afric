@@ -530,15 +530,15 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         title={`${label} (Phím [${n.shortcut}])`}
                         className={`flex h-7.5 items-center gap-1.5 rounded-xs px-2.5 text-[11px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
                           isActive
-                            ? 'bg-card text-foreground border border-border/80 shadow-2xs font-black'
-                            : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground border border-transparent'
+                            ? 'bg-slate-900 text-white border border-slate-800 shadow-sm font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white'
+                            : 'text-muted-foreground hover:bg-card hover:text-foreground border border-transparent'
                         }`}
                       >
-                        <n.icon size={13.5} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <n.icon size={13.5} className={`shrink-0 ${isActive ? 'text-emerald-400 dark:text-emerald-600' : 'text-muted-foreground'}`} />
                         <span>{label}</span>
                         <span
                           className={`font-mono text-[9px] tabular-nums rounded-xs px-1 py-0.2 hidden sm:inline-block ${
-                            isActive ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-muted/60 text-muted-foreground/80'
+                            isActive ? 'bg-slate-800 text-emerald-300 border border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300 font-bold' : 'bg-muted/60 text-muted-foreground/80'
                           }`}
                         >
                           [{n.shortcut}]
@@ -620,7 +620,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         }}
                         className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
                           isCurrent
-                            ? 'bg-primary text-primary-foreground shadow-2xs font-black'
+                            ? 'bg-slate-900 text-emerald-300 border border-slate-800 shadow-2xs font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                         }`}
                         title={`${item.label} (${item.nativeName})`}

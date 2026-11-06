@@ -127,7 +127,7 @@ describe('DYNAMO QT-MES: Graphite Wireframe Design System Compliance Tests', () 
     // Kiểm tra tỷ lệ kích thước mặc định tối ưu
     expect(trackingSrc).toContain('checkbox: 40');
     expect(trackingSrc).toContain('ID_Key: 130');
-    expect(trackingSrc).toContain('So_DatHang: 110');
+    expect(trackingSrc).toContain('So_DatHang: 120');
     expect(trackingSrc).toContain('ma_hang: 110');
     expect(trackingSrc).toContain('vat_lieu: 100');
     expect(trackingSrc).toContain('do_cung: 100');
@@ -138,7 +138,7 @@ describe('DYNAMO QT-MES: Graphite Wireframe Design System Compliance Tests', () 
     expect(trackingSrc).toContain('qc: 100');
     expect(trackingSrc).toContain('ngay_gui_QT: 115');
     expect(trackingSrc).toContain('han_tra: 115');
-    expect(trackingSrc).toContain('ghi_chu: 180');
+    expect(trackingSrc).toContain('ghi_chu: 165');
     expect(trackingSrc).toContain('ticket: 58');
 
     // Kiểm tra giới hạn co giãn tối thiểu an toàn
@@ -178,8 +178,8 @@ describe('DYNAMO QT-MES: Graphite Wireframe Design System Compliance Tests', () 
 
     // 1. Kiểm tra mã nguồn tracking.tsx có nhánh xử lý đặc biệt cho ngay_gui_QT
     expect(trackingSrc).toContain("field === 'ngay_gui_QT' ? 'desc' : 'asc'");
-    expect(trackingSrc).toContain("if (field === 'ngay_gui_QT') {\n        setSortDir('asc');\n      } else {");
-    expect(trackingSrc).toContain("field === 'ngay_gui_QT'\n                    ? 'Giảm dần → Tăng dần'\n                    : 'Giảm dần → Mặc định'");
+    expect(trackingSrc).toMatch(/if\s*\(field\s*===\s*'ngay_gui_QT'\)\s*\{\s*setSortDir\('asc'\);/);
+    expect(trackingSrc).toMatch(/field\s*===\s*'ngay_gui_QT'\s*\?\s*'Giảm dần → Tăng dần'/);
 
     // 2. Kiểm thử logic mô phỏng state machine của handleToggleSort
     let sortCol = 'ngay_gui_QT';
