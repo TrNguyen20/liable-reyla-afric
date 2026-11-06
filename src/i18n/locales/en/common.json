@@ -23,5 +23,368 @@
   "view": "View",
   "logout": "Logout",
   "themeLight": "Switch to Light mode",
-  "themeDark": "Switch to Dark mode"
+  "themeDark": "Switch to Dark mode",
+  "vendorMask": "Masked",
+  "slogan": "Discipline - Precision - Safety - On-Time",
+  "retry": "Retry",
+  "edit": "Edit",
+  "print": "Print",
+  "copy": "Copy",
+  "copied": "Copied",
+  "actions": "Actions",
+  "status": "Status",
+  "date": "Date",
+  "time": "Time",
+  "note": "Note",
+  "details": "Details",
+  "total": "Total",
+  "units": {
+    "kg": "kg",
+    "pcs": "pcs",
+    "lot": "lot",
+    "lots": "lots",
+    "items": "items",
+    "hours": "hours",
+    "days": "days"
+  },
+  "meta": {
+    "title": "DYNAMO VIETNAM QT - MES",
+    "description": "Subcontract precision heat treatment and plating tracking MES for high-precision tooling manufacturing."
+  },
+  "clock": {
+    "ariaLabel": "Real-time clock"
+  },
+  "langSwitcher": {
+    "title": "Switch Language / Chuyển đổi ngôn ngữ / 言語切替",
+    "ariaLabel": "Select system language"
+  },
+  "footer": {
+    "copyright": "© 2026 DYNAMO VIETNAM QT - MES · Heat Treatment & Plating Tracking System",
+    "runtime": "Simulation Environment (Edge Runtime)"
+  },
+  "notFound": {
+    "title": "Resource Not Found",
+    "desc": "The requested URL does not exist in the QT MES system. Please verify the URL or return to the main tracking board.",
+    "backAction": "Back to QT Tracking"
+  },
+  "errorBoundary": {
+    "badge": "OPERATIONAL ERROR / RUNTIME FAIL-SAFE",
+    "title": "Unable to connect or render data",
+    "desc": "System encountered an unhandled runtime exception. Safe self-healing is ready to restore your session.",
+    "retry": "Retry Flow",
+    "selfHeal": "Clean Self-Heal",
+    "goHome": "Go to QT Tracking",
+    "toggleLogShow": "View technical exception log ▼",
+    "toggleLogHide": "Hide technical log ▲"
+  },
+  "toasts": {
+    "refreshSuccess": "Refreshed {count} lots from system ({elapsed}ms)",
+    "loadFailed": "Failed to load data from system.",
+    "loadError": "Data load error: {msg}",
+    "accessDenied": "Your role does not have permission to access this page.",
+    "copySuccess": "Copied code {code}"
+  },
+  "rolesExtended": {
+    "switcherTooltip": "Switch view perspective for permission check",
+    "revertToast": "Reverted to actual Admin view",
+    "impersonateToast": "Simulating view: {role}",
+    "cancelImpersonate": "Cancel simulation",
+    "impersonatedBadge": "(SIMULATED)",
+    "logoutAria": "Logout"
+  },
+  "dialogs": {
+    "confirmTitle": "Confirm Action",
+    "confirmMessage": "Are you sure you want to proceed with this action?",
+    "discardTitle": "Discard Changes?",
+    "discardMessage": "Unsaved changes will be lost."
+  },
+  "filters": {
+    "search": "Search...",
+    "clear": "Clear filter",
+    "deselect": "Deselect",
+    "deselectAll": "Deselect all",
+    "selectAll": "Select all",
+    "min": "Min",
+    "max": "Max",
+    "allPartners": "All partners",
+    "allStatus": "All logistics",
+    "resetFilter": "Reset"
+  },
+  "table": {
+    "noData": "No data available",
+    "loadingRows": "Loading rows...",
+    "selectedRows": "{count} rows selected",
+    "stickyPinLeft": "Pin column left",
+    "stickyPinRight": "Pin column right",
+    "autoFitColumns": "Auto fit columns"
+  },
+  "auth": {
+    "meta": {
+      "title": "Sign In | DYNAMO VIETNAM QT - MES",
+      "desc": "Sign in to precision subcontract heat treatment and tracking MES."
+    },
+    "hero": {
+      "badge": "INTERNAL QT SHOPFLOOR SYSTEM",
+      "title": "Subcontract Heat Treatment & QT Management",
+      "subtitle": "Centralized operational portal for PIN, INSERT, and MOLD workshops. Strictly controls part journey, turnaround lead-time, and quenching/tempering quality."
+    },
+    "features": {
+      "tracking": {
+        "title": "24/7 Heat Treatment & Plating Tracking",
+        "desc": "Monitor lot journey from workshop dispatch to subcontractor and warehouse stocking."
+      },
+      "leadTime": {
+        "title": "Subcontractor Lead-Time Control",
+        "desc": "Early detection of overdue lots to safeguard mold assembly schedules."
+      },
+      "pricing": {
+        "title": "Material Norms & Unit Price Audit",
+        "desc": "Automated verification of unit prices by Steel Grade × Unit × Supplier."
+      }
+    },
+    "plant": {
+      "address": "DYNAMO VIETNAM CO., LTD. · DONG AN 2 INDUSTRIAL PARK",
+      "telemetry": "MES QT CORE: R&D-V1.0-DEMO · DATA SYNC: REAL-TIME"
+    },
+    "form": {
+      "badge": "IDENTITY VERIFICATION",
+      "title": "System Login",
+      "subtitle": "Enter authorization token issued by operations to access assigned role.",
+      "codeLabel": "Step 2 · Access Code",
+      "kioskShow": "Kiosk Numpad",
+      "kioskHide": "Hide Numpad",
+      "codePlaceholderPos": "Enter access code for {position}",
+      "codePlaceholderEmpty": "Select position in Step 1 first",
+      "codeAria": "Access code",
+      "clearAria": "Clear code",
+      "toggleAria": "Toggle code visibility"
+    },
+    "steps": {
+      "aria": "Authentication Progress",
+      "step1": "Step 1 · Position",
+      "step2": "Step 2 · ULID Access Code",
+      "unselected": "Unselected",
+      "codeLoaded": "Code loaded",
+      "codeEmpty": "Empty"
+    },
+    "positions": {
+      "admin": {
+        "label": "BOD / System IT",
+        "role": "Admin"
+      },
+      "leader": {
+        "label": "Department Head / Supervisor",
+        "role": "Leader"
+      },
+      "viewer": {
+        "label": "Technician / Operator",
+        "role": "Viewer"
+      },
+      "partner": {
+        "label": "External Subcontractor",
+        "role": "Partner"
+      }
+    },
+    "kiosk": {
+      "heading": "SHOPFLOOR TOUCH KEYPAD (KIOSK MODE)",
+      "clearAll": "C (Clear All)"
+    },
+    "lock": {
+      "title": "Device Temporarily Locked",
+      "desc": "5 consecutive failed attempts. Retry when timer reaches 00:00.",
+      "attemptsLeft": "{attemptsLeft}/5 attempts remaining before device lockout."
+    },
+    "submit": {
+      "locked": "LOCKED · {mmss}",
+      "verifying": "VERIFYING PERMISSIONS...",
+      "enter": "VERIFY & ENTER SYSTEM"
+    },
+    "errors": {
+      "requirePosition": "Please select your position (Step 1) before authenticating.",
+      "requireCode": "Please enter your access token (Step 2).",
+      "invalidCode": "Access token is invalid or has expired.",
+      "roleMismatch": "This access token does not belong to the selected position ({label}).",
+      "networkError": "Connection error during verification. Please try again shortly."
+    },
+    "support": {
+      "text": "No access code? Please contact Administrator to receive authorized credentials."
+    }
+  },
+  "command": {
+    "placeholder": "Search part code, PO number, lot ID or quick action... (ESC to close)",
+    "empty": "No matching results found.",
+    "matchedLots": "MATCHED LOTS & PARTS",
+    "orderPrefix": "PO:",
+    "quickNav": "QUICK NAVIGATION",
+    "workshopFilter": "WORKSHOP FILTER",
+    "allWorkshops": "Workshop: Entire Plant (ALL)",
+    "workshopPrefix": "Workshop: {ws}",
+    "systemActions": "SYSTEM ACTIONS",
+    "pullData": "Refresh & Pull from Google Sheets",
+    "toggleTheme": "Toggle Light / Dark Theme",
+    "logout": "Sign Out Session"
+  },
+  "lotUpdate": {
+    "triggerTitle": "Update progress for lot {lotId}",
+    "triggerBtn": "Update",
+    "dialogTitle": "Update Lot {lotId}",
+    "dialogDesc": "Update lot tracking status and heat treatment inspection parameters",
+    "itemCode": "Part Code",
+    "orderNo": "PO Number",
+    "vendor": "Subcontractor",
+    "dueDate": "Due Date",
+    "noDueDate": "None",
+    "newStatus": "New Status",
+    "keepStatus": "(keep current)",
+    "needReason": "— reason required",
+    "actualReceiveDate": "Actual Receipt Date",
+    "actualHardness": "Actual Hardness",
+    "qcPassConfirm": "I confirm the lot has passed QC",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "e.g. Hardness out of spec, return to vendor for rework",
+    "confirmMove": "Confirm transition {TrangThai} → {targetStatus}? Click again to save.",
+    "noChanges": "No changes to save.",
+    "invalidMove": "Cannot transition directly from \"{from}\" → \"{to}\".",
+    "requireReason": "Enter a reason (at least 5 characters) for return/recall action.",
+    "requireVendor": "Lot has no assigned vendor.",
+    "requireDue": "Lot has no valid due date.",
+    "requireReceiveDate": "Actual receipt date required when transitioning to QC Inspection.",
+    "requireReceiveDateStock": "Actual receipt date required before stocking.",
+    "requireHrcStock": "Actual hardness required before stocking.",
+    "requireQcCheck": "Must confirm \"QC Passed\" before stocking.",
+    "dateInvalid": "Invalid receipt date.",
+    "dateBeforeSent": "Receipt date cannot precede QT dispatch date.",
+    "dateInFuture": "Receipt date cannot be in the future.",
+    "hrcInvalid": "Invalid hardness format (e.g. 58-62 HRC).",
+    "networkError": "Cannot connect to server.",
+    "sheetSyncError": "Failed to write to Google Sheet: {error}. Data unchanged — click Retry.",
+    "syncSuccess": "Saved and recorded to Google Sheet: lot {lotId}",
+    "btnCancel": "Cancel",
+    "btnSaving": "Saving…",
+    "btnConfirm": "Confirm & Save",
+    "btnRetry": "Retry",
+    "btnSave": "Save & Record to Sheet"
+  },
+  "ticket": {
+    "previewTitle": "PRINT PREVIEW STUDIO",
+    "previewDesc": "ISO A4 Standard (210 x 297 mm) · 1:1.414 True Scale · 4 Signature Blocks",
+    "formatA4": "Standard A4 Sheet",
+    "formatPallet": "Pallet Tag",
+    "zoomLabel": "Zoom:",
+    "zoomFit": "Fit Screen",
+    "zoom100": "100% (1:1)",
+    "copyCode": "Copy Code",
+    "codeCopied": "Copied",
+    "printNow": "Print Now",
+    "batchTitle": "BATCH PRINT TICKETS ({count} LOTS)",
+    "batchSummary": "Total: {pcs} pcs · {kg} kg",
+    "tabManifest": "1. Dispatch Manifest ({count} lots)",
+    "tabTickets": "2. Individual A4 Tickets ({count} pages)",
+    "printManifest": "Print Dispatch Manifest",
+    "printAllTickets": "Print All {count} A4 Tickets",
+    "companyName": "DYNAMO VIETNAM CO., LTD.",
+    "deptName": "KAIZEN MES · HEAT TREATMENT & SUBCONTRACT DEPT (QT)",
+    "docInfo": "Ticket No: {docCode} · PO: {orderNo}",
+    "title": "SUBCONTRACT DISPATCH & WORK ORDER",
+    "processes": "Process: Vacuum Hardening / Through Hardening / Carburizing / Technical Plating",
+    "sec1Title": "I. PART SPECIFICATIONS & TECHNICAL REQUIREMENTS",
+    "fields": {
+      "partNo": "Part Code:",
+      "lotId": "Lot ID:",
+      "senderDept": "Dispatch Workshop:",
+      "recipientVendor": "Receiving Subcontractor:",
+      "material": "Steel Grade / Material:",
+      "hardnessReq": "Required Hardness:",
+      "dimensions": "Dimensions:",
+      "quantity": "Quantity Dispatched:",
+      "weight": "Total Lot Weight:",
+      "sendDate": "Dispatch Date:",
+      "dueDate": "Committed Due Date:",
+      "status": "Status:",
+      "unitPrice": "Unit Processing Price:",
+      "totalPrice": "Total Amount (Est):",
+      "hardnessDrawingFallback": "Per drawing",
+      "dueAgreementFallback": "Per agreement",
+      "orderNo": "PO / Order No:"
+    },
+    "sec2Title": "II. TECHNICAL INSTRUCTIONS & PACKAGING SPECIFICATIONS",
+    "notes": {
+      "surface": "Surface protection: Spray anti-rust oil, wrap shrink film to protect threads and precision mating surfaces.",
+      "collision": "Collision prevention: Use plastic trays / dividers to avoid direct friction between parts during transit.",
+      "deformation": "Deformation control: Warpage after quench ≤ 0.02 mm / 100mm. Report immediately upon crack or thermal distortion.",
+      "coupon": "Attached test coupon: Heat treated in the same batch for hardness and metallurgical micro-structure inspection."
+    },
+    "sec3Title": "III. ACTUAL QC RECEIVING INSPECTION LOG",
+    "qc": {
+      "point1": "Point 1 (HRC)",
+      "point2": "Point 2 (HRC)",
+      "point3": "Point 3 (HRC)",
+      "average": "Average (HRC)",
+      "evaluation": "Acceptance Evaluation: [ ] PASS   [ ] FAIL"
+    },
+    "signatures": {
+      "logistics": "1. DYNAMO LOGISTICS",
+      "security": "2. GATE SECURITY",
+      "vendor": "3. SUBCONTRACTOR",
+      "qc": "4. RECEIVING QC",
+      "logisticsSub": "Order Creation & Dispatch",
+      "securitySub": "Gate Clearance Inspection",
+      "vendorSub": "Receipt & Count Verification",
+      "qcSub": "Standard QC Acceptance",
+      "logisticsSign": "Sign & Full Name",
+      "securitySign": "Sign & Dispatch Time",
+      "vendorSign": "Sign & Official Stamp",
+      "qcSign": "Sign & Receiving Date"
+    },
+    "slogan": "Shopfloor Motto: DISCIPLINE · PRECISION · SAFETY · ON-TIME",
+    "printedAt": "Printed at: {timestamp}"
+  },
+  "pallet": {
+    "title": "DYNAMO VIETNAM · PALLET TAG",
+    "subtitle": "SUBCONTRACT HEAT TREATMENT LOT (QT)",
+    "workshop": "WORKSHOP {ws}",
+    "partHeading": "MOLD PART CODE",
+    "trackingCode": "TRACEABILITY CODE: {ID_Key}"
+  },
+  "manifest": {
+    "title": "SUBCONTRACT DISPATCH MANIFEST (QT)",
+    "total": "Total:",
+    "cols": {
+      "idx": "No.",
+      "lotId": "LOT ID",
+      "itemCode": "PART CODE",
+      "orderNo": "PO NO",
+      "ws": "WORKSHOP",
+      "material": "MATERIAL",
+      "hardness": "HARDNESS",
+      "qty": "QTY",
+      "weight": "KG",
+      "partner": "PARTNER",
+      "dueDate": "DUE DATE",
+      "sign": "SIGNATURE"
+    }
+  },
+  "source": "Source",
+  "cache": "Cache",
+  "lastSynced": "Last synced",
+  "noTimestamp": "No timestamp",
+  "thisMonth": "This month",
+  "lastMonth": "Last month",
+  "selected": "Selected",
+  "pagination": {
+    "prev": "Previous",
+    "page": "Page",
+    "next": "Next"
+  },
+  "jobTicket": {
+    "sec1": {
+      "size": "Dimensions",
+      "unitPrice": "Unit Price",
+      "totalPrice": "Estimated Total"
+    }
+  },
+  "loading": "Loading…",
+  "loading.permissions": "Loading authorization data…",
+  "loading.failedTitle": "Failed to load production data",
+  "loading.syncing": "Syncing heat treatment data from Google Sheets…"
 }

@@ -46,8 +46,8 @@ export function validateUpdate(item: QTItem, d: Draft, isAdmin: boolean): string
 // ---- Audit log (browser storage; kept per device until a central store exists) ----
 export type AuditEvent = {
   id: string; at: string; ID_Key: string; user: string; role: string;
-  from?: Status; to?: Status; changes: Record<string, [string, string]>;
-  reason: string; result: 'ok' | 'sync_failed'; error?: string;
+  from?: Status | string | undefined; to?: Status | string | undefined; changes: Record<string, [string, string]>;
+  reason?: string | undefined; result: 'ok' | 'sync_failed'; error?: string | undefined;
 };
 const KEY = 'dynamo-audit';
 const MAX = 3000;

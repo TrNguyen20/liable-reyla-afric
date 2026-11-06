@@ -16,7 +16,7 @@ export type DeltaRecord = {
   patch: Partial<QTItem>;
   version: number;
   timestamp: string;
-  user?: string;
+  user?: string | undefined;
 };
 
 type ServerLiveStore = {
@@ -197,8 +197,8 @@ export function patchServerDataset(
   }
 
   const idx = store.items.findIndex((i) => i.ID_Key === idKey);
-  if (idx !== -1) {
-    store.items[idx] = { ...store.items[idx], ...patch };
+  if (idx !== -1 && store.items[idx]) {
+    store.items[idx] = { ...store.items[idx], ...patch } as QTItem;
   } else {
     console.warn(`[server-dataset] Item with ID_Key "${idKey}" not yet in server cache.`);
   }

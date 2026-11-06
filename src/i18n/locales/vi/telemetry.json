@@ -6,5 +6,35 @@
   "totalLots": "Tổng số lô",
   "externalHeatTreatment": "HÀNG NGOÀI XƯỞNG",
   "workshopLoad": "TẢI THEO XƯỞNG",
-  "updatedAt": "Cập nhật lúc"
+  "updatedAt": "Cập nhật lúc",
+  "states": {
+    "syncing": "Đang đồng bộ...",
+    "error": "Lỗi kết nối Google Sheets",
+    "ready": "Sẵn sàng đồng bộ",
+    "offline": "Ngoại tuyến",
+    "connected": "Đã kết nối"
+  },
+  "ribbon": {
+    "externalShort": "Hàng ngoài:",
+    "loadShort": "Tải:",
+    "openLots": "{count} lô mở",
+    "expandTooltip": "Mở rộng dải chỉ số KPI xưởng (Fitts's Law)",
+    "kpiMetrics": "Chỉ số KPI",
+    "collapseTooltip": "Thu gọn dải chỉ số KPI để tối ưu không gian hiển thị bảng",
+    "collapse": "Thu gọn",
+    "datasetRows": "· {count} dòng"
+  },
+  "shifts": {
+    "shift1": "Ca 1 (06:00 - 14:00)",
+    "shift2": "Ca 2 (14:00 - 22:00)",
+    "shift3": "Ca 3 (22:00 - 06:00)"
+  },
+  "labels": {
+    "connectionLive": "LIVE",
+    "connectionOffline": "OFFLINE",
+    "latency": "Độ trễ: {ms}ms",
+    "memoryUsage": "Bộ nhớ: {percent}%",
+    "activeWorkers": "Nhân sự ca: {count}",
+    "plantEfficiency": "Hiệu suất xưởng: {percent}%"
+  }
 }

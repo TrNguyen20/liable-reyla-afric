@@ -1,8 +1,83 @@
 {
   "title": "DATA SYNCHRONIZATION",
-  "googleSheets": "GOOGLE SHEETS INTEGRATION",
-  "biDirectional": "BI-DIRECTIONAL SYNC",
+  "googleSheets": "GOOGLE SHEETS INBOUND",
+  "biDirectional": "BI-DIRECTIONAL",
   "availableLots": "AVAILABLE LOTS",
   "syncNow": "Sync Now",
-  "webhookStatus": "Webhook Status"
+  "webhookStatus": "Webhook Status",
+  "gateway": {
+    "title": "Bidirectional Gateway",
+    "subtitle": "Synchronize Google Sheets and send feedback via Google Apps Script",
+    "inboundSection": "1. Inbound Sync (Google Sheets → MES)",
+    "sheetUrlLabel": "Google Sheets CSV export URL:",
+    "syncModeLabel": "Data Sync Mode:",
+    "modeReplace": "Full Overwrite (Replace)",
+    "modeMerge": "Update & Merge",
+    "autoRefreshLabel": "Auto-refresh:",
+    "autoRefreshOff": "Disabled",
+    "refreshSeconds": "{sec} seconds",
+    "refreshMinutes": "{min} minutes",
+    "loadPreview": "Load Preview",
+    "loading": "Loading Google Sheets data...",
+    "applyData": "Apply to System",
+    "revertData": "Revert Dataset",
+    "modeReplaceDesc": "Clear existing cache and reload all latest records from Google Sheets.",
+    "modeMergeDesc": "Append new lots and overwrite existing records with matching ID_Key."
+  },
+  "preview": {
+    "title": "Staging Data Preview",
+    "subtitle": "Inspect summary metrics and row diffs before committing to system memory",
+    "totalRows": "Total Rows",
+    "validRows": "Valid",
+    "errorRows": "Format Errors",
+    "newRows": "New Lots",
+    "updatedRows": "Updated",
+    "noPreview": "No preview loaded. Enter URL and click \"Load Preview\".",
+    "recordsUnit": "records"
+  },
+  "webhook": {
+    "badge": "BIDIRECTIONAL OUTBOUND",
+    "title": "Google Apps Script Webhook for Lot Updates",
+    "statusConnected": "CONNECTED & READY",
+    "statusNotConfigured": "NOT CONFIGURED",
+    "autoPush": "Auto push: Status · Receipt Date · Hardness",
+    "urlLabel": "Google Apps Script Webhook URL (POST):",
+    "urlPlaceholder": "https://script.google.com/macros/s/.../exec",
+    "save": "Save Connection",
+    "saved": "Saved",
+    "testConnection": "Test Connection",
+    "testing": "Testing...",
+    "delete": "Delete Config",
+    "description": "When a lot status is updated on the Tracking board, the system dispatches a JSON payload to Google Apps Script to record changes back into the master spreadsheet.",
+    "toasts": {
+      "urlInvalid": "Invalid URL format! Webhook link must be in format https://script.google.com/macros/s/.../exec",
+      "saveSuccess": "Successfully configured Google Sheets write-back Webhook.",
+      "deleteSuccess": "Removed write-back Webhook configuration.",
+      "testSuccess": "Webhook connection test succeeded!",
+      "testFailed": "Webhook connection test failed: {error}"
+    }
+  },
+  "audit": {
+    "title": "Webhook Write-Back Audit Log",
+    "clear": "Clear Log",
+    "empty": "No sync events recorded yet.",
+    "cols": {
+      "time": "TIMESTAMP",
+      "lotId": "LOT ID",
+      "event": "EVENT",
+      "payload": "PAYLOAD",
+      "status": "STATUS"
+    }
+  },
+  "status": {
+    "idle": "Ready",
+    "inProgress": "In Progress",
+    "success": "Success",
+    "failed": "Failed",
+    "rowsLoaded": "Loaded {count} rows",
+    "cacheStatus": "Cache size: {size} MB"
+  },
+  "twoWay": {
+    "recentHeader": "CHANGE LOG & AUDIT TRAIL"
+  }
 }

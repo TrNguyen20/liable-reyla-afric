@@ -2,5 +2,59 @@
   "title": "CHI TIẾT ĐƠN ĐẶT HÀNG",
   "searchPlaceholder": "Tìm theo mã đơn, mã hàng, linh kiện...",
   "totalOrders": "Tổng số đơn hàng",
-  "activeOrders": "Đơn hàng đang xử lý"
+  "activeOrders": "Đơn hàng đang xử lý",
+  "masterListTitle": "Danh sách đơn",
+  "orderCount": "{count} đơn hàng",
+  "kpiTotalValue": "TỔNG GIÁ TRỊ",
+  "kpiTotalQty": "TỔNG SỐ LƯỢNG",
+  "kpiTotalKg": "TỔNG KL",
+  "progressPrefix": "Tiến độ:",
+  "progressSuffix": "lô hoàn tất",
+  "subFilters": {
+    "all": "Tất cả ({count})",
+    "overdue": "Quá hạn ({count})",
+    "due_soon": "Cận hạn ({count})",
+    "open": "Đang xử lý ({count})",
+    "done": "Hoàn tất ({count})"
+  },
+  "headers": {
+    "actions": "THAO TÁC",
+    "idx": "STT",
+    "itemCode": "MÃ LINH KIỆN",
+    "material": "MÁC THÉP",
+    "hardness": "ĐỘ CỨNG",
+    "dimensions": "KÍCH THƯỚC (MM)",
+    "qty": "SL",
+    "unit": "ĐVT",
+    "weight": "KL (KG)",
+    "unitPrice": "ĐƠN GIÁ",
+    "totalAmount": "THÀNH TIỀN"
+  },
+  "actions": {
+    "printOrderTickets": "In phiếu cả đơn",
+    "exportOrderCsv": "Xuất CSV đơn hàng",
+    "backToList": "Quay lại danh sách",
+    "partsCount": "{count} linh kiện",
+    "selectedPo": "Đơn hàng: {orderNo}",
+    "noSelectedOrder": "Chọn một đơn hàng từ danh sách bên trái để xem chi tiết linh kiện.",
+    "printAll": "In phiếu cả đơn"
+  },
+  "detail": {
+    "poHeader": "ĐƠN HÀNG: {orderNo}",
+    "customer": "Khách hàng / Dự án:",
+    "createdDate": "Ngày lập đơn:",
+    "totalItems": "Số mã linh kiện:",
+    "statusOpen": "Đang gia công",
+    "statusCompleted": "Đã hoàn tất",
+    "filterPlaceholder": "Lọc theo mã linh kiện, mác thép...",
+    "emptyParts": "Không có linh kiện nào khớp bộ lọc."
+  },
+  "kpis": {
+    "totalValue": "TỔNG GIÁ TRỊ",
+    "totalQty": "TỔNG SỐ LƯỢNG",
+    "openLots": "Tổng lô đang mở:"
+  },
+  "telemetry": {
+    "viewing": "Đang xem"
+  }
 }

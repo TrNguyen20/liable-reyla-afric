@@ -1,6 +1,60 @@
 {
   "title": "発注詳細一覧",
-  "searchPlaceholder": "発注番号、品番、部品名で検索...",
-  "totalOrders": "総発注件数",
-  "activeOrders": "仕掛発注件数"
+  "searchPlaceholder": "注文番号、部品コード、品名で検索...",
+  "totalOrders": "総注文数",
+  "activeOrders": "処理中の注文",
+  "masterListTitle": "注文一覧",
+  "orderCount": "{count} 件の注文",
+  "kpiTotalValue": "総発注金額",
+  "kpiTotalQty": "総部品数量",
+  "kpiTotalKg": "総重量",
+  "progressPrefix": "進捗:",
+  "progressSuffix": "ロット完了",
+  "subFilters": {
+    "all": "すべて ({count})",
+    "overdue": "納期超過 ({count})",
+    "due_soon": "期日切迫 ({count})",
+    "open": "処理中 ({count})",
+    "done": "完了 ({count})"
+  },
+  "headers": {
+    "actions": "操作",
+    "idx": "項",
+    "itemCode": "部品コード",
+    "material": "材質・鋼種",
+    "hardness": "要求硬度",
+    "dimensions": "製品寸法 (MM)",
+    "qty": "数量",
+    "unit": "単位",
+    "weight": "重量 (KG)",
+    "unitPrice": "加工単価",
+    "totalAmount": "合計金額"
+  },
+  "actions": {
+    "printOrderTickets": "注文全伝票印刷",
+    "exportOrderCsv": "注文データをCSV出力",
+    "backToList": "一覧に戻る",
+    "partsCount": "{count} 点の部品",
+    "selectedPo": "注文: {orderNo}",
+    "noSelectedOrder": "左側の一覧から注文を選択して部品詳細を表示します。",
+    "printAll": "全伝票を一括印刷"
+  },
+  "detail": {
+    "poHeader": "注文番号: {orderNo}",
+    "customer": "顧客・プロジェクト:",
+    "createdDate": "発注日:",
+    "totalItems": "品目数:",
+    "statusOpen": "加工中",
+    "statusCompleted": "完了",
+    "filterPlaceholder": "部品コード、材質で絞り込み...",
+    "emptyParts": "条件に一致する部品はありません。"
+  },
+  "kpis": {
+    "totalValue": "発注総額",
+    "totalQty": "総数量",
+    "openLots": "未完了ロット総数:"
+  },
+  "telemetry": {
+    "viewing": "表示中"
+  }
 }

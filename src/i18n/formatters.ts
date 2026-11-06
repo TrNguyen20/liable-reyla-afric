@@ -7,7 +7,7 @@ import type { Locale } from './types';
  * - ja: YYYY/MM/DD hoặc YYYY年MM月DD日
  */
 export function formatDate(dateInput: Date | string | number, locale: Locale = 'vi', options?: { full?: boolean }): string {
-  if (!dateInput) return '';
+  if (dateInput === null || dateInput === undefined || dateInput === '') return '';
   const d = new Date(dateInput);
   if (Number.isNaN(d.getTime())) return String(dateInput);
 
@@ -30,7 +30,7 @@ export function formatDate(dateInput: Date | string | number, locale: Locale = '
  * Định dạng Giờ theo Locale
  */
 export function formatTime(dateInput: Date | string | number, locale: Locale = 'vi'): string {
-  if (!dateInput) return '';
+  if (dateInput === null || dateInput === undefined || dateInput === '') return '';
   const d = new Date(dateInput);
   if (Number.isNaN(d.getTime())) return '';
 

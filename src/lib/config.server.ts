@@ -40,7 +40,7 @@ function loadFromDisk(): ServerConfig {
   } catch (err) {
     console.warn('[config.server] Failed to read .server-config.json:', err);
   }
-  cachedConfig = { webhookUrl: process.env.DYNAMO_WEBHOOK_URL || DEFAULT_WEBHOOK_URL };
+  cachedConfig = { webhookUrl: process.env['DYNAMO_WEBHOOK_URL'] || DEFAULT_WEBHOOK_URL };
   return cachedConfig;
 }
 
@@ -62,7 +62,7 @@ function saveToDisk(config: ServerConfig): void {
  * Precedence: Environment Variable > Saved Disk/Memory Config > Default Webhook URL.
  */
 export async function getCentralWebhookUrl(): Promise<string> {
-  const envUrl = process.env.DYNAMO_WEBHOOK_URL?.trim();
+  const envUrl = process.env['DYNAMO_WEBHOOK_URL']?.trim();
   if (envUrl) return envUrl;
 
   const config = loadFromDisk();

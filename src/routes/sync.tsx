@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDynamo } from '@/components/dynamo-shell';
+import { useTranslation } from '@/i18n';
 import { number, type QTItem } from '@/lib/dynamo-data';
 import { SHEET_URL, type MapResult } from '@/lib/dynamo-source';
 import { toast } from 'sonner';
@@ -52,6 +53,7 @@ export const Route = createFileRoute('/sync')({
 });
 
 function Sync() {
+  const { t, locale } = useTranslation();
   const { applyDataset, resetDataset, sourceLabel, dataset, syncedAt } = useDynamo();
 
   // Inbound Sheets State
@@ -95,7 +97,7 @@ function Sync() {
   const saveWebhook = async () => {
     const v = webhookUrl.trim();
     if (v && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)) {
-      toast.error('Định dạng URL không đúng! Link Webhook phải có dạng https://script.google.com/macros/s/.../exec');
+      toast.error(t('sync.webhook.toasts.urlInvalid') || 'Định dạng URL không đúng! Link Webhook phải có dạng https://script.google.com/macros/s/.../exec');
       return;
     }
     try {
@@ -111,13 +113,13 @@ function Sync() {
         }
       }
       if (v) {
-        toast.success('Đã lưu cấu hình Webhook tập trung vào hệ thống thành công.');
+        toast.success(t('sync.webhook.toasts.saveSuccess') || 'Đã cấu hình Webhook ghi ngược Google Sheets thành công.');
         playAudioCue('success');
       } else {
-        toast.info('Đã xóa cấu hình Webhook ghi ngược trên toàn hệ thống.');
+        toast.info(t('sync.webhook.toasts.deleteSuccess') || 'Đã xóa cấu hình Webhook ghi ngược.');
       }
     } catch (err: any) {
-      toast.error(`Lỗi lưu Webhook lên máy chủ: ${err.message || 'Không có quyền'}`);
+      toast.error(t('sync.webhook.toasts.testFailed', { error: err.message || 'Không có quyền' }) || `Lỗi lưu Webhook lên máy chủ: ${err.message || 'Không có quyền'}`);
     }
   };
 
@@ -126,13 +128,13 @@ function Sync() {
   const [testResult, setTestResult] = useState<{
     ok: boolean;
     message: string;
-    latency?: number;
+    latency?: number | undefined;
   } | null>(null);
 
   const handleTestWebhook = async () => {
     const v = webhookUrl.trim();
     if (!v) {
-      toast.error('Vui lòng nhập đường dẫn Webhook trước khi kiểm tra.');
+      toast.error(t('sync.webhook.urlPlaceholder') ? `${t('common.filter') || 'Vui lòng'} ${t('sync.webhook.urlLabel') || 'nhập URL'}` : 'Vui lòng nhập đường dẫn Webhook trước khi kiểm tra.');
       return;
     }
     setTestingWebhook(true);
@@ -142,10 +144,10 @@ function Sync() {
       if (res.ok) {
         setTestResult({
           ok: true,
-          message: res.message || 'Kết nối Webhook thành công!',
+          message: res.message || t('sync.webhook.toasts.testSuccess') || 'Kết nối Webhook thành công!',
           latency: res.latency,
         });
-        toast.success(`Webhook phản hồi tốt (${res.latency ?? 0}ms)!`);
+        toast.success(t('sync.webhook.toasts.testSuccess') || `Webhook phản hồi tốt (${res.latency ?? 0}ms)!`);
         playAudioCue('success');
       } else {
         setTestResult({
@@ -153,7 +155,7 @@ function Sync() {
           message: res.error || 'Lỗi không xác định khi kết nối Apps Script',
           latency: res.latency,
         });
-        toast.error(`Kiểm tra Webhook thất bại: ${res.error}`);
+        toast.error(t('sync.webhook.toasts.testFailed', { error: res.error }) || `Kiểm tra Webhook thất bại: ${res.error}`);
         playAudioCue('error');
       }
     } catch (err: any) {
@@ -161,7 +163,7 @@ function Sync() {
         ok: false,
         message: err.message || 'Không thể gửi yêu cầu kiểm tra',
       });
-      toast.error(`Lỗi: ${err.message}`);
+      toast.error(t('sync.webhook.toasts.testFailed', { error: err.message }) || `Lỗi: ${err.message}`);
       playAudioCue('error');
     } finally {
       setTestingWebhook(false);
@@ -170,7 +172,7 @@ function Sync() {
 
   const syncSheet = async (isAuto = false) => {
     if (!sheetUrl.trim()) {
-      setError('Vui lòng nhập đường dẫn Google Sheets hợp lệ.');
+      setError(t('sync.gateway.sheetUrlLabel') || 'Vui lòng nhập đường dẫn Google Sheets hợp lệ.');
       return;
     }
     setBusy(true);
@@ -186,13 +188,13 @@ function Sync() {
       if (isAuto) {
         applyDataset(res.items, 'Google Sheets (Tự động)');
         setApplied(true);
-        toast.info(`Tự động đồng bộ thành công: ${res.items.length} lô (${elapsed}ms)`);
+        toast.info(t('sync.status.rowsLoaded', { count: res.items.length }) || `Tự động đồng bộ thành công: ${res.items.length} lô (${elapsed}ms)`);
       } else {
-        toast.success(`Tải thành công ${res.items.length} lô từ Google Sheets (${elapsed}ms)`);
+        toast.success(t('sync.status.rowsLoaded', { count: res.items.length }) || `Tải thành công ${res.items.length} lô từ Google Sheets (${elapsed}ms)`);
         playAudioCue('success');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không kết nối được Google Sheets.');
+      setError(e instanceof Error ? e.message : (t('sync.status.failed') || 'Không kết nối được Google Sheets.'));
       playAudioCue('error');
     } finally {
       setBusy(false);
@@ -230,13 +232,13 @@ function Sync() {
         {/* Left: View Identity & Sync Scope */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground">
-            [4] ĐỒNG BỘ
+            {t('nav.route4Title') || '[4] ĐỒNG BỘ'}
           </span>
           <span className="rounded-xs border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
-            KẾT NỐI HAI CHIỀU
+            {t('sync.biDirectional') || 'KẾT NỐI HAI CHIỀU'}
           </span>
           <span className="rounded-xs border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-muted-foreground">
-            {number(activeData.length)} LÔ KHẢ DỤNG
+            {number(activeData.length)} {t('sync.availableLots') || 'LÔ KHẢ DỤNG'}
           </span>
         </div>
 
@@ -247,7 +249,7 @@ function Sync() {
             <span className="font-mono text-[10px]">{sourceLabel}</span>
             {syncedAt ? (
               <span className="font-mono text-[10px] tabular-nums text-foreground/80">
-                · {new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}
+                · {new Date(syncedAt).toLocaleTimeString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN', { hour12: false })}
               </span>
             ) : null}
           </div>
@@ -267,14 +269,14 @@ function Sync() {
                 </span>
                 <div>
                   <h2 className="font-display text-sm font-bold tracking-tight text-foreground">
-                    Cổng Kết Nối Hai Chiều
+                    {t('sync.gateway.title') || 'Cổng Kết Nối Hai Chiều'}
                   </h2>
                   <p className="text-[11px] text-muted-foreground">
-                    Đồng bộ bảng tính Google Sheets và phản hồi qua Google Apps Script
+                    {t('sync.gateway.subtitle') || 'Đồng bộ bảng tính Google Sheets và phản hồi qua Google Apps Script'}
                   </p>
                 </div>
               </div>
-              <span className="font-mono text-[9px] font-bold text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
+              <span className="font-mono text-[9px] font-bold text-primary px-2 py-0.5 rounded-xs bg-primary/10 border border-primary/20">
                 BI-DIRECTIONAL
               </span>
             </div>
@@ -285,10 +287,10 @@ function Sync() {
                 <div className="flex items-center gap-2">
                   <Database size={15} className="text-primary" />
                   <span className="font-display text-xs font-bold text-foreground">
-                    1. Tiếp Nhận Dữ Liệu (Inbound — Google Sheets)
+                    {t('sync.gateway.inboundSection') || '1. Tiếp Nhận Dữ Liệu (Inbound — Google Sheets)'}
                   </span>
                 </div>
-                <span className="font-mono text-[9px] font-semibold text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded border border-border/60">
+                <span className="font-mono text-[9px] font-semibold text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded-xs border border-border/60">
                   CSV LIVE FEED
                 </span>
               </div>
@@ -301,24 +303,24 @@ function Sync() {
                     setError('');
                   }}
                   placeholder="https://docs.google.com/spreadsheets/d/..."
-                  aria-label="Link Google Sheets"
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 font-mono text-xs text-foreground outline-none focus:border-primary transition-colors"
+                  aria-label={t('sync.gateway.sheetUrlLabel') || 'Link Google Sheets'}
+                  className="h-9 w-full rounded-xs border border-input bg-background px-3 font-mono text-xs text-foreground outline-none focus:border-primary transition-colors"
                 />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <Clock size={13} className="text-muted-foreground/70" />
-                  <span>Tự động đồng bộ:</span>
+                  <span>{t('sync.gateway.autoRefreshLabel') || 'Tự động đồng bộ:'}</span>
                   <select
                     value={autoRefreshInterval}
                     onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
-                    className="rounded border border-input bg-background px-2 py-0.5 text-xs text-foreground font-semibold outline-none cursor-pointer"
+                    className="rounded-xs border border-input bg-background px-2 py-0.5 text-xs text-foreground font-semibold outline-none cursor-pointer"
                   >
-                    <option value={0}>Tắt (Thủ công)</option>
-                    <option value={300}>Mỗi 5 phút</option>
-                    <option value={900}>Mỗi 15 phút</option>
-                    <option value={1800}>Mỗi 30 phút</option>
+                    <option value={0}>{t('sync.gateway.autoRefreshOff') || 'Tắt (Thủ công)'}</option>
+                    <option value={300}>{t('sync.gateway.refreshMinutes', { min: 5 }) || 'Mỗi 5 phút'}</option>
+                    <option value={900}>{t('sync.gateway.refreshMinutes', { min: 15 }) || 'Mỗi 15 phút'}</option>
+                    <option value={1800}>{t('sync.gateway.refreshMinutes', { min: 30 }) || 'Mỗi 30 phút'}</option>
                   </select>
                   {autoRefreshInterval > 0 && (
                     <span className="font-mono text-[10px] text-primary font-bold">
@@ -333,19 +335,19 @@ function Sync() {
                     size="sm"
                     onClick={() => setSheetUrl(SHEET_URL)}
                     className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-                    title="Khôi phục link bảng tính Google Sheets mặc định"
+                    title={t('sync.gateway.revertData') || 'Khôi phục link bảng tính Google Sheets mặc định'}
                   >
-                    <RotateCcw size={11} className="mr-1" /> Mặc định
+                    <RotateCcw size={11} className="mr-1" /> {t('sync.gateway.revertData') || 'Mặc định'}
                   </Button>
 
                   <Button
                     onClick={() => void syncSheet(false)}
                     disabled={busy}
                     size="sm"
-                    className="h-8 rounded-md bg-primary px-3.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.98] cursor-pointer shadow-2xs gap-1.5"
+                    className="h-8 rounded-xs bg-primary px-3.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.98] cursor-pointer shadow-2xs gap-1.5"
                   >
                     {busy ? <Loader2 size={13} className="animate-spin" /> : <DatabaseZap size={13} />}
-                    {busy ? 'Đang truy xuất...' : 'Tải & Phân Tích'}
+                    {busy ? (t('sync.gateway.loading') || 'Đang truy xuất...') : (t('sync.gateway.loadPreview') || 'Tải & Phân Tích')}
                   </Button>
                 </div>
               </div>
@@ -353,11 +355,11 @@ function Sync() {
               {error && (
                 <div
                   role="alert"
-                  className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive"
+                  className="flex items-start gap-2 rounded-xs border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive"
                 >
                   <AlertCircle size={15} className="mt-0.5 shrink-0" />
                   <div>
-                    <p className="font-bold">Lỗi kết nối bảng tính</p>
+                    <p className="font-bold">{t('sync.status.failed') || 'Lỗi kết nối bảng tính'}</p>
                     <p className="mt-0.5 leading-relaxed text-[11px]">{error}</p>
                   </div>
                 </div>
@@ -370,11 +372,11 @@ function Sync() {
                 <div className="flex items-center gap-2">
                   <Globe size={15} className="text-primary" />
                   <span className="font-display text-xs font-bold text-foreground">
-                    2. Ghi Ngược Tiến Độ (Outbound — Google Apps Script)
+                    {t('sync.webhook.title') || '2. Ghi Ngược Tiến Độ (Outbound — Google Apps Script)'}
                   </span>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[9px] font-bold ${
+                  className={`inline-flex items-center gap-1 rounded-xs px-1.5 py-0.5 font-mono text-[9px] font-bold ${
                     isWebhookSaved
                       ? 'border border-run/30 bg-run/10 text-run'
                       : 'border border-border bg-muted/40 text-muted-foreground'
@@ -385,7 +387,7 @@ function Sync() {
                       isWebhookSaved ? 'bg-run animate-pulse' : 'bg-muted-foreground'
                     }`}
                   />
-                  {isWebhookSaved ? 'KẾT NỐI SẴN SÀNG' : 'CHƯA CẤU HÌNH'}
+                  {isWebhookSaved ? (t('sync.webhook.statusConnected') || 'KẾT NỐI SẴN SÀNG') : (t('sync.webhook.statusNotConfigured') || 'CHƯA CẤU HÌNH')}
                 </span>
               </div>
 
@@ -401,9 +403,9 @@ function Sync() {
                       setIsWebhookSaved(false);
                       setTestResult(null);
                     }}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    aria-label="Link Google Apps Script Webhook"
-                    className="h-9 w-full rounded-md border border-input bg-background pl-13 pr-3 font-mono text-xs text-foreground placeholder:font-sans placeholder:text-muted-foreground/60 outline-none focus:border-primary transition-colors"
+                    placeholder={t('sync.webhook.urlPlaceholder') || 'https://script.google.com/macros/s/.../exec'}
+                    aria-label={t('sync.webhook.urlLabel') || 'Link Google Apps Script Webhook'}
+                    className="h-9 w-full rounded-xs border border-input bg-background pl-13 pr-3 font-mono text-xs text-foreground placeholder:font-sans placeholder:text-muted-foreground/60 outline-none focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -412,27 +414,27 @@ function Sync() {
                     disabled={testingWebhook}
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-1 rounded-md px-2.5 text-xs font-semibold hover:border-primary/50 cursor-pointer shadow-2xs"
-                    title="Gửi gói tin ping kiểm tra kết nối tới Google Apps Script"
+                    className="h-9 gap-1 rounded-xs px-2.5 text-xs font-semibold hover:border-primary/50 cursor-pointer shadow-2xs"
+                    title={t('sync.webhook.testConnection') || 'Gửi gói tin ping kiểm tra kết nối tới Google Apps Script'}
                   >
                     {testingWebhook ? <Loader2 size={13} className="animate-spin text-primary" /> : <Zap size={13} className="text-warning" />}
-                    {testingWebhook ? 'Đang test…' : 'Kiểm tra kết nối'}
+                    {testingWebhook ? (t('sync.webhook.testing') || 'Đang test…') : (t('sync.webhook.testConnection') || 'Kiểm tra kết nối')}
                   </Button>
 
                   <Button
                     onClick={saveWebhook}
                     size="sm"
-                    className="h-9 gap-1 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.98] cursor-pointer shadow-2xs"
+                    className="h-9 gap-1 rounded-xs bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.98] cursor-pointer shadow-2xs"
                   >
                     {isWebhookSaved ? <CheckCircle2 size={13} /> : <Send size={13} />}
-                    {isWebhookSaved ? 'Đã lưu' : 'Lưu'}
+                    {isWebhookSaved ? (t('sync.webhook.saved') || 'Đã lưu') : (t('sync.webhook.save') || 'Lưu')}
                   </Button>
                 </div>
               </div>
 
               {testResult && (
                 <div
-                  className={`flex items-start gap-2 rounded-md p-2.5 text-xs border ${
+                  className={`flex items-start gap-2 rounded-xs p-2.5 text-xs border ${
                     testResult.ok
                       ? 'border-run/30 bg-run/10 text-run font-medium'
                       : 'border-destructive/30 bg-destructive/10 text-destructive'
@@ -445,7 +447,7 @@ function Sync() {
                   )}
                   <div className="min-w-0">
                     <p className="font-bold">
-                      {testResult.ok ? 'Kết nối Webhook hoạt động hoàn hảo' : 'Kiểm tra kết nối thất bại'}
+                      {testResult.ok ? (t('sync.webhook.toasts.testSuccess') || 'Kết nối Webhook hoạt động hoàn hảo') : (t('sync.webhook.toasts.testFailed', { error: '' }) || 'Kiểm tra kết nối thất bại')}
                       {testResult.latency !== undefined && (
                         <span className="ml-1.5 font-mono text-[10px] font-semibold opacity-85">
                           ({testResult.latency}ms)
@@ -462,7 +464,7 @@ function Sync() {
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                 <span className="flex items-center gap-1">
                   <Link2 size={12} className="text-primary shrink-0" />
-                  Đẩy tự động khi cập nhật lô:
+                  {t('sync.webhook.autoPush') || 'Đẩy tự động khi cập nhật lô: TrangThai · ngay_nhan_QT · do_cung'}
                 </span>
                 <span className="font-mono text-[10px] text-primary space-x-1.5">
                   <code>TrangThai</code>
@@ -476,9 +478,9 @@ function Sync() {
           </div>
 
           {/* Bottom Security Note */}
-          <div className="rounded-md border border-border/60 bg-muted/30 p-2.5 text-[11px] text-muted-foreground flex items-center gap-2">
+          <div className="rounded-xs border border-border/60 bg-muted/30 p-2.5 text-[11px] text-muted-foreground flex items-center gap-2">
             <ShieldCheck size={14} className="text-primary shrink-0" />
-            <span>Mọi thay đổi trạng thái sẽ gửi payload JSON qua Webhook và ghi nhận vào nhật ký kiểm toán.</span>
+            <span>{t('sync.webhook.description') || 'Mọi thay đổi trạng thái sẽ gửi payload JSON qua Webhook và ghi nhận vào nhật ký kiểm toán.'}</span>
           </div>
         </section>
 
@@ -488,54 +490,54 @@ function Sync() {
             {/* Header Column 2 */}
             <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2.5">
-                <span className="flex size-9 items-center justify-center rounded-md bg-info/10 text-info">
+                <span className="flex size-9 items-center justify-center rounded-xs bg-info/10 text-info">
                   <TableProperties size={18} />
                 </span>
                 <div>
                   <h2 className="font-display text-sm font-bold tracking-tight text-foreground">
-                    Kiểm Soát Giao Dịch & Bộ Nhớ Đệm
+                    {t('sync.preview.title') || 'Kiểm Soát Giao Dịch & Bộ Nhớ Đệm'}
                   </h2>
                   <p className="text-[11px] text-muted-foreground">
                     {stagedRows.length > 0
-                      ? `Sẵn sàng nạp ${number(stagedRows.length)} lô hàng mới từ Google Sheets${
-                          stats && stats.duplicates > 0 ? ` (bỏ qua ${stats.duplicates} dòng trùng)` : ''
-                        }`
-                      : `Đang chạy nguồn dữ liệu hiện hành (${number(dataset.length)} lô)`}
+                      ? (t('sync.status.rowsLoaded', { count: number(stagedRows.length) }) || `Sẵn sàng nạp ${number(stagedRows.length)} lô hàng mới từ Google Sheets${
+                          stats && stats.duplicates.length > 0 ? ` (bỏ qua ${stats.duplicates.length} dòng trùng)` : ''
+                        }`)
+                      : (t('sync.status.idle') || `Đang chạy nguồn dữ liệu hiện hành (${number(dataset.length)} lô)`)}
                   </p>
                 </div>
               </div>
               {applied && (
-                <span className="flex items-center gap-1 rounded-sm border border-run/40 bg-run/10 px-2 py-0.5 font-mono text-[9px] font-bold text-run">
-                  <CheckCircle2 size={11} /> ĐÃ ÁP DỤNG
+                <span className="flex items-center gap-1 rounded-xs border border-run/40 bg-run/10 px-2 py-0.5 font-mono text-[9px] font-bold text-run">
+                  <CheckCircle2 size={11} /> {t('sync.status.success') || 'ĐÃ ÁP DỤNG'}
                 </span>
               )}
             </div>
 
             {/* Quick Metrics Grid (4 compact cards) */}
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <div className="rounded-md border border-border/70 bg-card p-2.5 shadow-2xs">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">SỐ LÔ HỢP LỆ</p>
+              <div className="rounded-xs border border-border/70 bg-card p-2.5 shadow-2xs">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{t('sync.preview.validRows') || 'SỐ LÔ HỢP LỆ'}</p>
                 <p className="mt-0.5 font-mono text-lg font-black text-foreground">
                   {number(activeData.length)}
                 </p>
               </div>
 
-              <div className="rounded-md border border-border/70 bg-card p-2.5 shadow-2xs">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">SỐ ĐƠN HÀNG QT</p>
+              <div className="rounded-xs border border-border/70 bg-card p-2.5 shadow-2xs">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{t('orders.totalOrders') || 'SỐ ĐƠN HÀNG QT'}</p>
                 <p className="mt-0.5 font-mono text-lg font-black text-foreground">
                   {number(uniqueOrders)}
                 </p>
               </div>
 
-              <div className="rounded-md border border-border/70 bg-card p-2.5 shadow-2xs">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">TỔNG KHỐI LƯỢNG</p>
+              <div className="rounded-xs border border-border/70 bg-card p-2.5 shadow-2xs">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{t('orders.kpiTotalKg') || 'TỔNG KHỐI LƯỢNG'}</p>
                 <p className="mt-0.5 font-mono text-lg font-black text-foreground">
                   {number(totalKg, 1)} <span className="text-[10px] font-normal text-muted-foreground">kg</span>
                 </p>
               </div>
 
-              <div className="rounded-md border border-border/70 bg-card p-2.5 shadow-2xs">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">PHÂN XƯỞNG</p>
+              <div className="rounded-xs border border-border/70 bg-card p-2.5 shadow-2xs">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{t('tracking.workshops.title') || 'PHÂN XƯỞNG'}</p>
                 <p className="mt-1 font-bold text-xs text-primary truncate">
                   PIN, INSERT, MOLD
                 </p>
@@ -543,13 +545,13 @@ function Sync() {
             </div>
 
             {/* Source Status & Cache Overview Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/70 bg-secondary/20 px-3 py-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xs border border-border/70 bg-secondary/20 px-3 py-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="flex size-2 rounded-full bg-run animate-pulse" />
-                <span className="text-muted-foreground font-medium">Nguồn:</span>
+                <span className="text-muted-foreground font-medium">{t('common.source') || 'Nguồn'}:</span>
                 <span className="font-mono font-semibold text-foreground">{sourceLabel}</span>
                 <span className="text-muted-foreground/40">·</span>
-                <span className="font-mono text-[11px] text-muted-foreground">~{cacheSizeMb} MB Cache</span>
+                <span className="font-mono text-[11px] text-muted-foreground">~{cacheSizeMb} MB {t('common.cache') || 'Cache'}</span>
               </div>
 
               <Button
@@ -557,20 +559,20 @@ function Sync() {
                 size="sm"
                 onClick={() => {
                   resetDataset();
-                  toast.success('Đã làm mới bộ nhớ đệm và kéo lại dữ liệu từ Google Sheets!');
+                  toast.success(t('sync.webhook.toasts.saveSuccess') || 'Đã làm mới bộ nhớ đệm và kéo lại dữ liệu từ Google Sheets!');
                   playAudioCue('success');
                 }}
-                className="h-6 px-2 text-[10px] font-semibold gap-1 cursor-pointer hover:bg-secondary"
-                title="Làm mới bộ nhớ đệm và nạp lại toàn bộ từ Google Sheets"
+                className="h-6 px-2 text-[10px] font-semibold gap-1 cursor-pointer hover:bg-secondary rounded-xs"
+                title={t('common.refresh') || 'Làm mới bộ nhớ đệm và nạp lại toàn bộ từ Google Sheets'}
               >
-                <RotateCcw size={10} /> Làm mới Cache
+                <RotateCcw size={10} /> {t('common.refresh') || 'Làm mới Cache'}
               </Button>
             </div>
 
             {/* Commit Mode Switcher */}
             <div className="rounded-xs border border-border/70 bg-secondary/20 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-foreground">Chế độ áp dụng vào hệ thống:</span>
+                <span className="font-bold text-xs text-foreground">{t('sync.gateway.syncModeLabel') || 'Chế độ áp dụng vào hệ thống: TRANSACTION MODE'}</span>
                 <span className="font-mono text-[9px] font-semibold text-muted-foreground">TRANSACTION MODE</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -589,9 +591,9 @@ function Sync() {
                     className="mt-0.5 text-primary focus:ring-primary accent-primary"
                   />
                   <div>
-                    <span className="block text-xs font-bold text-foreground">Thay thế toàn bộ (Replace)</span>
+                    <span className="block text-xs font-bold text-foreground">{t('sync.gateway.modeReplace') || 'Thay thế toàn bộ (Replace)'}</span>
                     <span className="block text-[10px] text-muted-foreground font-normal mt-0.5 leading-snug">
-                      Xóa cache cũ, nạp toàn bộ danh mục mới nhất từ Google Sheets.
+                      {t('sync.gateway.modeReplaceDesc') || 'Xóa cache cũ, nạp toàn bộ danh mục mới nhất từ Google Sheets.'}
                     </span>
                   </div>
                 </label>
@@ -611,9 +613,9 @@ function Sync() {
                     className="mt-0.5 text-primary focus:ring-primary accent-primary"
                   />
                   <div>
-                    <span className="block text-xs font-bold text-foreground">Cập nhật gộp lô (Upsert)</span>
+                    <span className="block text-xs font-bold text-foreground">{t('sync.gateway.modeMerge') || 'Cập nhật gộp lô (Upsert)'}</span>
                     <span className="block text-[10px] text-muted-foreground font-normal mt-0.5 leading-snug">
-                      Thêm lô mới và cập nhật đè các lô trùng mã ID_Key.
+                      {t('sync.gateway.modeMergeDesc') || 'Thêm lô mới và cập nhật đè các lô trùng mã ID_Key.'}
                     </span>
                   </div>
                 </label>
@@ -625,7 +627,7 @@ function Sync() {
           <div className="space-y-3 pt-2">
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-3">
               <span className="text-[11px] text-muted-foreground">
-                {syncedAt ? `Đồng bộ gần nhất: ${new Date(syncedAt).toLocaleString('vi-VN')}` : 'Chưa có mốc thời gian'}
+                {syncedAt ? `${t('common.lastSynced') || 'Đồng bộ gần nhất'}: ${new Date(syncedAt).toLocaleString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN')}` : (t('common.noTimestamp') || 'Chưa có mốc thời gian')}
               </span>
 
               <Button
@@ -647,17 +649,17 @@ function Sync() {
                     applyDataset(stagedRows, 'Google Sheets');
                   }
                   setApplied(true);
-                  toast.success('Đã áp dụng thành công dữ liệu mới vào toàn bộ hệ thống!');
+                  toast.success(t('sync.status.success') || 'Đã áp dụng thành công dữ liệu mới vào toàn bộ hệ thống!');
                   playAudioCue('success');
                 }}
-                className="gap-1.5 rounded-md bg-primary px-4 font-bold text-xs text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40 cursor-pointer shadow-xs h-9"
+                className="gap-1.5 rounded-xs bg-primary px-4 font-bold text-xs text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40 cursor-pointer shadow-xs h-9"
               >
                 <CheckCircle2 size={14} />
-                {applied ? 'Đã kích hoạt vào hệ thống' : 'Áp dụng vào toàn hệ thống'}
+                {applied ? (t('sync.status.success') || 'Đã kích hoạt vào hệ thống') : (t('sync.gateway.applyData') || 'Áp dụng vào toàn hệ thống')}
               </Button>
             </div>
 
-            <div className="rounded-md border border-border/60 bg-muted/20 p-2 text-[10px] text-muted-foreground leading-relaxed flex items-center gap-1.5">
+            <div className="rounded-xs border border-border/60 bg-muted/20 p-2 text-[10px] text-muted-foreground leading-relaxed flex items-center gap-1.5">
               <Layers size={13} className="text-primary shrink-0" />
               <span>
                 Poka-Yoke: Tự động chuẩn hóa mã lô (<code className="font-mono text-primary font-bold">ID_Key</code>), mác thép, phân xưởng và tính tổng khối lượng tức thì trước khi commit.

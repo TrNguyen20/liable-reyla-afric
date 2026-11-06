@@ -9,8 +9,8 @@ export type QTItem = {
   ngay_gui_QT: string; cty_QT: Vendor; TrangThai: Status; So_DatHang: string;
   han_tra: string; ngay_nhan?: string | undefined; cong_doan: string;
   /** true when the source had no han_tra and the default 7-day rule was applied. */
-  han_tra_est?: boolean;
-  ghi_chu?: string;
+  han_tra_est?: boolean | undefined;
+  ghi_chu?: string | undefined;
 };
 export const statuses: Status[] = ['Chờ xuất xưởng','Đang tại Vendor','Kiểm tra QC','Đã nhập kho'];
 export const money = (value: number) => isPricingVisible() ? new Intl.NumberFormat('vi-VN').format(value) + ' ₫' : '*** ₫';

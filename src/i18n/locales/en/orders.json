@@ -1,6 +1,60 @@
 {
   "title": "PURCHASE ORDER DETAILS",
-  "searchPlaceholder": "Search by PO, item code, parts...",
+  "searchPlaceholder": "Search by PO, part code, component...",
   "totalOrders": "Total Orders",
-  "activeOrders": "Active Orders"
+  "activeOrders": "Active Orders",
+  "masterListTitle": "PO List",
+  "orderCount": "{count} orders",
+  "kpiTotalValue": "TOTAL VALUE",
+  "kpiTotalQty": "TOTAL QUANTITY",
+  "kpiTotalKg": "TOTAL WEIGHT",
+  "progressPrefix": "Progress:",
+  "progressSuffix": "lots completed",
+  "subFilters": {
+    "all": "All ({count})",
+    "overdue": "Overdue ({count})",
+    "due_soon": "Due soon ({count})",
+    "open": "In progress ({count})",
+    "done": "Completed ({count})"
+  },
+  "headers": {
+    "actions": "ACTIONS",
+    "idx": "No.",
+    "itemCode": "PART CODE",
+    "material": "STEEL GRADE",
+    "hardness": "HARDNESS",
+    "dimensions": "DIMENSIONS (MM)",
+    "qty": "QTY",
+    "unit": "UNIT",
+    "weight": "WT (KG)",
+    "unitPrice": "UNIT PRICE",
+    "totalAmount": "TOTAL AMOUNT"
+  },
+  "actions": {
+    "printOrderTickets": "Print Order Tickets",
+    "exportOrderCsv": "Export Order CSV",
+    "backToList": "Back to list",
+    "partsCount": "{count} parts",
+    "selectedPo": "Order: {orderNo}",
+    "noSelectedOrder": "Select an order from the left list to view part details.",
+    "printAll": "Print all tickets"
+  },
+  "detail": {
+    "poHeader": "PURCHASE ORDER: {orderNo}",
+    "customer": "Customer / Project:",
+    "createdDate": "Order Date:",
+    "totalItems": "Total Items:",
+    "statusOpen": "Processing",
+    "statusCompleted": "Completed",
+    "filterPlaceholder": "Filter by part code, steel grade...",
+    "emptyParts": "No components match the filter."
+  },
+  "kpis": {
+    "totalValue": "TOTAL VALUE",
+    "totalQty": "TOTAL QUANTITY",
+    "openLots": "Total open lots:"
+  },
+  "telemetry": {
+    "viewing": "Viewing"
+  }
 }

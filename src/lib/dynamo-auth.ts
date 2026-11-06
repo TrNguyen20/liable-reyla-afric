@@ -43,13 +43,23 @@ export const canViewVendorName = (role: Role, vendor?: string | null): boolean =
   return false;
 };
 
-export const formatVendorName = (vendor: string | undefined | null, role: Role): string => {
+export const formatVendorName = (
+  vendor?: string | null,
+  role?: Role | string | null,
+  locale?: string | null,
+): string => {
   if (!vendor || vendor === '—') return '—';
-  if (canViewVendorName(role, vendor)) return vendor;
+  if (role && canViewVendorName(role as Role, vendor)) return vendor;
+  if (locale === 'ja') return '非公開';
+  if (locale === 'en') return 'Masked';
   return 'Đã Ẩn';
 };
 
-export const formatVendorSummary = (vendors: Iterable<string>, role: Role): string => {
+export const formatVendorSummary = (
+  vendors: Iterable<string>,
+  role: Role,
+  locale?: string | null,
+): string => {
   const set = new Set([...vendors].map(v => v?.trim()).filter(Boolean));
   const list = [...set];
   if (list.length === 0) return '—';
@@ -57,9 +67,18 @@ export const formatVendorSummary = (vendors: Iterable<string>, role: Role): stri
   if (role.startsWith('qt_')) {
     const scope = getVendorScope(role);
     if (scope && list.some(v => v.toUpperCase() === scope)) return scope;
+    if (locale === 'ja') return '非公開';
+    if (locale === 'en') return 'Masked';
     return 'Đã Ẩn';
   }
-  return list.length > 1 ? `${list.length} đơn vị gia công ngoài` : 'Đã Ẩn';
+  if (list.length > 1) {
+    if (locale === 'ja') return `${list.length} 社の外注先`;
+    if (locale === 'en') return `${list.length} Subcontractors`;
+    return `${list.length} đơn vị gia công ngoài`;
+  }
+  if (locale === 'ja') return '非公開';
+  if (locale === 'en') return 'Masked';
+  return 'Đã Ẩn';
 };
 
 /** Read the server-verified session with client-side fallback for iframe previews. Null means signed out. */

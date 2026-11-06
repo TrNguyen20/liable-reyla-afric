@@ -1,14 +1,27 @@
 {
   "tracking": "工程管理",
-  "dashboard": "ダッシュボード",
-  "orders": "注文管理",
-  "sync": "データ連携",
+  "dashboard": "総合状況",
+  "orders": "発注一覧",
+  "sync": "外部同期",
   "trackingShortcut": "キー [1]",
   "dashboardShortcut": "キー [2]",
   "ordersShortcut": "キー [3]",
   "syncShortcut": "キー [4]",
   "route1Title": "[1] 工程管理",
-  "route2Title": "[2] ダッシュボード",
-  "route3Title": "[3] 注文管理",
-  "route4Title": "[4] データ連携"
+  "route2Title": "[2] 総合状況",
+  "route3Title": "[3] 発注一覧",
+  "route4Title": "[4] 外部同期",
+  "route1Sub": "金型部品熱処理・外注工程管理スケジュール",
+  "route2Sub": "システム総合稼働状況およびA4引渡報告書",
+  "route3Sub": "発注詳細および外注加工部品一覧",
+  "route4Sub": "Googleシート同期および双方向Webhook連携",
+  "sections": {
+    "operations": "運行管理",
+    "system": "システム"
+  },
+  "ariaLabel": "メインナビゲーション",
+  "shortcutHint": "キー [{key}]",
+  "palette": {
+    "title": "コマンドパレット"
+  }
 }

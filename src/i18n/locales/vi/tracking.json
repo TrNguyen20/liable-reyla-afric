@@ -14,24 +14,129 @@
     "sentDate": "NGÀY GỬI",
     "dueDate": "HẠN TRẢ",
     "notes": "GHI CHÚ",
-    "ticket": "PHIẾU A4"
+    "ticket": "PHIẾU A4",
+    "partNo": "MÃ HÀNG"
   },
   "workshops": {
     "title": "Phân xưởng",
     "all": "Tất cả xưởng",
     "pin": "Xưởng PIN",
     "insert": "Xưởng INSERT",
-    "mold": "Xưởng MOLD"
+    "mold": "Xưởng MOLD",
+    "filterTooltip": "Lọc nhanh theo phân xưởng gia công"
   },
   "actions": {
     "addNote": "+ Thêm ghi chú",
     "notePlaceholder": "Nhập ghi chú cho lô... (Enter: lưu, Shift+Enter: xuống dòng, Tab: ô tiếp)",
     "selectPartner": "Chọn đối tác",
     "selectedCount": "Đang chọn {count} lô",
-    "clearFilter": "Xóa tất cả lọc"
+    "clearFilter": "Xóa tất cả lọc",
+    "allFiltersCleared": "Đã xóa toàn bộ bộ lọc trên bảng.",
+    "filtering": "Đang lọc ({count}):",
+    "clearFilterItem": "Bỏ tiêu chí này",
+    "clearFilterTooltip": "Xóa toàn bộ các bộ lọc trên bảng"
   },
   "density": {
     "compact": "Gọn gàng (Compact)",
-    "normal": "Tiêu chuẩn (Normal)"
+    "normal": "Tiêu chuẩn (Normal)",
+    "compactTooltip": "Chế độ nén dòng cao độ (~32px)",
+    "normalTooltip": "Chế độ dòng tiêu chuẩn (~42px)"
+  },
+  "title": "LUÂN CHUYỂN NHIỆT LUYỆN",
+  "status": {
+    "wait": "WAIT",
+    "transit": "TRANSIT",
+    "stocked": "STOCKED",
+    "pass": "PASS",
+    "fail": "FAIL",
+    "pending": "PENDING",
+    "waitLabel": "Chờ xuất xưởng",
+    "transitLabel": "Đang tại Vendor",
+    "stockedLabel": "Đã nhập kho",
+    "passLabel": "Đạt",
+    "failLabel": "Không đạt",
+    "pendingLabel": "Chưa kiểm tra",
+    "inspect": "INSPECT"
+  },
+  "focus": {
+    "all": "Tất cả",
+    "overdue": "Lô quá hạn",
+    "due_soon": "Cận hạn 48h",
+    "open": "Lô đang mở",
+    "stocked": "Đã hoàn tất",
+    "est_due": "Hạn trả ước tính",
+    "sync_failed": "Ghi Sheet lỗi",
+    "no_qc": "Nhập kho chưa QC",
+    "qc_fail": "QC không đạt"
+  },
+  "dueTags": {
+    "overdueDays": "Trễ {days}d",
+    "dueSoon48": "Cận hạn 48h",
+    "estDue": "Ước tính (+7d)",
+    "missingDue": "Thiếu hạn trả",
+    "delivered": "Đã về kho",
+    "overdue": "trễ hạn"
+  },
+  "batch": {
+    "title": "THAO TÁC HÀNG LOẠT",
+    "selected": "Đã chọn {count} lô",
+    "updateLogistics": "Cập nhật Logistics",
+    "updateQc": "Cập nhật QC",
+    "printTickets": "In phiếu A4 hàng loạt",
+    "exportSelectedCsv": "Xuất CSV các lô chọn",
+    "deselectAll": "Bỏ chọn tất cả",
+    "confirmBatchQcPass": "Chuyển QC Đạt cho {count} lô?"
+  },
+  "sort": {
+    "asc": "Tăng dần",
+    "desc": "Giảm dần",
+    "cycleAsc": "Đang sắp xếp: Tăng dần (A → Z). Bấm để đổi sang Giảm dần",
+    "cycleDesc": "Đang sắp xếp: Giảm dần (Z → A). Bấm để hủy sắp xếp",
+    "cycleNone": "Chưa sắp xếp. Bấm để sắp xếp Tăng dần",
+    "sortThisCol": "Sắp xếp cột này:",
+    "minToMax": "Nhỏ nhất → Lớn nhất",
+    "maxToMin": "Lớn nhất → Nhỏ nhất",
+    "lightToHeavy": "Nhẹ nhất → Nặng nhất",
+    "heavyToLight": "Nặng nhất → Nhẹ nhất"
+  },
+  "toolbars": {
+    "searchPlaceholder": "Tìm mã lô (ID_Key), số ĐH, mã hàng, mác thép...",
+    "refresh": "Làm mới dữ liệu (Shift+R)",
+    "density": "Mật độ hiển thị",
+    "paginationInfo": "Hiển thị {from} - {to} / {total} lô",
+    "pageSize": "{size} dòng/trang",
+    "clearSearch": "Xóa tìm kiếm (Phím tắt: Esc)",
+    "matched": "Khớp",
+    "resetColWidthsTooltip": "Khôi phục kích thước mặc định cho toàn bộ cột",
+    "resetColWidths": "Khôi phục cỡ cột",
+    "exitFullscreen": "Thu nhỏ bảng về kích thước ban đầu (Phím tắt: Alt+F)",
+    "enterFullscreen": "Phóng to bảng toàn màn hình để tập trung điều độ (Phím tắt: Alt+F)",
+    "minimize": "Thu nhỏ",
+    "fullscreen": "Toàn màn hình",
+    "exportCsvTooltip": "Tùy chọn xuất file CSV",
+    "exportCsv": "Xuất CSV",
+    "exportCurrentPage": "Trang hiện tại",
+    "exportFiltered": "Kết quả lọc",
+    "exportAll": "Toàn bộ hệ thống",
+    "workshopSelect": "Cập nhật đồng bộ các thông số cho toàn bộ lô được chọn"
+  },
+  "popovers": {
+    "logisticsTitle": "CẬP NHẬT LOGISTICS",
+    "qcTitle": "CẬP NHẬT KIỂM ĐỊNH QC",
+    "partnerTitle": "CHỌN ĐỐI TÁC GIA CÔNG",
+    "dateTitle": "CHỌN NGÀY THÁNG",
+    "sentDateLabel": "Ngày gửi xuất xưởng:",
+    "dueDateLabel": "Hạn trả cam kết:",
+    "quickToday": "Hôm nay",
+    "quickPlus3d": "+3 ngày",
+    "quickPlus5d": "+5 ngày",
+    "quickPlus7d": "+7 ngày",
+    "quickClear": "Xóa ngày",
+    "noteHistory": "Lịch sử ghi chú",
+    "saveNote": "Lưu ghi chú"
+  },
+  "filters": {
+    "missingHardness": "Chưa có độ cứng",
+    "hasNote": "Có ghi chú"
   }
 }

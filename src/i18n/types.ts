@@ -9,6 +9,8 @@ export type TranslationNamespace =
   | 'sync'
   | 'telemetry';
 
+export type Namespace = TranslationNamespace;
+
 export interface LocaleMetadata {
   code: Locale;
   label: string;

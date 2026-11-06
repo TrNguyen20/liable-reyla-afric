@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, Globe, Link2, Send, ShieldAlert } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Globe, Link2, Send } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 export function WebhookConfig() {
-  const [url, setUrl] = useState('');
+  const { t } = useTranslation();
+  const [url, setUrl] = useState("");
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem('dynamo-webhook') ?? '';
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("dynamo-webhook") ?? "";
       setUrl(stored);
       setIsSaved(Boolean(stored));
     }
@@ -18,18 +20,18 @@ export function WebhookConfig() {
   const save = () => {
     const v = url.trim();
     if (v && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)) {
-      toast.error('Định dạng URL không đúng! Link Webhook phải có dạng https://script.google.com/macros/s/.../exec');
+      toast.error(t("sync.webhook.toasts.urlInvalid"));
       return;
     }
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       if (v) {
-        window.localStorage.setItem('dynamo-webhook', v);
+        window.localStorage.setItem("dynamo-webhook", v);
         setIsSaved(true);
-        toast.success('Đã cấu hình Webhook ghi ngược Google Sheets thành công.');
+        toast.success(t("sync.webhook.toasts.saveSuccess"));
       } else {
-        window.localStorage.removeItem('dynamo-webhook');
+        window.localStorage.removeItem("dynamo-webhook");
         setIsSaved(false);
-        toast.info('Đã xóa cấu hình Webhook ghi ngược.');
+        toast.info(t("sync.webhook.toasts.deleteSuccess"));
       }
     }
   };
@@ -38,35 +40,37 @@ export function WebhookConfig() {
     <div className="mes-card mb-4.5 overflow-hidden p-4 sm:p-4.5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-sm bg-primary/10 text-primary">
+          <div className="flex size-9 items-center justify-center rounded-xs bg-primary/10 text-primary">
             <Globe size={18} />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                ĐỒNG BỘ 2 CHIỀU (BIDIRECTIONAL OUTBOUND)
+                {t("sync.webhook.badge")}
               </span>
               <span
-                className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[9px] font-bold ${
+                className={`inline-flex items-center gap-1 rounded-xs px-1.5 py-0.5 font-mono text-[9px] font-bold ${
                   isSaved
-                    ? 'border border-run/30 bg-run/10 text-run'
-                    : 'border border-border bg-muted/40 text-muted-foreground'
+                    ? "border border-run/30 bg-run/10 text-run"
+                    : "border border-border bg-muted/40 text-muted-foreground"
                 }`}
               >
-                <span className={`size-1.5 rounded-full ${isSaved ? 'bg-run animate-pulse' : 'bg-muted-foreground'}`} />
-                {isSaved ? 'KẾT NỐI SẴN SÀNG' : 'CHƯA CẤU HÌNH'}
+                <span
+                  className={`size-1.5 rounded-full ${isSaved ? "bg-run animate-pulse" : "bg-muted-foreground"}`}
+                />
+                {isSaved
+                  ? t("sync.webhook.statusConnected")
+                  : t("sync.webhook.statusNotConfigured")}
               </span>
             </div>
             <h2 className="font-display text-sm font-bold tracking-tight text-foreground">
-              Google Apps Script Webhook Cập Nhật Tiến Độ Lô
+              {t("sync.webhook.title")}
             </h2>
           </div>
         </div>
 
         <div className="text-right text-[11px] text-muted-foreground">
-          Đẩy tự động: <code className="font-mono text-[10px] text-primary">TrangThai</code> ·{' '}
-          <code className="font-mono text-[10px] text-primary">ngay_nhan_QT</code> ·{' '}
-          <code className="font-mono text-[10px] text-primary">do_cung</code>
+          {t("sync.webhook.autoPush")}
         </div>
       </div>
 
@@ -76,8 +80,11 @@ export function WebhookConfig() {
             POST
           </span>
           <input
-            className="h-10 w-full rounded-sm border border-input bg-background/50 pl-14 pr-3 font-mono text-xs text-foreground placeholder:font-sans placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
-            placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+            className="h-10 w-full rounded-xs border border-input bg-background/50 pl-14 pr-3 font-mono text-xs text-foreground placeholder:font-sans placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none"
+            placeholder={
+              t("sync.webhook.urlPlaceholder") ||
+              "https://script.google.com/macros/s/AKfycbx.../exec"
+            }
             value={url}
             onChange={(e) => {
               setUrl(e.target.value);
@@ -87,16 +94,16 @@ export function WebhookConfig() {
         </div>
         <Button
           onClick={save}
-          className="h-10 shrink-0 gap-1.5 rounded-sm bg-primary px-5 font-bold text-primary-foreground hover:bg-primary/90"
+          className="h-10 shrink-0 gap-1.5 rounded-xs bg-primary px-5 font-bold text-primary-foreground hover:bg-primary/90"
         >
           {isSaved ? <CheckCircle2 size={14} /> : <Send size={14} />}
-          {isSaved ? 'Đã lưu' : 'Lưu kết nối'}
+          {isSaved ? t("sync.webhook.saved") : t("sync.webhook.save")}
         </Button>
       </div>
 
       <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <Link2 size={13} className="shrink-0 text-primary" />
-        Khi đối tác cập nhật trạng thái lô trên màn hình Tracking, hệ thống sẽ gửi payload JSON qua webhook này để đồng bộ lại bảng tính trung tâm.
+        {t("sync.webhook.description")}
       </p>
     </div>
   );

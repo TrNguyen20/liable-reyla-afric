@@ -18,7 +18,7 @@ Kế hoạch khởi động quy trình tối ưu hóa UI/UX toàn diện cho d�
 
 - **REQ-001**: Áp dụng chuẩn bo góc tối thiểu 2px (`rounded-xs` / `rounded-[2px]`, tối đa 4px cho các nút bấm và tag nhỏ) trên toàn bộ hệ thống.
 - **REQ-002**: Bố cục bảng biểu và các chỉ số định lượng phải sử dụng font monospaced (`font-mono tabular-nums`) để phục vụ môi trường kỹ thuật chính xác cao.
-- **REQ-003**: Nâng cấp các chỉ báo trạng thái sang chuẩn công nghiệp (Industrial Status Indicators) với mã định danh kỹ thuật `WAIT`, `TRANSIT`, `STOCKED`, `[PASS]`, `[FAIL]` và đèn tín hiệu Andon/Run LED.
+- **REQ-003**: Nâng cấp các chỉ báo trạng thái sang chuẩn công nghiệp (Industrial Status Indicators) với mã định danh kỹ thuật `WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `[FAIL]` và đèn tín hiệu Andon/Run LED.
 - **CON-001**: Không làm thay đổi logic nghiệp vụ, bảo vệ toàn vẹn các hàm BFF RPC Server Functions (`sheet.functions.ts`, `auth.functions.ts`) và quy tắc phân quyền (RBAC).
 - **CON-002**: Giữ nguyên tính tương thích với Tailwind CSS v4 và TanStack Start router / query engine.
 - **GUD-001**: Tuân thủ hướng dẫn chống lỗi giao diện của Anti-Slop Frontend và Redesign Skill: loại bỏ bóng mờ nặng, gradient rực rỡ và bo góc lớn kiểu tiêu dùng.
@@ -45,7 +45,7 @@ Kế hoạch khởi động quy trình tối ưu hóa UI/UX toàn diện cho d�
 |------|-------------|-----------|------|
 | TASK-005 | Thay thế toàn bộ 38 vị trí `rounded-lg`, `rounded-xl`, `rounded-2xl` trong `src/routes/tracking.tsx` sang `rounded-xs` | ✅ | 2026-11-04 |
 | TASK-006 | Đồng bộ hóa toàn bộ các cell dữ liệu trong bảng điều độ (Mã lô, PO, Xưởng, Part, Mác thép, Độ cứng, Qty, Kg, Ngày tháng) sang `font-mono tabular-nums` | ✅ | 2026-11-04 |
-| TASK-007 | Nâng cấp dropdown/badge trạng thái logistics và QC sang Industrial Status Indicators (`WAIT`, `TRANSIT`, `STOCKED`, `[PASS]`, `[FAIL]`) | ✅ | 2026-11-04 |
+| TASK-007 | Nâng cấp dropdown/badge trạng thái logistics và QC sang Industrial Status Indicators (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `[FAIL]`) | ✅ | 2026-11-04 |
 | TASK-008 | Tối ưu hóa thanh tác vụ nổi (Batch Action Bar) và modal A4 không bị tràn trên màn hình nhỏ/tablet | ✅ | 2026-11-04 |
 
 ### Implementation Phase 3: Đồng bộ Shell, Telemetry & Các Trang Phụ

@@ -1,37 +1,142 @@
 {
   "columns": {
     "checkbox": "選択",
-    "lotId": "ロット番号",
-    "orderNo": "発注番号",
-    "itemCode": "品番",
+    "lotId": "ロットID",
+    "orderNo": "注文番号",
+    "itemCode": "部品コード",
     "material": "材質",
     "hardness": "硬度",
     "quantity": "数量",
-    "weight": "重量(kg)",
+    "weight": "重量",
     "partner": "外注先",
-    "logistics": "物流状態",
-    "qc": "品質検査",
+    "logistics": "物流",
+    "qc": "検査",
     "sentDate": "発送日",
-    "dueDate": "納期",
+    "dueDate": "返却期日",
     "notes": "備考",
-    "ticket": "指示書A4"
+    "ticket": "A4伝票",
+    "partNo": "品番"
   },
   "workshops": {
-    "title": "製造工場",
+    "title": "担当工場",
     "all": "全工場",
     "pin": "PIN工場",
     "insert": "INSERT工場",
-    "mold": "MOLD工場"
+    "mold": "MOLD工場",
+    "filterTooltip": "加工工場でクイック絞り込み"
   },
   "actions": {
     "addNote": "+ 備考追加",
-    "notePlaceholder": "ロット備考を入力... (Enter: 保存, Shift+Enter: 改行, Tab: 次のセル)",
+    "notePlaceholder": "ロット備考を入力... (Enter: 保存, Shift+Enter: 改行, Tab: 次セル)",
     "selectPartner": "外注先を選択",
     "selectedCount": "{count} 件選択中",
-    "clearFilter": "全絞り込み解除"
+    "clearFilter": "全フィルター解除",
+    "allFiltersCleared": "すべてのテーブルフィルターを解除しました。",
+    "filtering": "絞り込み中 ({count}):",
+    "clearFilterItem": "この条件を解除",
+    "clearFilterTooltip": "全フィルターを解除"
   },
   "density": {
-    "compact": "コンパクト",
-    "normal": "標準"
+    "compact": "コンパクト (Compact)",
+    "normal": "標準 (Normal)",
+    "compactTooltip": "コンパクト表示モード (~32px)",
+    "normalTooltip": "標準表示モード (~42px)"
+  },
+  "title": "熱処理工程管理",
+  "status": {
+    "wait": "WAIT",
+    "transit": "TRANSIT",
+    "stocked": "STOCKED",
+    "pass": "PASS",
+    "fail": "FAIL",
+    "pending": "PENDING",
+    "waitLabel": "出荷待ち",
+    "transitLabel": "外注加工中",
+    "stockedLabel": "入庫完了",
+    "passLabel": "合格",
+    "failLabel": "不合格",
+    "pendingLabel": "未検査",
+    "inspect": "INSPECT"
+  },
+  "focus": {
+    "all": "すべて",
+    "overdue": "納期超過ロット",
+    "due_soon": "48時間以内返却",
+    "open": "未完了ロット",
+    "stocked": "完了済",
+    "est_due": "推定返却期日",
+    "sync_failed": "シート同期エラー",
+    "no_qc": "未検査入庫",
+    "qc_fail": "QC不合格"
+  },
+  "dueTags": {
+    "overdueDays": "{days}日超過",
+    "dueSoon48": "48h以内期日",
+    "estDue": "推定 (+7日)",
+    "missingDue": "期日未設定",
+    "delivered": "入荷済",
+    "overdue": "納期遅延"
+  },
+  "batch": {
+    "title": "一括操作",
+    "selected": "{count} ロット選択中",
+    "updateLogistics": "物流状態更新",
+    "updateQc": "QC結果更新",
+    "printTickets": "A4帳票一括印刷",
+    "exportSelectedCsv": "選択ロットをCSV出力",
+    "deselectAll": "全選択解除",
+    "confirmBatchQcPass": "{count} ロットをQC合格に変更しますか？"
+  },
+  "sort": {
+    "asc": "昇順",
+    "desc": "降順",
+    "cycleAsc": "並び替え中: 昇順 (A → Z)。クリックで降順に切替",
+    "cycleDesc": "並び替え中: 降順 (Z → A)。クリックで解除",
+    "cycleNone": "未ソート。クリックで昇順に並び替え",
+    "sortThisCol": "この列で並べ替え:",
+    "minToMax": "最小 → 最大",
+    "maxToMin": "最大 → 最小",
+    "lightToHeavy": "軽量順 → 重量順",
+    "heavyToLight": "重量順 → 軽量順"
+  },
+  "toolbars": {
+    "searchPlaceholder": "ロットID、注文番号、部品コード、材質を検索...",
+    "refresh": "データ更新 (Shift+R)",
+    "density": "表示密度",
+    "paginationInfo": "{total} ロット中 {from} - {to} 件を表示",
+    "pageSize": "{size} 行/ページ",
+    "clearSearch": "検索クリア (Esc)",
+    "matched": "一致",
+    "resetColWidthsTooltip": "全列の幅をデフォルトに戻す",
+    "resetColWidths": "列幅リセット",
+    "exitFullscreen": "全画面表示を終了 (Alt+F)",
+    "enterFullscreen": "全画面表示に切替 (Alt+F)",
+    "minimize": "縮小",
+    "fullscreen": "全画面",
+    "exportCsvTooltip": "CSVエクスポートオプション",
+    "exportCsv": "CSV出力",
+    "exportCurrentPage": "現在のページ",
+    "exportFiltered": "絞り込み結果",
+    "exportAll": "全件出力",
+    "workshopSelect": "選択された全ロットのパラメータを一括更新"
+  },
+  "popovers": {
+    "logisticsTitle": "物流状態更新",
+    "qcTitle": "QC検査結果更新",
+    "partnerTitle": "外注先選択",
+    "dateTitle": "日付選択",
+    "sentDateLabel": "出荷日:",
+    "dueDateLabel": "返却期日:",
+    "quickToday": "本日",
+    "quickPlus3d": "+3日",
+    "quickPlus5d": "+5日",
+    "quickPlus7d": "+7日",
+    "quickClear": "日付クリア",
+    "noteHistory": "備考履歴",
+    "saveNote": "備考保存"
+  },
+  "filters": {
+    "missingHardness": "硬度未設定",
+    "hasNote": "備考あり"
   }
 }
