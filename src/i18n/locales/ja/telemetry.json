@@ -1,10 +1,40 @@
 {
   "shift": "勤務直",
   "shiftName": "{shift}直",
-  "liveHub": "リアルタイム接続中",
+  "liveHub": "リアルタイム接続",
   "localCache": "ローカルキャッシュ",
   "totalLots": "総ロット数",
-  "externalHeatTreatment": "外注熱処理中",
+  "externalHeatTreatment": "外注熱処理残",
   "workshopLoad": "工場別負荷",
-  "updatedAt": "最終更新"
+  "updatedAt": "更新時刻",
+  "states": {
+    "syncing": "同期中...",
+    "error": "Googleシート連携エラー",
+    "ready": "同期待機完了",
+    "offline": "オフライン",
+    "connected": "接続完了"
+  },
+  "ribbon": {
+    "externalShort": "外注残:",
+    "loadShort": "負荷:",
+    "openLots": "{count} 未完了ロット",
+    "expandTooltip": "現場KPIテレメトリーバーを展開",
+    "kpiMetrics": "KPI指標",
+    "collapseTooltip": "表表示領域最大化のためテレメトリーバーを折りたたむ",
+    "collapse": "折りたたむ",
+    "datasetRows": "· {count} 件"
+  },
+  "shifts": {
+    "shift1": "1直 (06:00 - 14:00)",
+    "shift2": "2直 (14:00 - 22:00)",
+    "shift3": "3直 (22:00 - 06:00)"
+  },
+  "labels": {
+    "connectionLive": "LIVE",
+    "connectionOffline": "OFFLINE",
+    "latency": "遅延: {ms}ms",
+    "memoryUsage": "メモリ: {percent}%",
+    "activeWorkers": "直人員: {count}",
+    "plantEfficiency": "工場効率: {percent}%"
+  }
 }

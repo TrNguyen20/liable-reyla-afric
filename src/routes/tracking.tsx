@@ -17,7 +17,6 @@ import {
   Copy,
   Download,
   Edit2,
-  FileText,
   Filter,
   Layers,
   Maximize2,
@@ -32,10 +31,11 @@ import {
   Trash2,
   Undo2,
   X,
-  Zap,
+  PenLine,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useDynamo } from '@/components/dynamo-shell';
+import { useTranslation } from '@/i18n';
 import { playAudioCue } from '@/lib/audio-cues';
 import { date, money, number, type QTItem, type Status, type Workshop, type Vendor } from '@/lib/dynamo-data';
 import { formatVendorName, canViewPricing } from '@/lib/dynamo-auth';
@@ -247,6 +247,7 @@ function HeaderSortControls({
   ascLabel?: string;
   descLabel?: string;
 }) {
+  const { t } = useTranslation();
   const isAsc = currentField === field && currentDir === 'asc';
   const isDesc = currentField === field && currentDir === 'desc';
 
@@ -254,11 +255,11 @@ function HeaderSortControls({
     <div className="border-b border-border/70 pb-2.5 mb-2.5">
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
-          Sắp xếp cột này:
+          {t('tracking.sort.sortThisCol') || 'Sắp xếp cột này:'}
         </span>
         {currentField === field && (
           <span className="inline-flex items-center gap-1 text-[10px] text-primary font-mono font-bold">
-            <Check size={11} className="stroke-[3]" /> Đang chọn
+            <Check size={11} className="stroke-[3]" /> {t('common.selected') || 'Đang chọn'}
           </span>
         )}
       </div>
@@ -329,6 +330,7 @@ function HeaderFilterCell({
   isStickyLast?: boolean;
   onDirectSort?: (field: SortField) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const isSorted = field && sortCol === field;
   const isSticky = stickyLeft !== undefined || stickyClass.includes('sticky');
@@ -435,6 +437,7 @@ function HeaderFilterCell({
 
 function Tracking() {
   const { filtered: all, role, updateItem, bulkUpdateItems, loading, pullLive } = useDynamo();
+  const { t, locale } = useTranslation();
   const searchParams = Route.useSearch();
 
   // Column Resizing state with localStorage persistence and MIN_COL_WIDTHS content clamping
@@ -894,7 +897,7 @@ function Tracking() {
     if (globalSearch.trim()) {
       list.push({
         key: 'globalSearch',
-        label: `Tìm: "${globalSearch.trim()}"`,
+        label: `${t('common.filters.search') || 'Tìm'}: "${globalSearch.trim()}"`,
         onClear: () => {
           setGlobalSearch('');
           setTablePage(0);
@@ -904,35 +907,35 @@ function Tracking() {
     if (filters.idKeySearch) {
       list.push({
         key: 'idKey',
-        label: `Lô: "${filters.idKeySearch}"`,
+        label: `${t('tracking.columns.lotId') || 'Lô'}: "${filters.idKeySearch}"`,
         onClear: () => setFilters((f) => ({ ...f, idKeySearch: '' })),
       });
     }
     if (filters.orderSearch) {
       list.push({
         key: 'order',
-        label: `Đơn: "${filters.orderSearch}"`,
+        label: `${t('tracking.columns.orderNo') || 'Đơn'}: "${filters.orderSearch}"`,
         onClear: () => setFilters((f) => ({ ...f, orderSearch: '' })),
       });
     }
     if (filters.workshops.length) {
       list.push({
         key: 'workshops',
-        label: `Xưởng: ${filters.workshops.join(', ')}`,
+        label: `${t('tracking.workshops.title') || 'Xưởng'}: ${filters.workshops.join(', ')}`,
         onClear: () => setFilters((f) => ({ ...f, workshops: [] })),
       });
     }
     if (filters.itemSearch) {
       list.push({
         key: 'item',
-        label: `Mã hàng: "${filters.itemSearch}"`,
+        label: `${t('tracking.columns.itemCode') || 'Mã hàng'}: "${filters.itemSearch}"`,
         onClear: () => setFilters((f) => ({ ...f, itemSearch: '' })),
       });
     }
     if (filters.materials.length) {
       list.push({
         key: 'materials',
-        label: `Vật liệu (${filters.materials.length}): ${filters.materials.slice(0, 2).join(', ')}${filters.materials.length > 2 ? '…' : ''
+        label: `${t('tracking.columns.material') || 'Vật liệu'} (${filters.materials.length}): ${filters.materials.slice(0, 2).join(', ')}${filters.materials.length > 2 ? '…' : ''
           }`,
         onClear: () => setFilters((f) => ({ ...f, materials: [] })),
       });
@@ -940,14 +943,14 @@ function Tracking() {
     if (filters.hardnessSearch) {
       list.push({
         key: 'hardness',
-        label: `Độ cứng: "${filters.hardnessSearch}"`,
+        label: `${t('tracking.columns.hardness') || 'Độ cứng'}: "${filters.hardnessSearch}"`,
         onClear: () => setFilters((f) => ({ ...f, hardnessSearch: '' })),
       });
     }
     if (filters.missingHardnessOnly) {
       list.push({
         key: 'missingHardness',
-        label: `Chưa có độ cứng`,
+        label: t('tracking.filters.missingHardness') || 'Chưa có độ cứng',
         onClear: () => setFilters((f) => ({ ...f, missingHardnessOnly: false })),
       });
     }
@@ -968,7 +971,7 @@ function Tracking() {
     if (filters.vendors.length) {
       list.push({
         key: 'vendors',
-        label: `Đối tác: ${filters.vendors.map((v) => formatVendorName(v, role)).join(', ')}`,
+        label: `${t('tracking.columns.partner') || 'Đối tác'}: ${filters.vendors.map((v) => formatVendorName(v, role)).join(', ')}`,
         onClear: () => setFilters((f) => ({ ...f, vendors: [] })),
       });
     }
@@ -989,82 +992,82 @@ function Tracking() {
     if (filters.sendFrom || filters.sendTo) {
       list.push({
         key: 'sendDate',
-        label: `Gửi: ${filters.sendFrom || '…'} → ${filters.sendTo || '…'}`,
+        label: `${t('tracking.columns.sentDate') || 'Gửi'}: ${filters.sendFrom || '…'} → ${filters.sendTo || '…'}`,
         onClear: () => setFilters((f) => ({ ...f, sendFrom: '', sendTo: '' })),
       });
     }
     if (filters.missingDueOnly) {
       list.push({
         key: 'missingDue',
-        label: `Thiếu hạn trả`,
+        label: t('tracking.dueTags.missingDue') || 'Thiếu hạn trả',
         onClear: () => setFilters((f) => ({ ...f, missingDueOnly: false })),
       });
     }
     if (filters.dueFrom || filters.dueTo) {
       list.push({
         key: 'dueDate',
-        label: `Hạn: ${filters.dueFrom || '…'} → ${filters.dueTo || '…'}`,
+        label: `${t('tracking.columns.dueDate') || 'Hạn'}: ${filters.dueFrom || '…'} → ${filters.dueTo || '…'}`,
         onClear: () => setFilters((f) => ({ ...f, dueFrom: '', dueTo: '' })),
       });
     }
     if (filters.noteSearch) {
       list.push({
         key: 'note',
-        label: `Ghi chú: "${filters.noteSearch}"`,
+        label: `${t('tracking.columns.notes') || 'Ghi chú'}: "${filters.noteSearch}"`,
         onClear: () => setFilters((f) => ({ ...f, noteSearch: '' })),
       });
     }
     if (filters.hasNoteOnly) {
       list.push({
         key: 'hasNote',
-        label: 'Có ghi chú',
+        label: t('tracking.filters.hasNote') || 'Có ghi chú',
         onClear: () => setFilters((f) => ({ ...f, hasNoteOnly: false })),
       });
     }
     if (filters.overdueOnly) {
       list.push({
         key: 'overdue',
-        label: 'Quá hạn',
+        label: t('tracking.focus.overdue') || 'Quá hạn',
         onClear: () => setFilters((f) => ({ ...f, overdueOnly: false })),
       });
     }
     if (filters.dueSoonOnly) {
       list.push({
         key: 'dueSoon',
-        label: 'Cận hạn 48h',
+        label: t('tracking.focus.due_soon') || 'Cận hạn 48h',
         onClear: () => setFilters((f) => ({ ...f, dueSoonOnly: false })),
       });
     }
     if (filters.openOnly) {
       list.push({
         key: 'openOnly',
-        label: 'Lô đang mở',
+        label: t('tracking.focus.open') || 'Lô đang mở',
         onClear: () => setFilters((f) => ({ ...f, openOnly: false })),
       });
     }
     if (filters.stockedOnly) {
       list.push({
         key: 'stockedOnly',
-        label: 'Đã hoàn tất',
+        label: t('tracking.focus.stocked') || 'Đã hoàn tất',
         onClear: () => setFilters((f) => ({ ...f, stockedOnly: false })),
       });
     }
     if (filters.noQcOnly) {
       list.push({
         key: 'noQcOnly',
-        label: 'Chưa đạt QC',
+        label: t('tracking.focus.no_qc') || 'Chưa đạt QC',
         onClear: () => setFilters((f) => ({ ...f, noQcOnly: false })),
       });
     }
     if (filters.syncFailedOnly) {
       list.push({
         key: 'syncFailedOnly',
-        label: 'Lỗi ghi Sheet',
+        label: t('tracking.focus.sync_failed') || 'Ghi Sheet lỗi',
         onClear: () => setFilters((f) => ({ ...f, syncFailedOnly: false })),
       });
     }
     return list;
-  }, [filters, role, globalSearch]);
+  }, [filters, role, globalSearch, t]);
 
   const totalKg = useMemo(() => rows.reduce((a, i) => a + i.kg_Lot, 0), [rows]);
 
@@ -1075,7 +1078,7 @@ function Tracking() {
     setSortDir('desc');
     setTablePage(0);
     playAudioCue('success');
-    toast.info('Đã xóa toàn bộ bộ lọc trên bảng.');
+    toast.info(t('tracking.actions.allFiltersCleared') || 'Đã xóa toàn bộ bộ lọc trên bảng.');
   };
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -1191,20 +1194,20 @@ function Tracking() {
       return;
     }
     const head = [
-      'Mã lô (ID_Key)',
-      'Số đặt hàng (PO)',
-      'Phân xưởng',
-      'Mã hàng',
-      'Vật liệu',
-      'Độ cứng',
-      'Số lượng',
-      'Trọng lượng (kg)',
-      'Đối tác gia công',
-      'Logistics',
-      'QC',
-      'Ngày gửi',
-      'Hạn trả',
-      'Ghi chú',
+      `${t('tracking.columns.lotId') || 'Mã lô'} (ID_Key)`,
+      `${t('tracking.columns.orderNo') || 'Số đặt hàng'} (PO)`,
+      t('tracking.workshops.title') || 'Phân xưởng',
+      t('tracking.columns.partNo') || t('tracking.columns.itemCode') || 'Mã hàng',
+      t('tracking.columns.material') || 'Vật liệu',
+      t('tracking.columns.hardness') || 'Độ cứng',
+      t('tracking.columns.quantity') || 'Số lượng',
+      `${t('tracking.columns.weight') || 'Trọng lượng'} (kg)`,
+      t('tracking.columns.partner') || 'Đối tác gia công',
+      t('tracking.columns.logistics') || 'Logistics',
+      t('tracking.columns.qc') || 'QC',
+      t('tracking.columns.sentDate') || 'Ngày gửi',
+      t('tracking.columns.dueDate') || 'Hạn trả',
+      t('tracking.columns.notes') || 'Ghi chú',
     ];
     const body = targetRows.map((r) =>
       [
@@ -1216,7 +1219,7 @@ function Tracking() {
         r.do_cung,
         r.so_luong,
         r.kg_Lot,
-        formatVendorName(r.cty_QT, role),
+        formatVendorName(r.cty_QT, role, locale),
         logisticsOf(r),
         qcOf(r),
         date(r.ngay_gui_QT),
@@ -1367,8 +1370,8 @@ function Tracking() {
         toast.error(`Chưa đồng bộ lên Google Sheets: ${res?.error || 'Lỗi kết nối Webhook'}`, {
           duration: 6000,
         });
-      } else if (res.warning) {
-        toast.warning(res.warning, { duration: 6000 });
+      } else if (res && 'warning' in res && (res as any).warning) {
+        toast.warning((res as any).warning, { duration: 6000 });
       }
     }).catch((err) => {
       console.warn('Lỗi gửi Webhook đồng bộ:', err);
@@ -1518,7 +1521,7 @@ function Tracking() {
           <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-xs border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
             <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
               <Filter size={13} />
-              Đang lọc ({activeFilters.length}):
+              {t('tracking.actions.filtering', { count: activeFilters.length }) || `Đang lọc (${activeFilters.length}):`}
             </span>
             {activeFilters.map((af) => (
               <span
@@ -1534,7 +1537,7 @@ function Tracking() {
                     playAudioCue('beep');
                   }}
                   className="text-muted-foreground hover:text-destructive cursor-pointer rounded-xs"
-                  title="Bỏ tiêu chí này"
+                  title={t('tracking.actions.clearFilterItem') || 'Bỏ tiêu chí này'}
                 >
                   <X size={12} />
                 </button>
@@ -1544,10 +1547,10 @@ function Tracking() {
               type="button"
               onClick={resetAllFilters}
               className="ml-auto inline-flex items-center gap-1 rounded-xs border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-              title="Xóa toàn bộ các bộ lọc trên bảng"
+              title={t('tracking.actions.clearFilterTooltip') || 'Xóa toàn bộ các bộ lọc trên bảng'}
             >
               <Trash2 size={12} />
-              Xóa tất cả lọc
+              {t('tracking.actions.clearFilter') || 'Xóa tất cả lọc'}
             </button>
           </div>
         )}
@@ -1557,7 +1560,7 @@ function Tracking() {
           {/* Cụm Trái: Route Identity, Local / View Actions & Search */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground">
-              [1] LUÂN CHUYỂN
+              {t('nav.route1Title') || '[1] LUÂN CHUYỂN'}
             </span>
             {/* 1. Ô Global Search tích hợp phím tắt '/' */}
             <div className="relative inline-flex items-center">
@@ -1576,7 +1579,7 @@ function Tracking() {
                     searchInputRef.current?.blur();
                   }
                 }}
-                placeholder="Tìm nhanh (nhấn /)..."
+                placeholder={t('tracking.toolbars.searchPlaceholder') || 'Tìm nhanh (nhấn /)...'}
                 className="h-8 w-52 sm:w-64 rounded-xs border border-input bg-card pl-8 pr-7 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 shadow-2xs focus:outline-hidden focus:border-primary/80 focus:ring-1 focus:ring-primary/40 transition-all"
               />
               {globalSearch ? (
@@ -1587,7 +1590,7 @@ function Tracking() {
                     setTablePage(0);
                     searchInputRef.current?.focus();
                   }}
-                  title="Xóa tìm kiếm (Phím tắt: Esc)"
+                  title={t('tracking.toolbars.clearSearch') || 'Xóa tìm kiếm (Phím tắt: Esc)'}
                   className="absolute right-2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-xs"
                 >
                   <X size={12} />
@@ -1604,7 +1607,7 @@ function Tracking() {
               <div className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs shadow-2xs animate-in fade-in">
                 <span className="size-1.5 rounded-full bg-primary fx-run-dot" />
                 <span className="text-[11px] text-primary font-bold font-mono tabular-nums">
-                  Khớp: {number(rows.length)} <span className="font-normal opacity-70">/ {number(all.length)} lô</span>
+                  {t('tracking.toolbars.matched') || 'Khớp'}: {number(rows.length)} <span className="font-normal opacity-70">/ {number(all.length)} {t('common.units.lots') || 'lô'}</span>
                 </span>
               </div>
             )}
@@ -1615,14 +1618,14 @@ function Tracking() {
                 <button
                   type="button"
                   className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation ${filters.workshops.length > 0
-                      ? 'border-primary/60 bg-primary/10 text-primary font-bold'
-                      : 'border-border/80 bg-card text-foreground hover:bg-secondary'
+                    ? 'border-primary/60 bg-primary/10 text-primary font-bold'
+                    : 'border-border/80 bg-card text-foreground hover:bg-secondary'
                     }`}
-                  title="Lọc nhanh theo phân xưởng gia công"
+                  title={t('tracking.workshops.filterTooltip') || 'Lọc nhanh theo phân xưởng gia công'}
                 >
                   <Layers size={12} className={filters.workshops.length > 0 ? 'text-primary' : 'text-primary/80'} />
                   <span>
-                    Xưởng: {filters.workshops.length === 0 ? 'Tất cả' : filters.workshops.join(', ')}
+                    {t('tracking.workshops.title') || 'Xưởng'}: {filters.workshops.length === 0 ? (t('tracking.workshops.all') || 'Tất cả') : filters.workshops.join(', ')}
                   </span>
                   <ChevronDown size={11} className="text-muted-foreground" />
                 </button>
@@ -1630,7 +1633,7 @@ function Tracking() {
               <PopoverContent align="start" className="w-56 p-2.5 font-sans">
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between pb-1.5 border-b border-border/40 px-1 font-semibold text-xs text-foreground">
-                    <span>Chọn Phân Xưởng</span>
+                    <span>{t('tracking.workshops.title') || 'Chọn Phân Xưởng'}</span>
                     {filters.workshops.length > 0 && (
                       <button
                         type="button"
@@ -1640,7 +1643,7 @@ function Tracking() {
                         }}
                         className="text-[10px] text-primary hover:underline cursor-pointer"
                       >
-                        Bỏ chọn
+                        {t('common.filters.deselect') || 'Bỏ chọn'}
                       </button>
                     )}
                   </div>
@@ -1653,7 +1656,7 @@ function Tracking() {
                     className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${filters.workshops.length === 0 ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
                       }`}
                   >
-                    <span>Tất cả phân xưởng</span>
+                    <span>{t('tracking.workshops.all') || 'Tất cả phân xưởng'}</span>
                     <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length}</span>
                   </button>
                   {(['PIN', 'INSERT', 'MOLD'] as Workshop[]).map((ws) => {
@@ -1677,7 +1680,7 @@ function Tracking() {
                       >
                         <div className="flex items-center gap-2">
                           <span className={`size-2 rounded-full ${ws === 'PIN' ? 'bg-info' : ws === 'INSERT' ? 'bg-primary' : 'bg-warning'}`} />
-                          <span>Xưởng {ws}</span>
+                          <span>{t('tracking.workshops.title') || 'Xưởng'} {ws}</span>
                         </div>
                         <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{wsCount}</span>
                       </button>
@@ -1692,24 +1695,24 @@ function Tracking() {
               <button
                 type="button"
                 onClick={() => handleSetDensity('compact')}
-                title="Chế độ nén dòng cao độ (~32px)"
+                title={t('tracking.density.compactTooltip') || 'Chế độ nén dòng cao độ (~32px)'}
                 className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${density === 'compact'
                   ? 'bg-card text-foreground shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
-                <span>Nén</span>
+                <span>{t('tracking.density.compact') || 'Nén'}</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleSetDensity('normal')}
-                title="Chế độ dòng tiêu chuẩn (~42px)"
+                title={t('tracking.density.normalTooltip') || 'Chế độ dòng tiêu chuẩn (~42px)'}
                 className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${density === 'normal'
                   ? 'bg-card text-foreground shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
-                <span>Chuẩn</span>
+                <span>{t('tracking.density.normal') || 'Chuẩn'}</span>
               </button>
             </div>
 
@@ -1718,10 +1721,10 @@ function Tracking() {
               type="button"
               onClick={handleResetAllColWidths}
               className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
-              title="Khôi phục kích thước mặc định cho toàn bộ cột"
+              title={t('tracking.toolbars.resetColWidthsTooltip') || 'Khôi phục kích thước mặc định cho toàn bộ cột'}
             >
               <RotateCcw size={11} className="text-primary/80" />
-              <span className="hidden sm:inline">Khôi phục cỡ cột</span>
+              <span className="hidden sm:inline">{t('tracking.toolbars.resetColWidths') || 'Khôi phục cỡ cột'}</span>
             </button>
           </div>
 
@@ -1732,12 +1735,12 @@ function Tracking() {
               type="button"
               onClick={() => void pullLive(true)}
               disabled={loading}
-              title="Làm mới dữ liệu từ Google Sheets (Phím tắt: Shift + R)"
-              aria-label="Làm mới dữ liệu từ Google Sheets"
+              title={t('tracking.toolbars.refresh') || 'Làm mới dữ liệu từ Google Sheets (Phím tắt: Shift + R)'}
+              aria-label={t('tracking.toolbars.refresh') || 'Làm mới dữ liệu từ Google Sheets'}
               className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation disabled:opacity-60"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin text-primary' : 'text-primary'} />
-              <span>{loading ? 'Đang tải…' : 'Làm mới'}</span>
+              <span>{loading ? (t('common.loading') || 'Đang tải…') : (t('common.refresh') || 'Làm mới')}</span>
               <kbd className="hidden md:inline-block font-mono text-[9px] text-muted-foreground bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
                 Shift+R
               </kbd>
@@ -1753,8 +1756,8 @@ function Tracking() {
                 }`}
               title={
                 isTableFullscreen
-                  ? 'Thu nhỏ bảng về kích thước ban đầu (Phím tắt: Alt+F)'
-                  : 'Phóng to bảng toàn màn hình để tập trung điều độ (Phím tắt: Alt+F)'
+                  ? (t('tracking.toolbars.exitFullscreen') || 'Thu nhỏ bảng về kích thước ban đầu (Phím tắt: Alt+F)')
+                  : (t('tracking.toolbars.enterFullscreen') || 'Phóng to bảng toàn màn hình để tập trung điều độ (Phím tắt: Alt+F)')
               }
             >
               {isTableFullscreen ? (
@@ -1762,7 +1765,7 @@ function Tracking() {
               ) : (
                 <Maximize2 size={12} className="text-primary/90" />
               )}
-              <span>{isTableFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+              <span>{isTableFullscreen ? (t('tracking.toolbars.minimize') || 'Thu nhỏ') : (t('tracking.toolbars.fullscreen') || 'Toàn màn hình')}</span>
               <kbd
                 className={`hidden sm:inline-block text-[9px] px-1 py-0.2 rounded font-mono border ${isTableFullscreen
                   ? 'bg-primary-foreground/20 border-primary-foreground/30 text-primary-foreground'
@@ -1779,10 +1782,10 @@ function Tracking() {
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
-                  title="Tùy chọn xuất file CSV"
+                  title={t('tracking.toolbars.exportCsvTooltip') || 'Tùy chọn xuất file CSV'}
                 >
                   <Download size={12} className="text-primary/90" />
-                  <span>Xuất CSV</span>
+                  <span>{t('tracking.toolbars.exportCsv') || 'Xuất CSV'}</span>
                   <ChevronDown size={11} className="text-muted-foreground" />
                 </button>
               </PopoverTrigger>
@@ -1793,16 +1796,16 @@ function Tracking() {
                     onClick={() => exportCsv('page')}
                     className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-xs text-left text-[11px] font-medium text-foreground hover:bg-secondary cursor-pointer"
                   >
-                    <span>Trang hiện tại</span>
-                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{tableRows.length} lô</span>
+                    <span>{t('tracking.toolbars.exportCurrentPage') || 'Trang hiện tại'}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{tableRows.length} {t('common.units.lots') || 'lô'}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => exportCsv('filtered')}
                     className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-xs text-left text-[11px] font-medium text-foreground hover:bg-secondary cursor-pointer"
                   >
-                    <span>Kết quả lọc</span>
-                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{rows.length} lô</span>
+                    <span>{t('tracking.toolbars.exportFiltered') || 'Kết quả lọc'}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{rows.length} {t('common.units.lots') || 'lô'}</span>
                   </button>
                   <div className="h-px bg-border/80 my-1" />
                   <button
@@ -1810,8 +1813,8 @@ function Tracking() {
                     onClick={() => exportCsv('all')}
                     className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-xs text-left text-[11px] font-bold text-primary hover:bg-secondary cursor-pointer"
                   >
-                    <span>Toàn bộ hệ thống</span>
-                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length} lô</span>
+                    <span>{t('tracking.toolbars.exportAll') || 'Toàn bộ hệ thống'}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length} {t('common.units.lots') || 'lô'}</span>
                   </button>
                 </div>
               </PopoverContent>
@@ -1869,7 +1872,7 @@ function Tracking() {
                       <input
                         ref={selectAllCheckboxRef}
                         type="checkbox"
-                        aria-label="Chọn tất cả trên trang này"
+                        aria-label={t('tracking.columns.checkbox') || 'Chọn tất cả trên trang này'}
                         checked={isAllPageSelected}
                         onChange={toggleSelectAllPage}
                         className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
@@ -1879,7 +1882,7 @@ function Tracking() {
 
                   {/* Column 2: Mã lô (Sticky top-0 left-[checkbox]) */}
                   <HeaderFilterCell
-                    title="MÃ LÔ"
+                    title={t('tracking.columns.lotId') || 'MÃ LÔ'}
                     field="ID_Key"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -1898,7 +1901,7 @@ function Tracking() {
                     />
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tìm kiếm mã lô:
+                        {t('tracking.columns.lotId') || 'Tìm kiếm mã lô:'}
                       </label>
                       <div className="relative">
                         <input
@@ -1935,14 +1938,14 @@ function Tracking() {
                         }}
                         className="mt-2.5 w-full text-center text-[11px] font-bold text-destructive hover:underline cursor-pointer"
                       >
-                        Xóa lọc mã lô
+                        {t('common.filters.clear') || 'Xóa lọc mã lô'}
                       </button>
                     )}
                   </HeaderFilterCell>
 
                   {/* Column 3: Đơn hàng */}
                   <HeaderFilterCell
-                    title="ĐƠN HÀNG"
+                    title={t('tracking.columns.orderNo') || 'ĐƠN HÀNG'}
                     field="So_DatHang"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -1958,7 +1961,7 @@ function Tracking() {
                     />
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tìm số đơn hàng (PO):
+                        {t('tracking.columns.orderNo') || 'Tìm số đơn hàng (PO):'}
                       </label>
                       <div className="relative">
                         <input
@@ -1989,7 +1992,7 @@ function Tracking() {
 
                   {/* Column 5: Mã hàng */}
                   <HeaderFilterCell
-                    title="MÃ HÀNG"
+                    title={t('tracking.columns.itemCode') || 'MÃ HÀNG'}
                     field="ma_hang"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2007,7 +2010,7 @@ function Tracking() {
                     />
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tìm mã linh kiện:
+                        {t('tracking.columns.itemCode') || 'Tìm mã linh kiện:'}
                       </label>
                       <div className="relative">
                         <input
@@ -2038,7 +2041,7 @@ function Tracking() {
 
                   {/* Column 6: Vật liệu */}
                   <HeaderFilterCell
-                    title="VẬT LIỆU"
+                    title={t('tracking.columns.material') || 'VẬT LIỆU'}
                     field="vat_lieu"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2057,7 +2060,7 @@ function Tracking() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Mác thép ({allMaterials.length}):
+                          {t('tracking.columns.material') || 'Mác thép'} ({allMaterials.length}):
                         </span>
                         <button
                           type="button"
@@ -2070,12 +2073,12 @@ function Tracking() {
                           }}
                           className="text-[10px] text-primary hover:underline cursor-pointer"
                         >
-                          {filters.materials.length === allMaterials.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                          {filters.materials.length === allMaterials.length ? (t('common.filters.deselectAll') || 'Bỏ chọn hết') : (t('common.filters.selectAll') || 'Chọn tất cả')}
                         </button>
                       </div>
                       <input
                         type="text"
-                        placeholder="Tìm mác thép..."
+                        placeholder={t('common.filters.search') || 'Tìm mác thép...'}
                         value={materialSearchText}
                         onChange={(e) => setMaterialSearchText(e.target.value)}
                         className="w-full rounded border border-input bg-background px-2 py-1 text-[11px] text-foreground outline-none"
@@ -2112,7 +2115,7 @@ function Tracking() {
 
                   {/* Column 7: Độ cứng */}
                   <HeaderFilterCell
-                    title="ĐỘ CỨNG"
+                    title={t('tracking.columns.hardness') || 'ĐỘ CỨNG'}
                     field="do_cung"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2130,7 +2133,7 @@ function Tracking() {
                     />
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tìm độ cứng yêu cầu:
+                        {t('tracking.columns.hardness') || 'Tìm độ cứng yêu cầu:'}
                       </label>
                       <input
                         type="text"
@@ -2152,14 +2155,14 @@ function Tracking() {
                           }}
                           className="rounded text-primary focus:ring-primary accent-primary"
                         />
-                        <span>Chỉ xem chưa có độ cứng (—)</span>
+                        <span>{t('tracking.filters.missingHardness') || 'Chỉ xem chưa có độ cứng (—)'}</span>
                       </label>
                     </div>
                   </HeaderFilterCell>
 
                   {/* Column 8: SL */}
                   <HeaderFilterCell
-                    title="SL"
+                    title={t('tracking.columns.quantity') || 'SL'}
                     field="so_luong"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2175,17 +2178,17 @@ function Tracking() {
                       currentField={sortCol}
                       currentDir={sortDir}
                       onSort={handleSort}
-                      ascLabel="Nhỏ nhất → Lớn nhất"
-                      descLabel="Lớn nhất → Nhỏ nhất"
+                      ascLabel={t('tracking.sort.minToMax') || 'Nhỏ nhất → Lớn nhất'}
+                      descLabel={t('tracking.sort.maxToMin') || 'Lớn nhất → Nhỏ nhất'}
                     />
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Khoảng số lượng (pcs):
+                        {t('tracking.columns.quantity') || 'Khoảng số lượng (pcs):'}
                       </span>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
-                          placeholder="Từ (Min)"
+                          placeholder={t('common.filters.min') || 'Từ (Min)'}
                           value={filters.qtyMin}
                           onChange={(e) => {
                             setFilters((f) => ({ ...f, qtyMin: e.target.value }));
@@ -2196,7 +2199,7 @@ function Tracking() {
                         <span>→</span>
                         <input
                           type="number"
-                          placeholder="Đến (Max)"
+                          placeholder={t('common.filters.max') || 'Đến (Max)'}
                           value={filters.qtyMax}
                           onChange={(e) => {
                             setFilters((f) => ({ ...f, qtyMax: e.target.value }));
@@ -2210,7 +2213,7 @@ function Tracking() {
 
                   {/* Column 9: Kg */}
                   <HeaderFilterCell
-                    title="KG"
+                    title={t('tracking.columns.weight') || 'KG'}
                     field="kg_Lot"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2226,18 +2229,18 @@ function Tracking() {
                       currentField={sortCol}
                       currentDir={sortDir}
                       onSort={handleSort}
-                      ascLabel="Nhẹ nhất → Nặng nhất"
-                      descLabel="Nặng nhất → Nhẹ nhất"
+                      ascLabel={t('tracking.sort.lightToHeavy') || 'Nhẹ nhất → Nặng nhất'}
+                      descLabel={t('tracking.sort.heavyToLight') || 'Nặng nhất → Nhẹ nhất'}
                     />
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Khoảng khối lượng (kg):
+                        {t('tracking.columns.weight') || 'Khoảng khối lượng (kg):'}
                       </span>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
                           step="0.1"
-                          placeholder="Min kg"
+                          placeholder={t('common.filters.min') || 'Min kg'}
                           value={filters.kgMin}
                           onChange={(e) => {
                             setFilters((f) => ({ ...f, kgMin: e.target.value }));
@@ -2249,7 +2252,7 @@ function Tracking() {
                         <input
                           type="number"
                           step="0.1"
-                          placeholder="Max kg"
+                          placeholder={t('common.filters.max') || 'Max kg'}
                           value={filters.kgMax}
                           onChange={(e) => {
                             setFilters((f) => ({ ...f, kgMax: e.target.value }));
@@ -2262,8 +2265,9 @@ function Tracking() {
                   </HeaderFilterCell>
 
                   {/* Column 10: Đối tác */}
+                  {/* Column 10: Đối tác */}
                   <HeaderFilterCell
-                    title="ĐỐI TÁC"
+                    title={t('tracking.columns.partner') || 'ĐỐI TÁC'}
                     field="cty_QT"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2282,7 +2286,7 @@ function Tracking() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Nhà thầu gia công:
+                          {t('tracking.popovers.partnerTitle') || 'Nhà thầu gia công:'}
                         </span>
                         <button
                           type="button"
@@ -2295,7 +2299,9 @@ function Tracking() {
                           }}
                           className="text-[10px] text-primary hover:underline cursor-pointer"
                         >
-                          {filters.vendors.length === allVendors.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                          {filters.vendors.length === allVendors.length
+                            ? (t('tracking.batch.deselectAll') || 'Bỏ chọn hết')
+                            : (t('common.all') || 'Chọn tất cả')}
                         </button>
                       </div>
                       <div className="space-y-1">
@@ -2328,7 +2334,7 @@ function Tracking() {
 
                   {/* Column 11: Logistics */}
                   <HeaderFilterCell
-                    title="LOGISTICS"
+                    title={t('tracking.columns.logistics') || 'LOGISTICS'}
                     field="TrangThai"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2346,11 +2352,17 @@ function Tracking() {
                     />
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Trạng thái luân chuyển:
+                        {t('tracking.popovers.logisticsTitle') || 'Trạng thái luân chuyển:'}
                       </span>
                       <div className="space-y-1">
                         {(['Chờ xuất xưởng', 'Đang tại Vendor', 'Đã nhập kho'] as Logistics[]).map((l) => {
                           const count = counts.log[l] || 0;
+                          const logiLabel =
+                            l === 'Chờ xuất xưởng'
+                              ? (t('tracking.status.waitLabel') || l)
+                              : l === 'Đang tại Vendor'
+                                ? (t('tracking.status.transitLabel') || l)
+                                : (t('tracking.status.stockedLabel') || l);
                           return (
                             <label
                               key={l}
@@ -2366,7 +2378,7 @@ function Tracking() {
                                   }}
                                   className="rounded text-primary focus:ring-primary accent-primary"
                                 />
-                                <span>{l}</span>
+                                <span>{logiLabel}</span>
                               </span>
                               <span className="font-mono text-muted-foreground">{count}</span>
                             </label>
@@ -2378,7 +2390,7 @@ function Tracking() {
 
                   {/* Column 12: QC */}
                   <HeaderFilterCell
-                    title="QC"
+                    title={t('tracking.columns.qc') || 'QC'}
                     field="qc"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2396,7 +2408,7 @@ function Tracking() {
                     />
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Trạng thái kiểm tra QC:
+                        {t('tracking.popovers.qcTitle') || 'Trạng thái kiểm tra QC:'}
                       </span>
                       <div className="space-y-1">
                         {(['Chưa kiểm tra', 'Đang kiểm tra', 'Đạt', 'Không đạt'] as QcState[]).map((q) => {
@@ -2437,7 +2449,7 @@ function Tracking() {
 
                   {/* Column 13: Ngày gửi */}
                   <HeaderFilterCell
-                    title="NGÀY GỬI"
+                    title={t('tracking.columns.sentDate') || 'NGÀY GỬI'}
                     field="ngay_gui_QT"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2457,7 +2469,7 @@ function Tracking() {
                     />
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Khoảng ngày gửi QT:
+                        {t('tracking.popovers.sentDateLabel') || 'Khoảng ngày gửi QT:'}
                       </span>
                       <div className="grid grid-cols-2 gap-2">
                         <input
@@ -2485,28 +2497,28 @@ function Tracking() {
                           onClick={() => setDatePreset('send', 'today')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          Hôm nay
+                          {t('tracking.popovers.quickToday') || 'Hôm nay'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDatePreset('send', '7days')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          7 ngày
+                          {t('dashboard.quickPresets.sevenDays') || '7 ngày'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDatePreset('send', 'this_month')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          Tháng này
+                          {t('dashboard.quickPresets.thisMonth') || 'Tháng này'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDatePreset('send', 'all')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                         >
-                          Tất cả
+                          {t('common.all') || 'Tất cả'}
                         </button>
                       </div>
                     </div>
@@ -2514,7 +2526,7 @@ function Tracking() {
 
                   {/* Column 14: Hạn trả */}
                   <HeaderFilterCell
-                    title="HẠN TRẢ"
+                    title={t('tracking.columns.dueDate') || 'HẠN TRẢ'}
                     field="han_tra"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2534,7 +2546,7 @@ function Tracking() {
                     />
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Khoảng hạn trả:
+                        {t('tracking.popovers.dueDateLabel') || 'Khoảng hạn trả:'}
                       </span>
                       <div className="grid grid-cols-2 gap-2">
                         <input
@@ -2562,28 +2574,28 @@ function Tracking() {
                           onClick={() => setDatePreset('due', 'today')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          Hôm nay
+                          {t('tracking.popovers.quickToday') || 'Hôm nay'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDatePreset('due', '7days')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          7 ngày tới
+                          {t('dashboard.quickPresets.sevenDays') || '7 ngày tới'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDatePreset('due', 'this_month')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
                         >
-                          Tháng này
+                          {t('dashboard.quickPresets.thisMonth') || 'Tháng này'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDatePreset('due', 'all')}
                           className="rounded border border-border/80 bg-card px-1 py-1 text-center text-[10.5px] font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                         >
-                          Tất cả
+                          {t('common.all') || 'Tất cả'}
                         </button>
                       </div>
                       <label className="flex items-center gap-2 rounded border border-warning/30 bg-warning/10 p-2 text-warning cursor-pointer mt-1">
@@ -2596,14 +2608,14 @@ function Tracking() {
                           }}
                           className="rounded text-warning focus:ring-warning accent-warning"
                         />
-                        <span className="font-bold text-[11px]">Chỉ xem lô thiếu hạn trả</span>
+                        <span className="font-bold text-[11px]">{t('tracking.dueTags.missingDue') || 'Chỉ xem lô thiếu hạn trả'}</span>
                       </label>
                     </div>
                   </HeaderFilterCell>
 
                   {/* Column 15: Ghi chú */}
                   <HeaderFilterCell
-                    title="GHI CHÚ"
+                    title={t('tracking.columns.notes') || 'GHI CHÚ'}
                     field="ghi_chu"
                     sortCol={sortCol}
                     sortDir={sortDir}
@@ -2623,12 +2635,12 @@ function Tracking() {
                     />
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tìm kiếm ghi chú:
+                        {t('common.search') || 'Tìm kiếm ghi chú:'}
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder="Nội dung ghi chú..."
+                          placeholder={t('tracking.actions.notePlaceholder') || 'Nội dung ghi chú...'}
                           value={filters.noteSearch}
                           onChange={(e) => {
                             setFilters((f) => ({ ...f, noteSearch: e.target.value }));
@@ -2659,7 +2671,7 @@ function Tracking() {
                           }}
                           className="rounded text-primary focus:ring-primary accent-primary"
                         />
-                        <span className="text-[11px]">Chỉ xem lô có ghi chú</span>
+                        <span className="text-[11px]">{t('tracking.columns.notes') || 'Chỉ xem lô có ghi chú'}</span>
                       </label>
                     </div>
                   </HeaderFilterCell>
@@ -2677,7 +2689,7 @@ function Tracking() {
                       maxWidth: `${colWidths.ticket}px`,
                     }}
                   >
-                    <span className="text-[10px]">PHIẾU A4</span>
+                    <span className="text-[10px]">{t('tracking.columns.ticket') || 'PHIẾU A4'}</span>
                   </th>
                 </tr>
               </thead>
@@ -3202,9 +3214,11 @@ function Tracking() {
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xs bg-muted/60 border border-border/80 text-muted-foreground mb-3">
                         <PackageOpen size={24} className="opacity-80 text-foreground" />
                       </div>
-                      <p className="font-bold text-foreground text-sm">Không tìm thấy lô hàng nào phù hợp với bộ lọc</p>
+                      <p className="font-bold text-foreground text-sm">
+                        {t('common.notFound.title') || 'Không tìm thấy lô hàng nào phù hợp với bộ lọc'}
+                      </p>
                       <p className="mt-1.5 text-xs text-muted-foreground max-w-md mx-auto">
-                        Hiện tại không có bản ghi nào khớp với điều kiện lọc đang chọn. Bạn có thể xóa nhanh bộ lọc để tải lại toàn bộ danh sách.
+                        {t('common.notFound.desc') || 'Hiện tại không có bản ghi nào khớp với điều kiện lọc đang chọn. Bạn có thể xóa nhanh bộ lọc để tải lại toàn bộ danh sách.'}
                       </p>
                       <div className="mt-4 flex items-center justify-center gap-2">
                         <button
@@ -3213,7 +3227,7 @@ function Tracking() {
                           className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer shadow-2xs active:scale-98"
                         >
                           <RotateCcw size={12} />
-                          <span>Xóa tất cả tiêu chí lọc & Tải lại</span>
+                          <span>{t('tracking.actions.clearFilter') || 'Xóa tất cả tiêu chí lọc & Tải lại'}</span>
                         </button>
                       </div>
                     </td>
@@ -3227,13 +3241,13 @@ function Tracking() {
           <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 border-t border-border bg-secondary/35 px-3.5 py-2 text-[11px] text-muted-foreground">
             <div className="flex flex-wrap items-center gap-3">
               <span className="font-mono tabular-nums text-foreground/90 font-medium bg-background/80 px-2.5 py-1 rounded-xs border border-border/60 shadow-2xs">
-                Đang xem <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}
+                {t('orders.telemetry.viewing') || 'Đang xem'} <b className="text-foreground">{number(rows.length ? tablePage * pageSize + 1 : 0)}</b> –{' '}
                 <b className="text-foreground">{number(Math.min((tablePage + 1) * pageSize, rows.length))}</b> /{' '}
-                <span className="font-bold text-foreground">{number(rows.length)}</span> lô
+                <span className="font-bold text-foreground">{number(rows.length)}</span> {t('common.units.lots') || 'lô'}
               </span>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground font-medium">Hiển thị:</span>
+                <span className="text-muted-foreground font-medium">{t('common.view') || 'Hiển thị'}:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => {
@@ -3244,7 +3258,7 @@ function Tracking() {
                 >
                   {PAGE_SIZES.map((n) => (
                     <option key={n} value={n}>
-                      {n} dòng/trang
+                      {n} {t('common.units.items') || 'dòng/trang'}
                     </option>
                   ))}
                 </select>
@@ -3259,18 +3273,18 @@ function Tracking() {
                   setTablePage((p) => Math.max(0, p - 1));
                   playAudioCue('beep');
                 }}
-                title="Trang trước (Phím tắt: Alt + Mũi tên trái)"
+                title={t('common.pagination.prev') || 'Trang trước'}
                 className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
               >
                 <ChevronLeft size={13} />
-                <span>Trang trước</span>
+                <span>{t('common.pagination.prev') || 'Trang trước'}</span>
                 <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
                   Alt+←
                 </kbd>
               </button>
 
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
-                <span className="text-muted-foreground font-sans">Trang</span>
+                <span className="text-muted-foreground font-sans">{t('common.pagination.page') || 'Trang'}</span>
                 <span className="font-bold text-foreground text-xs">{tablePage + 1}</span>
                 <span className="text-muted-foreground/60">/</span>
                 <span className="font-semibold text-muted-foreground">{number(totalPages)}</span>
@@ -3283,10 +3297,10 @@ function Tracking() {
                   setTablePage((p) => Math.min(totalPages - 1, p + 1));
                   playAudioCue('beep');
                 }}
-                title="Trang sau (Phím tắt: Alt + Mũi tên phải)"
+                title={t('common.pagination.next') || 'Trang sau'}
                 className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-background px-2.5 py-1 font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation"
               >
-                <span>Trang sau</span>
+                <span>{t('common.pagination.next') || 'Trang sau'}</span>
                 <ChevronRight size={13} />
                 <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
                   Alt+→
@@ -3300,7 +3314,7 @@ function Tracking() {
       {/* Proposal 2 & 5: Floating Bulk Action Bar - Monozukuri Control Dock (TASK-008) */}
       {selectedLots.size > 0 && (
         <aside
-          aria-label="Thao tác hàng loạt"
+          aria-label={t('tracking.batch.title') || 'Thao tác hàng loạt'}
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-45 flex flex-wrap items-center gap-2.5 rounded-xs border border-border/80 bg-card/98 px-4 py-2 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 text-xs max-w-[calc(100vw-1.5rem)]"
         >
           {/* Segment 1: Selected Count & Telemetry */}
@@ -3310,10 +3324,10 @@ function Tracking() {
             </span>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-foreground leading-tight">
-                {selectedLots.size} lô được chọn
+                {t('tracking.batch.selected', { count: selectedLots.size }) || `${selectedLots.size} lô được chọn`}
               </span>
               <span className="text-[10px] font-mono text-muted-foreground leading-tight">
-                {number(selectedSummary.qty)} chi tiết • {number(Math.round(selectedSummary.kg * 10) / 10)} kg
+                {number(selectedSummary.qty)} {t('common.units.items') || 'chi tiết'} • {number(Math.round(selectedSummary.kg * 10) / 10)} kg
               </span>
             </div>
           </div>
@@ -3325,8 +3339,8 @@ function Tracking() {
               onClick={() => setBulkEditOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-xs bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-xs active:scale-98"
             >
-              <Zap size={13} />
-              <span>Sửa hàng loạt</span>
+              <PenLine size={13} />
+              <span>{t('tracking.batch.title') || 'Sửa hàng loạt'}</span>
             </button>
 
             <button
@@ -3335,7 +3349,7 @@ function Tracking() {
               className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
             >
               <Printer size={13} className="text-primary/80" />
-              <span>In phiếu A4 ({selectedLots.size})</span>
+              <span>{t('tracking.batch.printTickets') || 'In phiếu A4'} ({selectedLots.size})</span>
             </button>
           </div>
 
@@ -3349,7 +3363,7 @@ function Tracking() {
               className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
             >
               <Download size={13} className="text-primary/80" />
-              <span>Xuất CSV</span>
+              <span>{t('common.exportCsv') || 'Xuất CSV'}</span>
             </button>
 
             <button
@@ -3358,7 +3372,7 @@ function Tracking() {
               className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary hover:border-border transition-all cursor-pointer shadow-2xs active:scale-98"
             >
               <Copy size={13} className="text-muted-foreground" />
-              <span>Copy mã</span>
+              <span>{t('common.copy') || 'Copy mã'}</span>
             </button>
           </div>
 
@@ -3372,7 +3386,7 @@ function Tracking() {
               playAudioCue('pop');
             }}
             className="inline-flex items-center gap-1 rounded-xs px-2 py-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
-            title="Bỏ chọn toàn bộ (Phím tắt: Esc)"
+            title={t('tracking.batch.deselectAll') || 'Bỏ chọn toàn bộ (Phím tắt: Esc)'}
           >
             <X size={15} />
             <kbd className="hidden md:inline-block text-[9px] px-1 py-0.2 bg-muted text-muted-foreground rounded border border-border/60 font-mono">
@@ -3452,6 +3466,7 @@ function BulkEditDialog({
   onClose: () => void;
   onApply: (patch: Partial<QTItem>, reason: string) => void;
 }) {
+  const { t } = useTranslation();
   const isAdmin = role === 'admin';
   const [updateLogi, setUpdateLogi] = useState(false);
   const [logiVal, setLogiVal] = useState<Status>('Đang tại Vendor');
@@ -3511,54 +3526,58 @@ function BulkEditDialog({
       >
         <div className="flex items-center justify-between border-b pb-3 mb-4">
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded bg-primary/10 text-primary">
-              <Zap size={16} />
+            <span className="flex size-7 items-center justify-center rounded-xs bg-primary/10 text-primary">
+              <PenLine size={16} />
             </span>
             <div>
-              <h2 className="text-base font-bold text-foreground">Sửa hàng loạt ({items.length} lô)</h2>
-              <p className="text-xs text-muted-foreground">Cập nhật đồng bộ các thông số cho toàn bộ lô được chọn</p>
+              <h2 className="text-base font-bold text-foreground">
+                {t('tracking.batch.title') || 'Sửa hàng loạt'} ({items.length} {t('common.units.lots') || 'lô'})
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {t('tracking.toolbars.workshopSelect') || 'Cập nhật đồng bộ các thông số cho toàn bộ lô được chọn'}
+              </p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded p-1 text-muted-foreground hover:bg-secondary">
+          <button type="button" onClick={onClose} className="rounded-xs p-1 text-muted-foreground hover:bg-secondary cursor-pointer">
             <X size={16} />
           </button>
         </div>
 
         <div className="space-y-3.5 text-xs">
           {/* Option 1: Logistics */}
-          <div className="rounded border p-3 bg-secondary/20">
+          <div className="rounded-xs border p-3 bg-secondary/20">
             <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
               <input
                 type="checkbox"
                 checked={updateLogi}
                 onChange={(e) => setUpdateLogi(e.target.checked)}
-                className="rounded text-primary focus:ring-primary accent-primary"
+                className="rounded-xs text-primary focus:ring-primary accent-primary"
               />
-              <span>Chuyển trạng thái Logistics</span>
+              <span>{t('tracking.batch.updateLogistics') || 'Chuyển trạng thái Logistics'}</span>
             </label>
             {updateLogi && (
               <select
                 value={logiVal}
                 onChange={(e) => setLogiVal(e.target.value as Status)}
-                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold"
+                className="w-full rounded-xs border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold"
               >
-                <option value="Chờ xuất xưởng">Chờ xuất xưởng</option>
-                <option value="Đang tại Vendor">Đang tại Vendor</option>
-                <option value="Đã nhập kho">Đã nhập kho</option>
+                <option value="Chờ xuất xưởng">{t('tracking.status.waitLabel') || 'Chờ xuất xưởng'}</option>
+                <option value="Đang tại Vendor">{t('tracking.status.transitLabel') || 'Đang tại Vendor'}</option>
+                <option value="Đã nhập kho">{t('tracking.status.stockedLabel') || 'Đã nhập kho'}</option>
               </select>
             )}
           </div>
 
           {/* Option 2: Hạn trả */}
-          <div className="rounded border p-3 bg-secondary/20">
+          <div className="rounded-xs border p-3 bg-secondary/20">
             <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
               <input
                 type="checkbox"
                 checked={updateDue}
                 onChange={(e) => setUpdateDue(e.target.checked)}
-                className="rounded text-primary focus:ring-primary accent-primary"
+                className="rounded-xs text-primary focus:ring-primary accent-primary"
               />
-              <span>Gia hạn / Cập nhật hạn trả hàng loạt</span>
+              <span>{t('tracking.columns.dueDate') || 'Gia hạn / Cập nhật hạn trả hàng loạt'}</span>
             </label>
             {updateDue && (
               <div className="space-y-2">
@@ -3566,26 +3585,26 @@ function BulkEditDialog({
                   <button
                     type="button"
                     onClick={() => setDueMode('add3')}
-                    className={`flex-1 rounded border px-2 py-1 text-xs ${dueMode === 'add3' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                    className={`flex-1 rounded-xs border px-2 py-1 text-xs cursor-pointer ${dueMode === 'add3' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
                       }`}
                   >
-                    +3 Ngày
+                    +3 {t('common.units.days') || 'Ngày'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDueMode('add7')}
-                    className={`flex-1 rounded border px-2 py-1 text-xs ${dueMode === 'add7' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                    className={`flex-1 rounded-xs border px-2 py-1 text-xs cursor-pointer ${dueMode === 'add7' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
                       }`}
                   >
-                    +7 Ngày
+                    +7 {t('common.units.days') || 'Ngày'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDueMode('custom')}
-                    className={`flex-1 rounded border px-2 py-1 text-xs ${dueMode === 'custom' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
+                    className={`flex-1 rounded-xs border px-2 py-1 text-xs cursor-pointer ${dueMode === 'custom' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-border'
                       }`}
                   >
-                    Ngày cụ thể
+                    {t('common.date') || 'Ngày cụ thể'}
                   </button>
                 </div>
                 {dueMode === 'custom' && (
@@ -3593,7 +3612,7 @@ function BulkEditDialog({
                     type="date"
                     value={customDue}
                     onChange={(e) => setCustomDue(e.target.value)}
-                    className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-3 py-1.5 text-xs text-foreground"
                   />
                 )}
               </div>
@@ -3601,15 +3620,15 @@ function BulkEditDialog({
           </div>
 
           {/* Option 3: Độ cứng */}
-          <div className="rounded border p-3 bg-secondary/20">
+          <div className="rounded-xs border p-3 bg-secondary/20">
             <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
               <input
                 type="checkbox"
                 checked={updateHrc}
                 onChange={(e) => setUpdateHrc(e.target.checked)}
-                className="rounded text-primary focus:ring-primary accent-primary"
+                className="rounded-xs text-primary focus:ring-primary accent-primary"
               />
-              <span>Cập nhật độ cứng thực tế</span>
+              <span>{t('tracking.columns.hardness') || 'Cập nhật độ cứng thực tế'}</span>
             </label>
             {updateHrc && (
               <input
@@ -3617,28 +3636,28 @@ function BulkEditDialog({
                 placeholder="VD: 58-62 HRC hoặc 44±1"
                 value={hrcVal}
                 onChange={(e) => setHrcVal(e.target.value)}
-                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
+                className="w-full rounded-xs border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
               />
             )}
           </div>
 
           {/* Option 4: Đối tác QT (Admin only) */}
           {isAdmin && (
-            <div className="rounded border p-3 bg-secondary/20">
+            <div className="rounded-xs border p-3 bg-secondary/20">
               <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
                 <input
                   type="checkbox"
                   checked={updateVendor}
                   onChange={(e) => setUpdateVendor(e.target.checked)}
-                  className="rounded text-primary focus:ring-primary accent-primary"
+                  className="rounded-xs text-primary focus:ring-primary accent-primary"
                 />
-                <span>Chuyển đối tác gia công ngoài (Admin)</span>
+                <span>{t('tracking.columns.partner') || 'Chuyển đối tác gia công ngoài (Admin)'}</span>
               </label>
               {updateVendor && (
                 <select
                   value={vendorVal}
                   onChange={(e) => setVendorVal(e.target.value as Vendor)}
-                  className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold"
+                  className="w-full rounded-xs border border-input bg-background px-3 py-1.5 text-xs text-foreground font-semibold"
                 >
                   <option value="YAMAICHI">YAMAICHI</option>
                   <option value="PROVISION">PROVISION</option>
@@ -3648,36 +3667,36 @@ function BulkEditDialog({
           )}
 
           {/* Option 5: Ngày gửi QT */}
-          <div className="rounded border p-3 bg-secondary/20">
+          <div className="rounded-xs border p-3 bg-secondary/20">
             <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
               <input
                 type="checkbox"
                 checked={updateSendDate}
                 onChange={(e) => setUpdateSendDate(e.target.checked)}
-                className="rounded text-primary focus:ring-primary accent-primary"
+                className="rounded-xs text-primary focus:ring-primary accent-primary"
               />
-              <span>Điều chỉnh ngày gửi QT</span>
+              <span>{t('tracking.columns.sentDate') || 'Điều chỉnh ngày gửi QT'}</span>
             </label>
             {updateSendDate && (
               <input
                 type="date"
                 value={sendDateVal}
                 onChange={(e) => setSendDateVal(e.target.value)}
-                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
+                className="w-full rounded-xs border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
               />
             )}
           </div>
 
           {/* Option 6: Mác thép / Vật liệu */}
-          <div className="rounded border p-3 bg-secondary/20">
+          <div className="rounded-xs border p-3 bg-secondary/20">
             <label className="flex items-center gap-2 font-bold cursor-pointer mb-2">
               <input
                 type="checkbox"
                 checked={updateMaterial}
                 onChange={(e) => setUpdateMaterial(e.target.checked)}
-                className="rounded text-primary focus:ring-primary accent-primary"
+                className="rounded-xs text-primary focus:ring-primary accent-primary"
               />
-              <span>Cập nhật mác thép / vật liệu</span>
+              <span>{t('tracking.columns.material') || 'Cập nhật mác thép / vật liệu'}</span>
             </label>
             {updateMaterial && (
               <input
@@ -3685,7 +3704,7 @@ function BulkEditDialog({
                 placeholder="VD: DAC, SKD61, NAK80..."
                 value={materialVal}
                 onChange={(e) => setMaterialVal(e.target.value)}
-                className="w-full rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
+                className="w-full rounded-xs border border-input bg-background px-3 py-1.5 text-xs text-foreground font-mono"
               />
             )}
           </div>
@@ -3693,20 +3712,20 @@ function BulkEditDialog({
           {/* Reason */}
           <div>
             <label className="block text-muted-foreground font-semibold mb-1">
-              Lý do điều chỉnh (lưu vào Audit Trail):
+              {t('common.lotUpdate.reasonLabel') || 'Lý do điều chỉnh'} (Audit Trail):
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="VD: Gia hạn do đối tác quá tải lò; Chuyển xưởng hàng loạt ca sáng..."
-              className="w-full h-14 rounded border border-input bg-background p-2 text-xs text-foreground"
+              placeholder={t('common.lotUpdate.reasonPlaceholder') || 'VD: Gia hạn do đối tác quá tải lò...'}
+              className="w-full h-14 rounded-xs border border-input bg-background p-2 text-xs text-foreground"
             />
           </div>
 
           {/* Preview list */}
-          <div className="rounded bg-muted/40 p-2.5">
+          <div className="rounded-xs bg-muted/40 p-2.5">
             <p className="font-bold text-[11px] text-muted-foreground mb-1">
-              DANH SÁCH {items.length} LÔ BỊ TÁC ĐỘNG:
+              {t('orders.masterListTitle') || 'DANH SÁCH'} {items.length} {t('common.units.lots') || 'LÔ'} {t('orders.title') || 'BỊ TÁC ĐỘNG'}:
             </p>
             <div className="max-h-20 overflow-y-auto space-y-1 font-mono text-[10px]">
               {items.map((it) => (
@@ -3725,17 +3744,17 @@ function BulkEditDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary cursor-pointer"
+            className="rounded-xs border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary cursor-pointer"
           >
-            Hủy bỏ
+            {t('common.cancel') || 'Hủy bỏ'}
           </button>
           <button
             type="button"
             disabled={!hasAnyChange}
             onClick={handleConfirm}
-            className="rounded bg-primary px-5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 cursor-pointer shadow-xs"
+            className="rounded-xs bg-primary px-5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 cursor-pointer shadow-xs"
           >
-            Xác nhận áp dụng ({items.length} lô)
+            {t('common.confirm') || 'Xác nhận áp dụng'} ({items.length} {t('common.units.lots') || 'lô'})
           </button>
         </div>
       </div>
@@ -3755,6 +3774,7 @@ function LotDetailDrawer({
   onClose: () => void;
   onUpdate: (patch: Partial<QTItem>) => void;
 }) {
+  const { t, locale } = useTranslation();
   const canEdit = true;
   const isAdmin = role === 'admin';
   const auditLogs = auditFor(item.ID_Key);
@@ -3827,33 +3847,35 @@ function LotDetailDrawer({
           <div className="flex items-start justify-between border-b border-border pb-4 mb-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-black text-primary px-2 py-0.5 rounded bg-primary/10">
+                <span className="font-mono text-sm font-black text-primary px-2 py-0.5 rounded-xs bg-primary/10">
                   {item.ID_Key}
                 </span>
-                <span className="rounded bg-secondary px-2 py-0.5 font-bold text-[10px] text-muted-foreground">
-                  Phân xưởng {item.phong_sx}
+                <span className="rounded-xs bg-secondary px-2 py-0.5 font-bold text-[10px] text-muted-foreground">
+                  {t('tracking.workshops.title') || 'Phân xưởng'} {item.phong_sx}
                 </span>
               </div>
               <h2 className="mt-2 font-mono text-xl font-black text-foreground">{item.ma_hang}</h2>
-              <p className="text-xs text-muted-foreground font-mono">Đơn hàng: {item.So_DatHang}</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {t('tracking.columns.orderNo') || 'Đơn hàng'}: {item.So_DatHang}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => setIsEditing(!isEditing)}
-                  className={`rounded px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer border ${isEditing
+                  className={`rounded-xs px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer border ${isEditing
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-secondary hover:bg-muted text-foreground'
                     }`}
                 >
-                  {isEditing ? 'Hủy sửa' : '✏️ Sửa lô này'}
+                  {isEditing ? (t('common.cancel') || 'Hủy sửa') : `✏️ ${t('common.edit') || 'Sửa lô này'}`}
                 </button>
               )}
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+                className="rounded-xs p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -3864,85 +3886,85 @@ function LotDetailDrawer({
           {isEditing ? (
             <div className="space-y-3 rounded-xs border border-primary/30 bg-secondary/20 p-4 text-xs mb-4">
               <h3 className="font-display font-bold text-foreground text-sm flex items-center gap-1.5">
-                <Edit2 size={14} className="text-primary" /> Chỉnh sửa thông số lô {item.ID_Key}
+                <Edit2 size={14} className="text-primary" /> {t('common.lotUpdate.dialogTitle', { lotId: item.ID_Key }) || `Chỉnh sửa thông số lô ${item.ID_Key}`}
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Mã hàng:
+                    {t('tracking.columns.itemCode') || 'Mã hàng'}:
                   </label>
                   <input
                     type="text"
                     value={form.ma_hang}
                     onChange={(e) => setForm({ ...form, ma_hang: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs font-bold text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs font-bold text-foreground"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Số đơn hàng:
+                    {t('tracking.columns.orderNo') || 'Số đơn hàng'}:
                   </label>
                   <input
                     type="text"
                     value={form.So_DatHang}
                     onChange={(e) => setForm({ ...form, So_DatHang: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Mác thép / Vật liệu:
+                    {t('tracking.columns.material') || 'Mác thép / Vật liệu'}:
                   </label>
                   <input
                     type="text"
                     value={form.vat_lieu}
                     onChange={(e) => setForm({ ...form, vat_lieu: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Độ cứng yêu cầu:
+                    {t('tracking.columns.hardness') || 'Độ cứng yêu cầu'}:
                   </label>
                   <input
                     type="text"
                     value={form.do_cung}
                     onChange={(e) => setForm({ ...form, do_cung: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Số lượng xuất:
+                    {t('tracking.columns.quantity') || 'Số lượng xuất'}:
                   </label>
                   <input
                     type="number"
                     value={form.so_luong}
                     onChange={(e) => setForm({ ...form, so_luong: Number(e.target.value) })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Khối lượng (kg):
+                    {t('tracking.columns.weight') || 'Khối lượng'} (kg):
                   </label>
                   <input
                     type="number"
                     step="0.1"
                     value={form.kg_Lot}
                     onChange={(e) => setForm({ ...form, kg_Lot: Number(e.target.value) })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                   />
                 </div>
                 {isAdmin && (
                   <div>
                     <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                      Đơn vị gia công:
+                      {t('tracking.columns.partner') || 'Đơn vị gia công'}:
                     </label>
                     <select
                       value={form.cty_QT}
                       onChange={(e) => setForm({ ...form, cty_QT: e.target.value as Vendor })}
-                      className="w-full rounded border border-input bg-background px-2 py-1.5 text-xs text-foreground font-semibold"
+                      className="w-full rounded-xs border border-input bg-background px-2 py-1.5 text-xs text-foreground font-semibold"
                     >
                       <option value="YAMAICHI">YAMAICHI</option>
                       <option value="PROVISION">PROVISION</option>
@@ -3951,79 +3973,79 @@ function LotDetailDrawer({
                 )}
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Trạng thái luân chuyển:
+                    {t('tracking.columns.logistics') || 'Trạng thái luân chuyển'}:
                   </label>
                   <select
                     value={form.TrangThai}
                     onChange={(e) => setForm({ ...form, TrangThai: e.target.value as Status })}
-                    className="w-full rounded border border-input bg-background px-2 py-1.5 text-xs text-foreground font-semibold"
+                    className="w-full rounded-xs border border-input bg-background px-2 py-1.5 text-xs text-foreground font-semibold"
                   >
-                    <option value="Chờ xuất xưởng">Chờ xuất xưởng</option>
-                    <option value="Đang tại Vendor">Đang tại Vendor</option>
-                    <option value="Đã nhập kho">Đã nhập kho</option>
+                    <option value="Chờ xuất xưởng">{t('tracking.status.waitLabel') || 'Chờ xuất xưởng'}</option>
+                    <option value="Đang tại Vendor">{t('tracking.status.transitLabel') || 'Đang tại Vendor'}</option>
+                    <option value="Đã nhập kho">{t('tracking.status.stockedLabel') || 'Đã nhập kho'}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Ngày gửi QT:
+                    {t('tracking.columns.sentDate') || 'Ngày gửi QT'}:
                   </label>
                   <input
                     type="date"
                     value={form.ngay_gui_QT}
                     onChange={(e) => setForm({ ...form, ngay_gui_QT: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                    Hạn trả gia công:
+                    {t('tracking.columns.dueDate') || 'Hạn trả gia công'}:
                   </label>
                   <input
                     type="date"
                     value={form.han_tra}
                     onChange={(e) => setForm({ ...form, han_tra: e.target.value })}
-                    className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono"
+                    className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 text-xs text-foreground font-mono"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                  Kích thước sản phẩm:
+                  {t('common.jobTicket.sec1.size') || 'Kích thước sản phẩm'}:
                 </label>
                 <input
                   type="text"
                   value={form.Kich_Thuoc_SP}
                   placeholder="VD: Ø30x120, 45x60x12..."
                   onChange={(e) => setForm({ ...form, Kich_Thuoc_SP: e.target.value })}
-                  className="w-full rounded border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
+                  className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                  Lý do thay đổi:
+                  {t('common.lotUpdate.reasonLabel') || 'Lý do thay đổi'}:
                 </label>
                 <input
                   type="text"
                   value={editReason}
-                  placeholder="VD: Cập nhật mã hàng thực tế xưởng..."
+                  placeholder={t('common.lotUpdate.reasonPlaceholder') || 'VD: Cập nhật mã hàng thực tế xưởng...'}
                   onChange={(e) => setEditReason(e.target.value)}
-                  className="w-full rounded border border-input bg-background px-2.5 py-1.5 text-xs text-foreground"
+                  className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 text-xs text-foreground"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="rounded border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary cursor-pointer"
+                  className="rounded-xs border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary cursor-pointer"
                 >
-                  Hủy
+                  {t('common.cancel') || 'Hủy'}
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="rounded bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+                  className="rounded-xs bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
                 >
-                  Lưu thay đổi lô này
+                  {t('common.save') || 'Lưu thay đổi lô này'}
                 </button>
               </div>
             </div>
@@ -4033,42 +4055,42 @@ function LotDetailDrawer({
               <div className="grid grid-cols-2 gap-3 rounded-xs border border-border/80 bg-secondary/30 p-3.5 text-xs mb-4">
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider mb-0.5">
-                    Mác thép / Vật liệu:
+                    {t('tracking.columns.material') || 'Mác thép / Vật liệu'}:
                   </span>
                   <div className="inline-flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-foreground text-sm px-1.5 py-0.5 rounded bg-background border border-border/70 shadow-2xs">
+                    <span className="font-mono font-bold text-foreground text-sm px-1.5 py-0.5 rounded-xs bg-background border border-border/70 shadow-2xs">
                       {item.vat_lieu || '—'}
                     </span>
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider mb-0.5">
-                    Độ cứng yêu cầu:
+                    {t('tracking.columns.hardness') || 'Độ cứng yêu cầu'}:
                   </span>
                   <p className="font-mono font-bold text-sm">
                     {item.do_cung && item.do_cung !== '—' ? (
-                      <span className="text-destructive font-black px-1.5 py-0.5 rounded bg-destructive/10 border border-destructive/20 shadow-2xs">
+                      <span className="text-destructive font-black px-1.5 py-0.5 rounded-xs bg-destructive/10 border border-destructive/20 shadow-2xs">
                         {item.do_cung}
                       </span>
                     ) : (
-                      <span className="text-amber-500 font-medium text-xs">Chưa có thông số</span>
+                      <span className="text-amber-500 font-medium text-xs">{t('common.lotUpdate.noDueDate') || 'Chưa có thông số'}</span>
                     )}
                   </p>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                    Số lượng xuất:
+                    {t('tracking.columns.quantity') || 'Số lượng xuất'}:
                   </span>
                   <p className="font-mono font-bold text-foreground text-sm">
                     {number(item.so_luong)}{' '}
                     <span className="text-xs font-normal text-muted-foreground">
-                      {item.don_vi_tinh || 'chi tiết'}
+                      {item.don_vi_tinh || (t('common.units.items') || 'chi tiết')}
                     </span>
                   </p>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                    Trọng lượng lô:
+                    {t('tracking.columns.weight') || 'Trọng lượng lô'}:
                   </span>
                   <p className="font-mono font-bold text-foreground text-sm">
                     {number(item.kg_Lot, 1)}{' '}
@@ -4077,25 +4099,25 @@ function LotDetailDrawer({
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                    Kích thước SP:
+                    {t('common.jobTicket.sec1.size') || 'Kích thước SP'}:
                   </span>
                   <p className="font-mono text-foreground">{item.Kich_Thuoc_SP || '—'}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                    Đơn vị nhận gia công:
+                    {t('tracking.columns.partner') || 'Đơn vị nhận gia công'}:
                   </span>
                   <p className="font-semibold text-foreground">{formatVendorName(item.cty_QT, role as any)}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                    Ngày gửi xuất xưởng:
+                    {t('tracking.columns.sentDate') || 'Ngày gửi xuất xưởng'}:
                   </span>
                   <p className="font-mono text-foreground">{date(item.ngay_gui_QT)}</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                    Hạn trả gia công:
+                    {t('tracking.columns.dueDate') || 'Hạn trả gia công'}:
                   </span>
                   <p className="font-mono font-bold text-foreground">
                     {date(item.han_tra)}
@@ -4107,15 +4129,15 @@ function LotDetailDrawer({
                   <>
                     <div className="pt-2 border-t border-border/60">
                       <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                        Đơn giá gia công:
+                        {t('common.jobTicket.sec1.unitPrice') || 'Đơn giá gia công'}:
                       </span>
                       <p className="font-mono font-bold text-foreground">
-                        {item.don_gia ? money(item.don_gia) : 'Chưa có giá'}
+                        {item.don_gia ? money(item.don_gia) : (t('common.lotUpdate.noDueDate') || 'Chưa có giá')}
                       </p>
                     </div>
                     <div className="pt-2 border-t border-border/60">
                       <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">
-                        Thành tiền dự kiến:
+                        {t('common.jobTicket.sec1.totalPrice') || 'Thành tiền dự kiến'}:
                       </span>
                       <p className="font-mono font-black text-primary">
                         {item.thanh_tien ? money(item.thanh_tien) : '—'}
@@ -4129,7 +4151,7 @@ function LotDetailDrawer({
               <div className="flex items-center justify-between rounded-xs border border-primary/30 bg-primary/5 p-3 mb-4">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                    Trạng thái luân chuyển:
+                    {t('tracking.columns.logistics') || 'Trạng thái luân chuyển'}:
                   </span>
                   <p className="font-bold text-foreground text-sm">{item.TrangThai}</p>
                 </div>
@@ -4141,9 +4163,9 @@ function LotDetailDrawer({
           {/* Audit History Timeline */}
           <div>
             <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
-              <span>NHẬT KÝ THAY ĐỔI & AUDIT TRAIL</span>
-              <span className="font-mono text-[10px] font-normal px-2 py-0.5 bg-muted rounded border border-border/60 text-muted-foreground">
-                {auditLogs.length} bản ghi
+              <span>{t('sync.twoWay.recentHeader') || 'NHẬT KÝ THAY ĐỔI & AUDIT TRAIL'}</span>
+              <span className="font-mono text-[10px] font-normal px-2 py-0.5 bg-muted rounded-xs border border-border/60 text-muted-foreground">
+                {auditLogs.length} {t('sync.preview.recordsUnit') || 'bản ghi'}
               </span>
             </h3>
             {auditLogs.length ? (
@@ -4151,8 +4173,8 @@ function LotDetailDrawer({
                 {auditLogs.map((log) => (
                   <div key={log.id} className="border-l-2 border-primary/70 pl-2.5 py-1 bg-secondary/25 rounded-r pr-2 shadow-2xs">
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
-                      <span>{new Date(log.at).toLocaleString('vi-VN')}</span>
-                      <span className="font-bold text-foreground/85 px-1.5 py-0.2 bg-muted rounded text-[9px] border border-border/40">
+                      <span>{new Date(log.at).toLocaleString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN')}</span>
+                      <span className="font-bold text-foreground/85 px-1.5 py-0.2 bg-muted rounded-xs text-[9px] border border-border/40">
                         {log.user} ({log.role})
                       </span>
                     </div>
@@ -4161,13 +4183,17 @@ function LotDetailDrawer({
                         .map(([k, [oldV, newV]]) => `${k}: "${oldV}" → "${newV}"`)
                         .join('; ')}
                     </p>
-                    {log.reason && <p className="text-muted-foreground/80 text-[10px] italic mt-0.5">Lý do: {log.reason}</p>}
+                    {log.reason && (
+                      <p className="text-muted-foreground/80 text-[10px] italic mt-0.5">
+                        {t('common.lotUpdate.reasonLabel') || 'Lý do'}: {log.reason}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground italic p-3 border border-border/60 rounded-xs text-center bg-secondary/20">
-                Chưa có thay đổi nào được ghi nhận cho lô này.
+                {t('common.command.empty') || 'Chưa có thay đổi nào được ghi nhận cho lô này.'}
               </p>
             )}
           </div>
@@ -4179,9 +4205,9 @@ function LotDetailDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
+            className="rounded-xs border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
           >
-            Đóng
+            {t('common.close') || 'Đóng'}
           </button>
         </div>
       </div>

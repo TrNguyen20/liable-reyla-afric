@@ -11,7 +11,7 @@
   "search": "検索...",
   "filter": "絞り込み",
   "all": "すべて",
-  "loading": "データを読み込み中...",
+  "loading": "データ読込中...",
   "offlineAlert": "工場ネットワーク切断中 · オフラインモードで動作中（データはローカルに保存されます）",
   "roles": {
     "admin": "管理者（全権限）",
@@ -23,5 +23,368 @@
   "view": "視点切替",
   "logout": "ログアウト",
   "themeLight": "ライトモードに切替",
-  "themeDark": "ダークモードに切替"
+  "themeDark": "ダークモードに切替",
+  "vendorMask": "非公開",
+  "slogan": "規律・正確・安全・時間厳守",
+  "retry": "再試行",
+  "edit": "編集",
+  "print": "印刷",
+  "copy": "コピー",
+  "copied": "コピー完了",
+  "actions": "操作",
+  "status": "状態",
+  "date": "日付",
+  "time": "時間",
+  "note": "備考",
+  "details": "詳細",
+  "total": "合計",
+  "units": {
+    "kg": "kg",
+    "pcs": "個",
+    "lot": "ロット",
+    "lots": "ロット",
+    "items": "点",
+    "hours": "時間",
+    "days": "日"
+  },
+  "meta": {
+    "title": "DYNAMO VIETNAM QT - MES",
+    "description": "精密機械加工工場向けの熱処理・外注 QT 工程管理システム。"
+  },
+  "clock": {
+    "ariaLabel": "リアルタイム時計"
+  },
+  "langSwitcher": {
+    "title": "言語切替 / Switch Language / Chuyển đổi ngôn ngữ",
+    "ariaLabel": "システム言語を選択"
+  },
+  "footer": {
+    "copyright": "© 2026 DYNAMO VIETNAM QT - MES · 熱処理・めっき外注工程管理システム",
+    "runtime": "シミュレーション環境 (Edge Runtime)"
+  },
+  "notFound": {
+    "title": "ページが見つかりません",
+    "desc": "要求されたページはQT MESシステムに存在しません。URLをご確認いただくか、メイン工程管理画面にお戻りください。",
+    "backAction": "QT 熱処理工程管理へ戻る"
+  },
+  "errorBoundary": {
+    "badge": "運行エラー / RUNTIME FAIL-SAFE",
+    "title": "接続またはデータ描画ができません",
+    "desc": "ランタイム例外が検出されました。安全な自己復旧機能によりセッションを復元できます。",
+    "retry": "再読み込み",
+    "selfHeal": "クリーン自己復旧 (Self-Heal)",
+    "goHome": "QT 熱処理工程管理へ",
+    "toggleLogShow": "技術例外ログを表示 ▼",
+    "toggleLogHide": "技術ログを非表示 ▲"
+  },
+  "toasts": {
+    "refreshSuccess": "システムから {count} 件のロットを更新しました ({elapsed}ms)",
+    "loadFailed": "システムからデータを読み込めませんでした。",
+    "loadError": "データ読み込みエラー: {msg}",
+    "accessDenied": "このページへのアクセス権限がありません。",
+    "copySuccess": "コード {code} をコピーしました"
+  },
+  "rolesExtended": {
+    "switcherTooltip": "権限確認用視点切替",
+    "revertToast": "実際の管理者視点に戻りました",
+    "impersonateToast": "視点をシミュレーション中: {role}",
+    "cancelImpersonate": "シミュレーション解除",
+    "impersonatedBadge": "(シミュレーション)",
+    "logoutAria": "ログアウト"
+  },
+  "dialogs": {
+    "confirmTitle": "操作の確認",
+    "confirmMessage": "この操作を実行してもよろしいですか？",
+    "discardTitle": "変更を破棄しますか？",
+    "discardMessage": "保存されていない変更は失われます。"
+  },
+  "filters": {
+    "search": "検索...",
+    "clear": "フィルター解除",
+    "deselect": "選択解除",
+    "deselectAll": "全解除",
+    "selectAll": "全選択",
+    "min": "最小 (Min)",
+    "max": "最大 (Max)",
+    "allPartners": "全外注先",
+    "allStatus": "全ステータス",
+    "resetFilter": "リセット"
+  },
+  "table": {
+    "noData": "データがありません",
+    "loadingRows": "データを読み込み中...",
+    "selectedRows": "{count} 行選択中",
+    "stickyPinLeft": "列を左に固定",
+    "stickyPinRight": "列を右に固定",
+    "autoFitColumns": "列幅の自動調整"
+  },
+  "auth": {
+    "meta": {
+      "title": "ログイン | DYNAMO VIETNAM QT - MES",
+      "desc": "熱処理・外注 QT 工程管理システムへのログイン。"
+    },
+    "hero": {
+      "badge": "社内 QT 熱処理管理システム",
+      "title": "熱処理外注・QT 工程管理システム",
+      "subtitle": "PIN、INSERT、MOLD工場の統合管理ポータル。部品の搬送工程、納期、焼入れ・焼戻し品質を厳格に管理します。"
+    },
+    "features": {
+      "tracking": {
+        "title": "24時間熱処理・めっき工程管理",
+        "desc": "工場出荷から外注先、入庫完了までの各ロットの進捗をリアルタイムで追跡。"
+      },
+      "leadTime": {
+        "title": "外注納期遅延管理",
+        "desc": "納期超過ロットを早期検出・警告し、金型組立工程の遅延を防止。"
+      },
+      "pricing": {
+        "title": "材料規格・単価照合",
+        "desc": "鋼種・単位・外注先ごとの加工単価差異を自動検証。"
+      }
+    },
+    "plant": {
+      "address": "DYNAMO VIETNAM CO., LTD. · ドンアン2工業団地",
+      "telemetry": "MES QT CORE: R&D-V1.0-DEMO · DATA SYNC: REAL-TIME"
+    },
+    "form": {
+      "badge": "本人認証",
+      "title": "システムログイン",
+      "subtitle": "役職に応じたアクセス権限を有効にするため、発行された認証トークンを入力してください。",
+      "codeLabel": "ステップ2 · アクセスコード",
+      "kioskShow": "タッチテンキー",
+      "kioskHide": "テンキーを閉じる",
+      "codePlaceholderPos": "{position} のアクセスコードを入力",
+      "codePlaceholderEmpty": "先にステップ1で役職を選択してください",
+      "codeAria": "認証コード",
+      "clearAria": "コード消去",
+      "toggleAria": "コード表示切替"
+    },
+    "steps": {
+      "aria": "認証手順",
+      "step1": "ステップ1 · 役職",
+      "step2": "ステップ2 · ULIDアクセスコード",
+      "unselected": "未選択",
+      "codeLoaded": "コード入力済",
+      "codeEmpty": "未入力"
+    },
+    "positions": {
+      "admin": {
+        "label": "経営陣・社内IT",
+        "role": "Admin"
+      },
+      "leader": {
+        "label": "管理職・リーダー",
+        "role": "Leader"
+      },
+      "viewer": {
+        "label": "技術員・作業者",
+        "role": "Viewer"
+      },
+      "partner": {
+        "label": "外注委託先",
+        "role": "Partner"
+      }
+    },
+    "kiosk": {
+      "heading": "現場タッチキーパッド (KIOSK MODE)",
+      "clearAll": "C (全消去)"
+    },
+    "lock": {
+      "title": "セキュリティ一時ロック中",
+      "desc": "5回連続で認証に失敗しました。タイマーが00:00になったら再試行してください。",
+      "attemptsLeft": "ロックまであと {attemptsLeft}/5 回試行可能です。"
+    },
+    "submit": {
+      "locked": "ロック中 · {mmss}",
+      "verifying": "権限確認中...",
+      "enter": "認証してシステム起動"
+    },
+    "errors": {
+      "requirePosition": "認証前に役職（ステップ1）を選択してください。",
+      "requireCode": "アクセス認証コード（ステップ2）を入力してください。",
+      "invalidCode": "認証コードが無効か、有効期限が切れています。",
+      "roleMismatch": "この認証コードは選択された役職（{label}）の権限と一致しません。",
+      "networkError": "認証通信エラーが発生しました。しばらくしてから再試行してください。"
+    },
+    "support": {
+      "text": "認証コードをお持ちでない場合は、システム管理者に連絡してアクセス権限を申請してください。"
+    }
+  },
+  "command": {
+    "placeholder": "部品コード、注文番号、ロットID、クイック操作を検索... (ESCで閉じる)",
+    "empty": "一致する結果が見つかりません。",
+    "matchedLots": "一致したロット・部品",
+    "orderPrefix": "注文:",
+    "quickNav": "クイック移動",
+    "workshopFilter": "工場絞り込み",
+    "allWorkshops": "工場: 全工場 (ALL)",
+    "workshopPrefix": "工場: {ws}",
+    "systemActions": "システム操作",
+    "pullData": "Googleシートから最新データを再取得",
+    "toggleTheme": "ライト／ダークモード切替",
+    "logout": "セッションログアウト"
+  },
+  "lotUpdate": {
+    "triggerTitle": "ロット {lotId} の進捗を更新",
+    "triggerBtn": "更新",
+    "dialogTitle": "ロット {lotId} の更新",
+    "dialogDesc": "ロットの工程状態および熱処理検査結果を更新します",
+    "itemCode": "部品コード",
+    "orderNo": "注文番号",
+    "vendor": "外注加工先",
+    "dueDate": "返却期日",
+    "noDueDate": "未設定",
+    "newStatus": "新状態",
+    "keepStatus": "(変更なし)",
+    "needReason": "— 理由入力必須",
+    "actualReceiveDate": "実受入日",
+    "actualHardness": "実測硬度",
+    "qcPassConfirm": "QC合格を確認しました",
+    "reasonLabel": "理由",
+    "reasonPlaceholder": "例: 硬度不足のため外注先へ再処理返却",
+    "confirmMove": "状態変更 {TrangThai} → {targetStatus} を確認しますか？もう一度クリックして保存。",
+    "noChanges": "保存する変更がありません。",
+    "invalidMove": "\"{from}\" から \"{to}\" へ直接変更することはできません。",
+    "requireReason": "返却・回収操作には理由（5文字以上）を入力してください。",
+    "requireVendor": "外注先が未設定です。",
+    "requireDue": "有効な返却期日がありません。",
+    "requireReceiveDate": "QC検査工程へ移行するには実受入日が必要です。",
+    "requireReceiveDateStock": "入庫前に実受入日を入力してください。",
+    "requireHrcStock": "入庫前に実測硬度を入力してください。",
+    "requireQcCheck": "入庫前に「QC合格」の確認が必要です。",
+    "dateInvalid": "受入日形式が無効です。",
+    "dateBeforeSent": "受入日は QT 発送日より前にはできません。",
+    "dateInFuture": "受入日に未来の日付は設定できません。",
+    "hrcInvalid": "硬度形式が無効です (例: 58-62 HRC)。",
+    "networkError": "サーバーに接続できません。",
+    "sheetSyncError": "Googleシートへの書き込みに失敗しました: {error}。データは変更されていません — 再試行をクリック。",
+    "syncSuccess": "Googleシートへ保存・記録しました: ロット {lotId}",
+    "btnCancel": "キャンセル",
+    "btnSaving": "保存中…",
+    "btnConfirm": "確認して保存",
+    "btnRetry": "再試行",
+    "btnSave": "保存してシート反映"
+  },
+  "ticket": {
+    "previewTitle": "印刷プレビュー",
+    "previewDesc": "ISO A4標準規格 (210 x 297 mm) · 1:1.414 実寸比 · 4サイン欄",
+    "formatA4": "A4標準指示書",
+    "formatPallet": "パレット現品票",
+    "zoomLabel": "拡大縮小:",
+    "zoomFit": "画面に合わせる",
+    "zoom100": "100% (1:1)",
+    "copyCode": "コードをコピー",
+    "codeCopied": "コピー完了",
+    "printNow": "直ちに印刷",
+    "batchTitle": "一括帳票印刷 ({count} ロット)",
+    "batchSummary": "合計: {pcs} 個 · {kg} kg",
+    "tabManifest": "1. 総合受渡目録 ({count} ロット)",
+    "tabTickets": "2. ロット別A4指示書 ({count} 頁)",
+    "printManifest": "総合受渡目録を印刷",
+    "printAllTickets": "全 {count} 枚のA4指示書を印刷",
+    "companyName": "DYNAMO VIETNAM CO., LTD.",
+    "deptName": "KAIZEN MES · 熱処理・外注加工工場 (QT)",
+    "docInfo": "伝票番号: {docCode} · 注文番号: {orderNo}",
+    "title": "外注加工指示書・受渡伝票",
+    "processes": "工程: 真空焼入れ／全体熱処理／浸炭焼入れ／工業めっき",
+    "sec1Title": "I. 部品情報および技術仕様",
+    "fields": {
+      "partNo": "部品コード:",
+      "lotId": "ロットID:",
+      "senderDept": "払出工場:",
+      "recipientVendor": "受入外注先:",
+      "material": "鋼種・材質:",
+      "hardnessReq": "要求硬度:",
+      "dimensions": "製品寸法:",
+      "quantity": "払出数量:",
+      "weight": "総ロット重量:",
+      "sendDate": "出荷日:",
+      "dueDate": "納期約定日:",
+      "status": "状態:",
+      "unitPrice": "加工単価:",
+      "totalPrice": "概算合計金額:",
+      "hardnessDrawingFallback": "図面指示による",
+      "dueAgreementFallback": "協議による",
+      "orderNo": "発注番号 (PO):"
+    },
+    "sec2Title": "II. 作業指示および梱包受渡仕様",
+    "notes": {
+      "surface": "表面保護: 防錆油を塗布し、ネジ部および精密勘合面をシュリンクフィルムで保護すること。",
+      "collision": "衝突防止: 輸送中の部品同士の直接接触を防止するため、専用トレイや仕切りを使用すること。",
+      "deformation": "変形管理: 焼入れ後の歪みは0.02mm/100mm以下とすること。割れや熱変形を発見した場合は直ちに報告のこと。",
+      "coupon": "テストピース (coupon) 添付: 硬度および金属組織検査のため、同一熱処理炉チャージにて処理すること。"
+    },
+    "sec3Title": "III. 受入検査結果記録 (QC INSPECTION LOG)",
+    "qc": {
+      "point1": "測定点1 (HRC)",
+      "point2": "測定点2 (HRC)",
+      "point3": "測定点3 (HRC)",
+      "average": "平均値 (HRC)",
+      "evaluation": "合否判定: [ ] PASS (合格)   [ ] FAIL (不合格)"
+    },
+    "signatures": {
+      "logistics": "1. DYNAMO 調達・配車",
+      "security": "2. 警備・出門確認",
+      "vendor": "3. 外注加工先受入",
+      "qc": "4. 受入検査 QC",
+      "logisticsSub": "伝票発行・払出",
+      "securitySub": "出門検問",
+      "vendorSub": "受領・員数確認",
+      "qcSub": "受入検査合格",
+      "logisticsSign": "署名・氏名明記",
+      "securitySign": "署名・出門時刻",
+      "vendorSign": "署名・受領印",
+      "qcSign": "署名・受入日付"
+    },
+    "slogan": "現場方針: 規律・正確・安全・時間厳守",
+    "printedAt": "印刷日時: {timestamp}"
+  },
+  "pallet": {
+    "title": "DYNAMO VIETNAM · パレット現品票",
+    "subtitle": "熱処理外注加工ロット (QT)",
+    "workshop": "工場 {ws}",
+    "partHeading": "金型部品コード",
+    "trackingCode": "追跡コード: {ID_Key}"
+  },
+  "manifest": {
+    "title": "外注熱処理加工ロット引渡目録 (QT)",
+    "total": "総合計:",
+    "cols": {
+      "idx": "項",
+      "lotId": "ロットID",
+      "itemCode": "部品コード",
+      "orderNo": "注文番号",
+      "ws": "工場",
+      "material": "材質",
+      "hardness": "硬度",
+      "qty": "数量",
+      "weight": "重量",
+      "partner": "外注先",
+      "dueDate": "返却期日",
+      "sign": "受領印"
+    }
+  },
+  "source": "データ元",
+  "cache": "キャッシュ",
+  "lastSynced": "最終同期",
+  "noTimestamp": "時刻記録なし",
+  "thisMonth": "今月",
+  "lastMonth": "先月",
+  "selected": "選択中",
+  "pagination": {
+    "prev": "前へ",
+    "page": "ページ",
+    "next": "次へ"
+  },
+  "jobTicket": {
+    "sec1": {
+      "size": "製品寸法",
+      "unitPrice": "加工単価",
+      "totalPrice": "概算金額"
+    }
+  },
+  "loading": "読み込み中…",
+  "loading.permissions": "権限データ読込中…",
+  "loading.failedTitle": "製造データを読み込めませんでした",
+  "loading.syncing": "Googleスプレッドシートから熱処理データを同期中…"
 }

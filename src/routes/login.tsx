@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -15,59 +15,35 @@ import {
   TrendingUp,
   Delete,
   Smartphone,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import logo from '@/assets/dynamo-logo.png';
-import { verifyCode, positionMatchesRole, LockedError, AttemptsError } from '@/lib/dynamo-auth';
-import { Lock } from 'lucide-react';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import logo from "@/assets/dynamo-logo.png";
+import { verifyCode, positionMatchesRole, LockedError, AttemptsError } from "@/lib/dynamo-auth";
+import { Lock } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
-export const Route = createFileRoute('/login')({
+export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: 'Đăng nhập | DYNAMO VIETNAM QT - MES' },
+      { title: "Đăng nhập | DYNAMO VIETNAM QT - MES" },
       {
-        name: 'description',
-        content: 'Đăng nhập hệ thống điều hành nhà thầu phụ, nhiệt luyện và luân chuyển QT của DYNAMO VIETNAM.',
+        name: "description",
+        content:
+          "Đăng nhập hệ thống điều hành nhà thầu phụ, nhiệt luyện và luân chuyển QT của DYNAMO VIETNAM.",
       },
-      { property: 'og:title', content: 'Đăng nhập | DYNAMO VIETNAM QT - MES' },
+      { property: "og:title", content: "Đăng nhập | DYNAMO VIETNAM QT - MES" },
       {
-        property: 'og:description',
-        content: 'Điều hành gia công ngoài, nhiệt luyện và luân chuyển QT.',
+        property: "og:description",
+        content: "Điều hành gia công ngoài, nhiệt luyện và luân chuyển QT.",
       },
-      { property: 'og:type', content: 'website' },
-      { name: 'twitter:card', content: 'summary' },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Login,
 });
 
-const features = [
-  {
-    icon: RefreshCcw,
-    title: 'Luân chuyển nhiệt luyện / xi mạ 24/7',
-    desc: 'Giám sát hành trình từng lô hàng từ phân xưởng PIN, INSERT, MOLD qua nhà thầu phụ về nhập kho.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Kiểm soát trễ hạn đối tác',
-    desc: 'Phát hiện và cảnh báo sớm các lô hàng quá hạn giao trả, đảm bảo tiến độ lắp ráp khuôn đúc.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Đối soát đơn giá & định mức vật liệu',
-    desc: 'Tự động kiểm tra chênh lệch đơn giá theo quy cách Mác thép × Đơn vị tính × Nhà cung cấp.',
-  },
-];
-
-type Position = 'admin' | 'leader' | 'viewer' | 'partner';
-
-const positions: { id: Position; label: string; note: string; led: string }[] = [
-  { id: 'admin', label: 'BGĐ / IT hệ thống', note: 'Admin', led: 'bg-dynamo' },
-  { id: 'leader', label: 'Trưởng / Phó phòng', note: 'Leader', led: 'bg-run' },
-  { id: 'viewer', label: 'KTV / Nhân viên', note: 'Viewer', led: 'bg-titan' },
-  { id: 'partner', label: 'Nhà cung cấp ngoài', note: 'Partner', led: 'bg-warning' },
-];
-
+type Position = "admin" | "leader" | "viewer" | "partner";
 
 const Cross = ({ className }: { className: string }) => (
   <span aria-hidden className={`pointer-events-none absolute size-3 text-slate-700 ${className}`}>
@@ -78,11 +54,12 @@ const Cross = ({ className }: { className: string }) => (
 
 function Login() {
   const navigate = useNavigate();
-  const [code, setCode] = useState('');
+  const { locale, setLocale, t, locales } = useTranslation();
+  const [code, setCode] = useState("");
   const [position, setPosition] = useState<Position | null>(null);
   const [showCode, setShowCode] = useState(false);
   const [kioskMode, setKioskMode] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
   const [lockUntil, setLockUntil] = useState(0);
@@ -90,70 +67,130 @@ function Login() {
   const inputRef = useRef<HTMLInputElement>(null);
   const lockLeft = Math.max(0, Math.ceil((lockUntil - now) / 1000));
   const locked = lockLeft > 0;
-  const mmss = `${String(Math.floor(lockLeft / 60)).padStart(2, '0')}:${String(lockLeft % 60).padStart(2, '0')}`;
+  const mmss = `${String(Math.floor(lockLeft / 60)).padStart(2, "0")}:${String(lockLeft % 60).padStart(2, "0")}`;
+
+  const positions: { id: Position; label: string; note: string; led: string }[] = [
+    {
+      id: "admin",
+      label: t("auth.positions.admin.label") || "BGĐ / IT hệ thống",
+      note: t("auth.positions.admin.role") || "Admin",
+      led: "bg-dynamo",
+    },
+    {
+      id: "leader",
+      label: t("auth.positions.leader.label") || "Trưởng / Phó phòng",
+      note: t("auth.positions.leader.role") || "Leader",
+      led: "bg-run",
+    },
+    {
+      id: "viewer",
+      label: t("auth.positions.viewer.label") || "KTV / Nhân viên",
+      note: t("auth.positions.viewer.role") || "Viewer",
+      led: "bg-titan",
+    },
+    {
+      id: "partner",
+      label: t("auth.positions.partner.label") || "Nhà cung cấp ngoài",
+      note: t("auth.positions.partner.role") || "Partner",
+      led: "bg-warning",
+    },
+  ];
+
+  const features = [
+    {
+      icon: RefreshCcw,
+      title: t("auth.features.tracking.title") || "Luân chuyển nhiệt luyện / xi mạ 24/7",
+      desc:
+        t("auth.features.tracking.desc") ||
+        "Giám sát hành trình từng lô hàng từ phân xưởng PIN, INSERT, MOLD qua nhà thầu phụ về nhập kho.",
+    },
+    {
+      icon: ShieldCheck,
+      title: t("auth.features.leadTime.title") || "Kiểm soát trễ hạn đối tác",
+      desc:
+        t("auth.features.leadTime.desc") ||
+        "Phát hiện và cảnh báo sớm các lô hàng quá hạn giao trả, đảm bảo tiến độ lắp ráp khuôn đúc.",
+    },
+    {
+      icon: TrendingUp,
+      title: t("auth.features.pricing.title") || "Đối soát đơn giá & định mức vật liệu",
+      desc:
+        t("auth.features.pricing.desc") ||
+        "Tự động kiểm tra chênh lệch đơn giá theo quy cách Mác thép × Đơn vị tính × Nhà cung cấp.",
+    },
+  ];
 
   useEffect(() => {
     if (!lockUntil) return;
-    const t = setInterval(() => {
+    const tTimer = setInterval(() => {
       const n = Date.now();
       setNow(n);
       if (n >= lockUntil) {
-        clearInterval(t);
+        clearInterval(tTimer);
         setLockUntil(0);
-        setError('');
+        setError("");
         setAttemptsLeft(null);
         setTimeout(() => inputRef.current?.focus(), 0);
       }
     }, 250);
-    return () => clearInterval(t);
+    return () => clearInterval(tTimer);
   }, [lockUntil]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const cleanCode = code.trim();
     if (!position) {
-      setError('Vui lòng chọn vị trí công tác (Bước 1) trước khi xác thực.');
+      setError(
+        t("auth.errors.requirePosition") ||
+          "Vui lòng chọn vị trí công tác (Bước 1) trước khi xác thực.",
+      );
       return;
     }
     if (!cleanCode) {
-      setError('Vui lòng nhập mã định danh truy cập (Bước 2).');
+      setError(t("auth.errors.requireCode") || "Vui lòng nhập mã định danh truy cập (Bước 2).");
       return;
     }
     setBusy(true);
-    setError('');
+    setError("");
     setAttemptsLeft(null);
 
     try {
       const entry = await verifyCode(cleanCode);
       if (!entry) {
-        setError('Mã xác thực không hợp lệ hoặc đã hết hiệu lực.');
+        setError(t("auth.errors.invalidCode") || "Mã xác thực không hợp lệ hoặc đã hết hiệu lực.");
         setBusy(false);
         return;
       }
       if (!positionMatchesRole(position, entry.role)) {
-        const label = positions.find((p) => p.id === position)?.label ?? '';
-        setError(`Mã truy cập này không thuộc thẩm quyền của vị trí ${label} đã chọn. Vui lòng kiểm tra lại.`);
+        const label = positions.find((p) => p.id === position)?.label ?? "";
+        setError(
+          t("auth.errors.roleMismatch", { label }) ||
+            `Mã truy cập này không thuộc thẩm quyền của vị trí ${label} đã chọn. Vui lòng kiểm tra lại.`,
+        );
         setBusy(false);
         return;
       }
 
       // Session cookie is set by the server; local backup stores session for iframe resilience
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         window.localStorage.setItem(
-          'dynamo-session',
+          "dynamo-session",
           JSON.stringify({ role: entry.role, note: entry.note, at: Date.now() }),
         );
       }
-      navigate({ to: '/tracking' });
+      navigate({ to: "/tracking" });
     } catch (err) {
       if (err instanceof LockedError) {
         setLockUntil(Date.now() + err.remainingMs);
-        setCode('');
+        setCode("");
       } else if (err instanceof AttemptsError) {
-        setError('Mã xác thực không hợp lệ hoặc đã hết hiệu lực.');
+        setError(t("auth.errors.invalidCode") || "Mã xác thực không hợp lệ hoặc đã hết hiệu lực.");
         setAttemptsLeft(err.attemptsLeft);
       } else {
-        setError('Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.');
+        setError(
+          t("auth.errors.networkError") ||
+            "Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.",
+        );
       }
       setBusy(false);
     }
@@ -169,15 +206,15 @@ function Login() {
           className="pointer-events-none absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
+              "linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
           }}
         />
 
         {/* Top Header & Brand */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-4 rounded-sm border border-slate-800 bg-slate-900/60 p-2.5 pr-6 backdrop-blur-xs">
-            <span className="flex items-center justify-center rounded-sm bg-card p-2 shadow-xs">
+          <div className="inline-flex items-center gap-4 rounded-xs border border-slate-800 bg-slate-900/60 p-2.5 pr-6 backdrop-blur-xs">
+            <span className="flex items-center justify-center rounded-xs bg-card p-2 shadow-xs">
               <img src={logo} alt="Dynamo Vietnam" className="h-8 w-auto" />
             </span>
             <div>
@@ -191,25 +228,34 @@ function Login() {
           </div>
 
           <div className="mt-10 max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-sm border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-xs border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               <Cpu size={14} />
-              <span>HỆ THỐNG ĐIỀU HÀNH QT NỘI BỘ</span>
+              <span>{t("auth.hero.badge") || "HỆ THỐNG ĐIỀU HÀNH QT NỘI BỘ"}</span>
             </div>
             <h1 className="font-display text-4xl font-black tracking-tight text-white xl:text-5xl leading-[3.5rem]">
-              Quản Lý Nhà Thầu Phụ
-              <br></br> 
-              Nhiệt Luyện & Luân Chuyển QT
+              {t("auth.hero.title") || (
+                <>
+                  Quản Lý Nhà Thầu Phụ
+                  <br />
+                  Nhiệt Luyện &amp; Luân Chuyển QT
+                </>
+              )}
             </h1>
             <p className="mt-5 text-sm leading-relaxed text-slate-400">
-              Cổng điều hành tập trung phục vụ các xưởng PIN, INSERT, và MOLD.
-              <br></br>
-              Kiểm soát tiến độ từng lô gia công ngoài, giám sát thời hạn giao trả theo tiêu chuẩn và đối soát vật tư khuôn đúc chính xác.
+              {t("auth.hero.subtitle") || (
+                <>
+                  Cổng điều hành tập trung phục vụ các xưởng PIN, INSERT, và MOLD.
+                  <br />
+                  Kiểm soát tiến độ từng lô gia công ngoài, giám sát thời hạn giao trả theo tiêu
+                  chuẩn và đối soát vật tư khuôn đúc chính xác.
+                </>
+              )}
             </p>
           </div>
         </div>
 
         {/* Technical Features Matrix */}
-        <div className="relative z-10 my-8 max-w-3xl rounded-sm border border-slate-700/80 bg-slate-900/60 p-1">
+        <div className="relative z-10 my-8 max-w-3xl rounded-xs border border-slate-700/80 bg-slate-900/60 p-1">
           <Cross className="-left-1.5 -top-1.5" />
           <Cross className="-right-1.5 -top-1.5" />
           <Cross className="-bottom-1.5 -left-1.5" />
@@ -218,7 +264,7 @@ function Login() {
           <div className="divide-y divide-slate-800/80">
             {features.map((f) => (
               <div key={f.title} className="flex gap-4 p-5 transition-colors hover:bg-slate-800/30">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/10 text-primary">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xs border border-primary/30 bg-primary/10 text-primary">
                   <f.icon size={18} strokeWidth={2} />
                 </span>
                 <div>
@@ -234,7 +280,9 @@ function Login() {
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-t border-slate-800/80 pt-6 text-[11px] text-slate-500">
           <p className="flex items-center gap-2">
             <Factory size={14} className="text-primary" />
-            <span>DYNAMO VIETNAM CO., LTD. · KHU CÔNG NGHIỆP ĐỒNG AN 2</span>
+            <span>
+              {t("auth.plant.address") || "DYNAMO VIETNAM CO., LTD. · KHU CÔNG NGHIỆP ĐỒNG AN 2"}
+            </span>
           </p>
           <div className="flex items-center gap-4 font-mono text-[10px]">
             <span className="flex items-center gap-1.5">
@@ -248,12 +296,43 @@ function Login() {
       </section>
 
       {/* Right Column: High-Density Authentication Console */}
-      <section className="flex flex-col justify-center bg-background px-6 py-12 sm:px-12 lg:col-span-5 xl:col-span-5">
+      <section className="relative flex flex-col justify-center bg-background px-6 py-12 sm:px-12 lg:col-span-5 xl:col-span-5">
+        {/* Top Right Trilingual Switcher */}
+        <div
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center rounded-xs border border-border/80 bg-secondary/50 p-0.5"
+          title={
+            t("common.langSwitcher.title") || "Chuyển đổi ngôn ngữ / Switch Language / 言語切替"
+          }
+          role="group"
+          aria-label={t("common.langSwitcher.ariaLabel") || "Chọn ngôn ngữ hệ thống"}
+        >
+          {locales.map((item) => {
+            const isCurrent = locale === item.code;
+            return (
+              <button
+                key={item.code}
+                type="button"
+                onClick={() => setLocale(item.code)}
+                className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
+                  isCurrent
+                    ? "bg-slate-900 text-emerald-300 border border-slate-800 shadow-2xs font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+                title={`${item.label} (${item.nativeName})`}
+              >
+                {item.shortLabel}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="mx-auto w-full max-w-md">
           {/* Mobile Logo & Title */}
           <div className="mb-8 lg:hidden">
             <img src={logo} alt="Dynamo Vietnam" className="mb-4 h-10 w-auto" />
-            <p className="font-display text-base font-extrabold text-foreground">DYNAMO VIETNAM QT - MES</p>
+            <p className="font-display text-base font-extrabold text-foreground">
+              DYNAMO VIETNAM QT - MES
+            </p>
             <p className="font-mono text-[9px] font-bold tracking-[.25em] text-primary">
               PRECISION SHOPFLOOR SUBCONTRACT CONTROL
             </p>
@@ -264,49 +343,79 @@ function Login() {
             <div className="mb-6">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                  XÁC THỰC DANH TÍNH
+                  {t("auth.form.badge") || "XÁC THỰC DANH TÍNH"}
                 </span>
-                <span className="rounded-sm border border-primary/20 bg-primary/10 px-1.5 py-0.2 font-mono text-[9px] font-bold text-primary">
+                <span className="rounded-xs border border-primary/20 bg-primary/10 px-1.5 py-0.2 font-mono text-[9px] font-bold text-primary">
                   ULID TOKEN
                 </span>
               </div>
               <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">
-                Đăng Nhập Hệ Thống
+                {t("auth.form.title") || "Đăng Nhập Hệ Thống"}
               </h2>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Nhập mã xác thực do ban điều hành cấp để phân quyền theo vai trò tương ứng.
+                {t("auth.form.subtitle") ||
+                  "Nhập mã xác thực do ban điều hành cấp để phân quyền theo vai trò tương ứng."}
               </p>
             </div>
 
             {(() => {
               const steps = [
-                { label: 'Vị trí', value: position ? positions.find((p) => p.id === position)?.label : 'Chưa chọn' },
-                { label: 'Mã truy cập ULID', value: code.trim() ? 'Đã nạp mã' : 'Chưa nhập' },
+                {
+                  label: t("auth.steps.step1") || "Vị trí",
+                  value: position
+                    ? positions.find((p) => p.id === position)?.label
+                    : t("auth.steps.unselected") || "Chưa chọn",
+                },
+                {
+                  label: t("auth.steps.step2") || "Mã truy cập ULID",
+                  value: code.trim()
+                    ? t("auth.steps.codeLoaded") || "Đã nạp mã"
+                    : t("auth.steps.codeEmpty") || "Chưa nhập",
+                },
               ];
               const activeStep = !position ? 0 : !code.trim() ? 1 : 2;
               return (
-                <ol aria-label="Tiến trình xác thực" aria-live="polite" className="mb-5 flex items-center gap-3 rounded-sm border border-border bg-card px-3 py-2.5">
+                <ol
+                  aria-label={t("auth.steps.aria") || "Tiến trình xác thực"}
+                  aria-live="polite"
+                  className="mb-5 flex items-center gap-3 rounded-xs border border-border bg-card px-3 py-2.5"
+                >
                   {steps.map((s, i) => {
-                    const state = i < activeStep ? 'done' : i === activeStep ? 'current' : 'upcoming';
+                    const state =
+                      i < activeStep ? "done" : i === activeStep ? "current" : "upcoming";
                     return (
-                      <li key={s.label} aria-current={state === 'current' ? 'step' : undefined} className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <li
+                        key={s.label}
+                        aria-current={state === "current" ? "step" : undefined}
+                        className="flex min-w-0 flex-1 items-center gap-2.5"
+                      >
                         <span
                           aria-hidden
-                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tabular-nums transition-colors ${state === 'done'
-                            ? 'border-run bg-run text-background'
-                            : state === 'current'
-                              ? 'border-primary text-primary ring-2 ring-primary/25'
-                              : 'border-muted-foreground/40 text-muted-foreground'
-                            }`}
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-xs border font-mono text-[11px] font-semibold tabular-nums transition-colors ${
+                            state === "done"
+                              ? "border-run bg-run text-background"
+                              : state === "current"
+                                ? "border-primary text-primary ring-2 ring-primary/25"
+                                : "border-muted-foreground/40 text-muted-foreground"
+                          }`}
                         >
-                          {state === 'done' ? <CheckCircle2 size={14} /> : i + 1}
+                          {state === "done" ? <CheckCircle2 size={14} /> : i + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className="block font-mono text-[10px] text-muted-foreground">Bước {i + 1} · {s.label}</span>
-                          <span className={`block truncate text-[11px] font-semibold ${state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground'}`}>{s.value}</span>
+                          <span className="block font-mono text-[10px] text-muted-foreground">
+                            Bước {i + 1} · {s.label}
+                          </span>
+                          <span
+                            className={`block truncate text-[11px] font-semibold ${state === "upcoming" ? "text-muted-foreground" : "text-foreground"}`}
+                          >
+                            {s.value}
+                          </span>
                         </span>
                         {i < steps.length - 1 && (
-                          <span aria-hidden className={`ml-auto h-px w-6 shrink-0 ${i < activeStep ? 'bg-run' : 'bg-border'}`} />
+                          <span
+                            aria-hidden
+                            className={`ml-auto h-px w-6 shrink-0 ${i < activeStep ? "bg-run" : "bg-border"}`}
+                          />
                         )}
                       </li>
                     );
@@ -318,9 +427,13 @@ function Login() {
             <form onSubmit={submit} className="space-y-5">
               <fieldset>
                 <legend className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                  Bước 1 · Vị trí công tác
+                  {t("auth.steps.step1") || "Bước 1 · Vị trí công tác"}
                 </legend>
-                <div role="radiogroup" aria-label="Vị trí công tác" className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-border bg-border">
+                <div
+                  role="radiogroup"
+                  aria-label="Vị trí công tác"
+                  className="grid grid-cols-2 gap-px overflow-hidden rounded-xs border border-border bg-border"
+                >
                   {positions.map((p) => {
                     const active = position === p.id;
                     return (
@@ -331,18 +444,25 @@ function Login() {
                         aria-checked={active}
                         onClick={() => {
                           setPosition(p.id);
-                          setError('');
+                          setError("");
                         }}
-                        className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${active ? 'bg-muted shadow-[inset_0_0_0_2px_var(--color-dynamo)]' : 'bg-card hover:bg-muted/50'
-                          }`}
+                        className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
+                          active
+                            ? "bg-muted shadow-[inset_0_0_0_2px_var(--color-dynamo)]"
+                            : "bg-card hover:bg-muted/50"
+                        }`}
                       >
                         <span
                           aria-hidden
-                          className={`mt-1 size-2 shrink-0 rounded-full transition-opacity ${p.led} ${active ? 'opacity-100' : 'opacity-25'}`}
+                          className={`mt-1 size-2 shrink-0 rounded-full transition-opacity ${p.led} ${active ? "opacity-100" : "opacity-25"}`}
                         />
                         <span className="min-w-0">
-                          <span className="block text-xs font-semibold text-foreground">{p.label}</span>
-                          <span className="block truncate text-[10px] text-muted-foreground">{p.note}</span>
+                          <span className="block text-xs font-semibold text-foreground">
+                            {p.label}
+                          </span>
+                          <span className="block truncate text-[10px] text-muted-foreground">
+                            {p.note}
+                          </span>
                         </span>
                       </button>
                     );
@@ -352,8 +472,11 @@ function Login() {
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="access-code" className="font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                    Bước 2 · Mã truy cập (Access code)
+                  <label
+                    htmlFor="access-code"
+                    className="font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase"
+                  >
+                    {t("auth.form.codeLabel") || "Bước 2 · Mã truy cập (Access code)"}
                   </label>
                   <button
                     type="button"
@@ -361,7 +484,9 @@ function Login() {
                     className="flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline"
                   >
                     <Smartphone size={12} />
-                    {kioskMode ? 'Ẩn phím cảm ứng' : 'Phím số Kiosk'}
+                    {kioskMode
+                      ? t("auth.form.kioskHide") || "Ẩn phím cảm ứng"
+                      : t("auth.form.kioskShow") || "Phím số Kiosk"}
                   </button>
                 </div>
                 <div className="relative">
@@ -373,30 +498,33 @@ function Login() {
                     id="access-code"
                     ref={inputRef}
                     disabled={locked}
-                    type={showCode ? 'text' : 'password'}
+                    type={showCode ? "text" : "password"}
                     autoComplete="off"
                     spellCheck={false}
                     value={code}
                     onChange={(e) => {
                       setCode(e.target.value);
-                      setError('');
+                      setError("");
                     }}
                     placeholder={
                       position
-                        ? `Nhập mã truy cập của ${positions.find((p) => p.id === position)?.label}`
-                        : 'Chọn vị trí ở Bước 1 trước'
+                        ? t("auth.form.codePlaceholderPos", {
+                            position: positions.find((p) => p.id === position)?.label ?? '',
+                          }) ||
+                          `Nhập mã truy cập của ${positions.find((p) => p.id === position)?.label}`
+                        : t("auth.form.codePlaceholderEmpty") || "Chọn vị trí ở Bước 1 trước"
                     }
-                    aria-label="Mã xác thực"
+                    aria-label={t("auth.form.codeAria") || "Mã xác thực"}
                     aria-invalid={!!error}
-                    className="h-11 w-full rounded-sm border border-input bg-background/60 pl-10 pr-20 font-mono tabular-nums text-xs tracking-wider text-foreground outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-primary aria-[invalid=true]:border-destructive"
+                    className="h-11 w-full rounded-xs border border-input bg-background/60 pl-10 pr-20 font-mono tabular-nums text-xs tracking-wider text-foreground outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-primary aria-[invalid=true]:border-destructive"
                   />
                   <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
                     {code && (
                       <button
                         type="button"
-                        onClick={() => setCode('')}
-                        aria-label="Xóa mã"
-                        className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground active:scale-[0.98]"
+                        onClick={() => setCode("")}
+                        aria-label={t("auth.form.clearAria") || "Xóa mã"}
+                        className="flex size-8 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground active:scale-[0.98]"
                       >
                         <X size={14} />
                       </button>
@@ -404,8 +532,12 @@ function Login() {
                     <button
                       type="button"
                       onClick={() => setShowCode((v) => !v)}
-                      aria-label={showCode ? 'Ẩn mã' : 'Hiện mã'}
-                      className="flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground active:scale-[0.98]"
+                      aria-label={
+                        showCode
+                          ? t("auth.form.toggleAria") || "Ẩn mã"
+                          : t("auth.form.toggleAria") || "Hiện mã"
+                      }
+                      className="flex size-8 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground active:scale-[0.98]"
                     >
                       {showCode ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -416,19 +548,19 @@ function Login() {
                 {kioskMode && (
                   <div className="mt-3 overflow-hidden rounded-xs border border-border bg-card p-2.5 shadow-2xs">
                     <p className="mb-2 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)
+                      {t("auth.kiosk.heading") || "BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)"}
                     </p>
                     <div className="grid grid-cols-3 gap-1.5">
-                      {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+                      {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
                         <button
                           key={digit}
                           type="button"
                           disabled={locked}
                           onClick={() => {
                             setCode((prev) => prev + digit);
-                            setError('');
+                            setError("");
                           }}
-                          className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
+                          className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
                         >
                           {digit}
                         </button>
@@ -436,19 +568,19 @@ function Login() {
                       <button
                         type="button"
                         disabled={locked || !code}
-                        onClick={() => setCode('')}
-                        className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-xs font-bold text-destructive transition-all hover:bg-destructive/10 hover:border-destructive active:scale-95 disabled:opacity-40"
+                        onClick={() => setCode("")}
+                        className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-xs font-bold text-destructive transition-all hover:bg-destructive/10 hover:border-destructive active:scale-95 disabled:opacity-40"
                       >
-                        C (Xóa hết)
+                        {t("auth.kiosk.clearAll") || "C (Xóa hết)"}
                       </button>
                       <button
                         type="button"
                         disabled={locked}
                         onClick={() => {
-                          setCode((prev) => prev + '0');
-                          setError('');
+                          setCode((prev) => prev + "0");
+                          setError("");
                         }}
-                        className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
+                        className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
                       >
                         0
                       </button>
@@ -456,7 +588,7 @@ function Login() {
                         type="button"
                         disabled={locked || !code}
                         onClick={() => setCode((prev) => prev.slice(0, -1))}
-                        className="flex h-11 items-center justify-center rounded-sm border border-border/80 bg-background font-mono text-xs font-bold text-muted-foreground transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-40"
+                        className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-xs font-bold text-muted-foreground transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-40"
                         aria-label="Xóa 1 ký tự"
                       >
                         <Delete size={16} />
@@ -470,18 +602,25 @@ function Login() {
                 <div
                   role="alert"
                   aria-live="polite"
-                  className="overflow-hidden rounded-sm border border-destructive/60 bg-destructive/10"
+                  className="overflow-hidden rounded-xs border border-destructive/60 bg-destructive/10"
                 >
                   <div className="h-1.5 w-full bg-[repeating-linear-gradient(45deg,var(--color-destructive)_0_8px,transparent_8px_16px)] opacity-70" />
                   <div className="flex items-center justify-between gap-3 p-3">
                     <div className="flex items-start gap-2 text-xs text-destructive">
                       <Lock size={14} className="mt-0.5 shrink-0" />
                       <div>
-                        <p className="font-bold uppercase tracking-wider">Thiết bị tạm khóa an toàn</p>
-                        <p className="mt-0.5 text-destructive/80">Nhập sai 5 lần liên tiếp. Thử lại khi đồng hồ về 00:00.</p>
+                        <p className="font-bold uppercase tracking-wider">
+                          {t("auth.lock.title") || "Thiết bị tạm khóa an toàn"}
+                        </p>
+                        <p className="mt-0.5 text-destructive/80">
+                          {t("auth.lock.desc") ||
+                            "Nhập sai 5 lần liên tiếp. Thử lại khi đồng hồ về 00:00."}
+                        </p>
                       </div>
                     </div>
-                    <span className="font-mono text-2xl font-bold tabular-nums text-destructive">{mmss}</span>
+                    <span className="font-mono text-2xl font-bold tabular-nums text-destructive">
+                      {mmss}
+                    </span>
                   </div>
                   <div className="h-1 w-full bg-destructive/20">
                     <div
@@ -493,12 +632,13 @@ function Login() {
               ) : error ? (
                 <div
                   role="alert"
-                  className="rounded-sm border-l-2 border-destructive bg-destructive/10 p-3 text-xs text-destructive"
+                  className="rounded-xs border-l-2 border-destructive bg-destructive/10 p-3 text-xs text-destructive"
                 >
                   <p className="font-semibold">{error}</p>
                   {attemptsLeft !== null && (
                     <p className="mt-1 font-mono tabular-nums text-destructive/80">
-                      Còn {attemptsLeft}/5 lần thử trước khi khóa thiết bị.
+                      {t("auth.lock.attemptsLeft", { attemptsLeft }) ||
+                        `Còn ${attemptsLeft}/5 lần thử trước khi khóa thiết bị.`}
                     </p>
                   )}
                 </div>
@@ -507,20 +647,26 @@ function Login() {
               <Button
                 type="submit"
                 disabled={busy || locked}
-                className="h-11 w-full gap-2 rounded-sm bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                className="h-11 w-full gap-2 rounded-xs bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
               >
                 {locked ? (
                   <>
-                    <Lock size={15} /> TẠM KHÓA · <span className="font-mono tabular-nums">{mmss}</span>
+                    <Lock size={15} />{" "}
+                    {t("auth.submit.locked", { mmss }) || (
+                      <>
+                        TẠM KHÓA · <span className="font-mono tabular-nums">{mmss}</span>
+                      </>
+                    )}
                   </>
                 ) : busy ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    ĐANG XÁC THỰC QUYỀN HẠN...
+                    {t("auth.submit.verifying") || "ĐANG XÁC THỰC QUYỀN HẠN..."}
                   </>
                 ) : (
                   <>
-                    XÁC THỰC VỊ TRÍ & VÀO HỆ THỐNG <ArrowRight size={15} />
+                    {t("auth.submit.enter") || "XÁC THỰC VỊ TRÍ & VÀO HỆ THỐNG"}{" "}
+                    <ArrowRight size={15} />
                   </>
                 )}
               </Button>
@@ -530,7 +676,8 @@ function Login() {
               <div className="flex items-start gap-2">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0 text-primary" />
                 <p>
-                  Chưa có mã? Vui lòng liên hệ Quản trị viên để được cấp mã truy cập theo chức năng.
+                  {t("auth.support.text") ||
+                    "Chưa có mã? Vui lòng liên hệ Quản trị viên để được cấp mã truy cập theo chức năng."}
                 </p>
               </div>
             </div>
@@ -538,7 +685,7 @@ function Login() {
 
           <div className="mt-5 text-center">
             <p className="font-display text-xs font-bold tracking-wide text-foreground">
-              Kỷ Luật - Chính Xác - An Toàn - Đúng Hạn
+              {t("common.slogan") || "Kỷ Luật - Chính Xác - An Toàn - Đúng Hạn"}
             </p>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">
               © 2026 DYNAMO VIET NAM CO., LTD. All rights reserved.

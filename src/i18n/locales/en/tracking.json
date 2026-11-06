@@ -3,7 +3,7 @@
     "checkbox": "Select",
     "lotId": "LOT ID",
     "orderNo": "ORDER NO",
-    "itemCode": "ITEM CODE",
+    "itemCode": "PART CODE",
     "material": "MATERIAL",
     "hardness": "HARDNESS",
     "quantity": "QTY",
@@ -14,24 +14,129 @@
     "sentDate": "SENT DATE",
     "dueDate": "DUE DATE",
     "notes": "NOTES",
-    "ticket": "TICKET"
+    "ticket": "PDF A4",
+    "partNo": "PART NO"
   },
   "workshops": {
     "title": "Workshop",
-    "all": "All workshops",
-    "pin": "PIN shop",
-    "insert": "INSERT shop",
-    "mold": "MOLD shop"
+    "all": "All Workshops",
+    "pin": "PIN Workshop",
+    "insert": "INSERT Workshop",
+    "mold": "MOLD Workshop",
+    "filterTooltip": "Quick filter by processing workshop"
   },
   "actions": {
     "addNote": "+ Add note",
-    "notePlaceholder": "Enter note for lot... (Enter: save, Shift+Enter: newline, Tab: next cell)",
+    "notePlaceholder": "Enter note for lot... (Enter: save, Shift+Enter: newline, Tab: next)",
     "selectPartner": "Select partner",
     "selectedCount": "{count} lots selected",
-    "clearFilter": "Clear all filters"
+    "clearFilter": "Clear all filters",
+    "allFiltersCleared": "All table filters have been cleared.",
+    "filtering": "Filtering ({count}):",
+    "clearFilterItem": "Remove filter",
+    "clearFilterTooltip": "Clear all table filters"
   },
   "density": {
     "compact": "Compact",
-    "normal": "Normal"
+    "normal": "Normal",
+    "compactTooltip": "Compact row density mode (~32px)",
+    "normalTooltip": "Standard row density mode (~42px)"
+  },
+  "title": "HEAT TREATMENT TRACKING",
+  "status": {
+    "wait": "WAIT",
+    "transit": "TRANSIT",
+    "stocked": "STOCKED",
+    "pass": "PASS",
+    "fail": "FAIL",
+    "pending": "PENDING",
+    "waitLabel": "Awaiting Dispatch",
+    "transitLabel": "At Vendor",
+    "stockedLabel": "Stocked",
+    "passLabel": "Passed",
+    "failLabel": "Failed",
+    "pendingLabel": "Pending QC",
+    "inspect": "INSPECT"
+  },
+  "focus": {
+    "all": "All",
+    "overdue": "Overdue Lots",
+    "due_soon": "Due in 48h",
+    "open": "Open Lots",
+    "stocked": "Completed",
+    "est_due": "Estimated Due",
+    "sync_failed": "Sync Failed",
+    "no_qc": "Stocked No QC",
+    "qc_fail": "QC Failed"
+  },
+  "dueTags": {
+    "overdueDays": "{days}d overdue",
+    "dueSoon48": "Due in 48h",
+    "estDue": "Estimated (+7d)",
+    "missingDue": "Missing due date",
+    "delivered": "Stocked",
+    "overdue": "overdue"
+  },
+  "batch": {
+    "title": "BATCH ACTIONS",
+    "selected": "{count} lots selected",
+    "updateLogistics": "Update Logistics",
+    "updateQc": "Update QC",
+    "printTickets": "Batch Print A4",
+    "exportSelectedCsv": "Export Selected CSV",
+    "deselectAll": "Deselect All",
+    "confirmBatchQcPass": "Set QC PASS for {count} lots?"
+  },
+  "sort": {
+    "asc": "Ascending",
+    "desc": "Descending",
+    "cycleAsc": "Sorting: Ascending (A → Z). Click to switch to Descending",
+    "cycleDesc": "Sorting: Descending (Z → A). Click to clear sort",
+    "cycleNone": "Not sorted. Click to sort Ascending",
+    "sortThisCol": "Sort by this column:",
+    "minToMax": "Min → Max",
+    "maxToMin": "Max → Min",
+    "lightToHeavy": "Lightest → Heaviest",
+    "heavyToLight": "Heaviest → Lightest"
+  },
+  "toolbars": {
+    "searchPlaceholder": "Search lot ID, PO, part code, material...",
+    "refresh": "Refresh Data (Shift+R)",
+    "density": "Display Density",
+    "paginationInfo": "Showing {from} - {to} of {total} lots",
+    "pageSize": "{size} rows/page",
+    "clearSearch": "Clear search (Esc)",
+    "matched": "Matched",
+    "resetColWidthsTooltip": "Reset all column widths to default",
+    "resetColWidths": "Reset column widths",
+    "exitFullscreen": "Exit fullscreen (Alt+F)",
+    "enterFullscreen": "Enter fullscreen mode (Alt+F)",
+    "minimize": "Minimize",
+    "fullscreen": "Fullscreen",
+    "exportCsvTooltip": "CSV export options",
+    "exportCsv": "Export CSV",
+    "exportCurrentPage": "Current page",
+    "exportFiltered": "Filtered results",
+    "exportAll": "All records",
+    "workshopSelect": "Batch update parameters for all selected lots"
+  },
+  "popovers": {
+    "logisticsTitle": "UPDATE LOGISTICS",
+    "qcTitle": "UPDATE QC INSPECTION",
+    "partnerTitle": "SELECT SUBCONTRACTOR",
+    "dateTitle": "SELECT DATE",
+    "sentDateLabel": "Dispatch date:",
+    "dueDateLabel": "Committed due date:",
+    "quickToday": "Today",
+    "quickPlus3d": "+3 days",
+    "quickPlus5d": "+5 days",
+    "quickPlus7d": "+7 days",
+    "quickClear": "Clear date",
+    "noteHistory": "Note history",
+    "saveNote": "Save note"
+  },
+  "filters": {
+    "missingHardness": "Missing hardness",
+    "hasNote": "Has notes"
   }
 }

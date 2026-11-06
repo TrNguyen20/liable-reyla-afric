@@ -4,5 +4,80 @@
   "biDirectional": "KẾT NỐI HAI CHIỀU",
   "availableLots": "LÔ KHẢ DỤNG",
   "syncNow": "Đồng bộ ngay",
-  "webhookStatus": "Trạng thái Webhook"
+  "webhookStatus": "Trạng thái Webhook",
+  "gateway": {
+    "title": "Cổng Kết Nối Hai Chiều",
+    "subtitle": "Đồng bộ bảng tính Google Sheets và phản hồi qua Google Apps Script",
+    "inboundSection": "1. Đồng bộ Inbound (Google Sheets → MES)",
+    "sheetUrlLabel": "URL xuất CSV từ Google Sheets:",
+    "syncModeLabel": "Chế độ đồng bộ dữ liệu:",
+    "modeReplace": "Ghi đè toàn bộ (Replace)",
+    "modeMerge": "Cập nhật & Hợp nhất (Merge)",
+    "autoRefreshLabel": "Tự động đồng bộ:",
+    "autoRefreshOff": "Tắt tự động",
+    "refreshSeconds": "{sec} giây",
+    "refreshMinutes": "{min} phút",
+    "loadPreview": "Tải trước dữ liệu",
+    "loading": "Đang tải dữ liệu Google Sheets...",
+    "applyData": "Áp dụng vào hệ thống",
+    "revertData": "Khôi phục bản gốc",
+    "modeReplaceDesc": "Xóa cache cũ, nạp toàn bộ danh mục mới nhất từ Google Sheets.",
+    "modeMergeDesc": "Thêm lô mới và cập nhật đè các lô trùng mã ID_Key."
+  },
+  "preview": {
+    "title": "Kiểm Tra Dữ Liệu Trước Khi Áp Dụng (Staging Preview)",
+    "subtitle": "Xem trước thống kê và các dòng thay đổi trước khi ghi vào bộ nhớ hệ thống",
+    "totalRows": "Tổng số dòng",
+    "validRows": "Hợp lệ",
+    "errorRows": "Lỗi định dạng",
+    "newRows": "Lô mới",
+    "updatedRows": "Cập nhật",
+    "noPreview": "Chưa có bản xem trước nào được tải. Nhập URL và bấm \"Tải trước dữ liệu\".",
+    "recordsUnit": "bản ghi"
+  },
+  "webhook": {
+    "badge": "ĐỒNG BỘ 2 CHIỀU (BIDIRECTIONAL OUTBOUND)",
+    "title": "Google Apps Script Webhook Cập Nhật Tiến Độ Lô",
+    "statusConnected": "KẾT NỐI SẴN SÀNG",
+    "statusNotConfigured": "CHƯA CẤU HÌNH",
+    "autoPush": "Đẩy tự động: TrangThai · ngay_nhan_QT · do_cung",
+    "urlLabel": "Google Apps Script Webhook URL (POST):",
+    "urlPlaceholder": "https://script.google.com/macros/s/.../exec",
+    "save": "Lưu kết nối",
+    "saved": "Đã lưu",
+    "testConnection": "Kiểm tra kết nối",
+    "testing": "Đang kiểm tra...",
+    "delete": "Xóa cấu hình",
+    "description": "Khi đối tác cập nhật trạng thái lô trên màn hình Tracking, hệ thống sẽ gửi payload JSON về Google Apps Script để ghi ngược lại bảng tính chính.",
+    "toasts": {
+      "urlInvalid": "Định dạng URL không đúng! Link Webhook phải có dạng https://script.google.com/macros/s/.../exec",
+      "saveSuccess": "Đã cấu hình Webhook ghi ngược Google Sheets thành công.",
+      "deleteSuccess": "Đã xóa cấu hình Webhook ghi ngược.",
+      "testSuccess": "Kết nối Webhook thành công!",
+      "testFailed": "Kết nối Webhook thất bại: {error}"
+    }
+  },
+  "audit": {
+    "title": "Nhật Ký Ghi Ngược Webhook (Sync Audit Log)",
+    "clear": "Xóa nhật ký",
+    "empty": "Chưa có sự kiện đồng bộ nào được ghi nhận.",
+    "cols": {
+      "time": "THỜI GIAN",
+      "lotId": "MÃ LÔ",
+      "event": "SỰ KIỆN",
+      "payload": "DỮ LIỆU GỬI",
+      "status": "KẾT QUẢ"
+    }
+  },
+  "status": {
+    "idle": "Sẵn sàng",
+    "inProgress": "Đang thực hiện",
+    "success": "Thành công",
+    "failed": "Thất bại",
+    "rowsLoaded": "Đã nạp {count} dòng",
+    "cacheStatus": "Dung lượng bộ nhớ: {size} MB"
+  },
+  "twoWay": {
+    "recentHeader": "NHẬT KÝ THAY ĐỔI & AUDIT TRAIL"
+  }
 }

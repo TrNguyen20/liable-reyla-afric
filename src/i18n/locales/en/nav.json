@@ -1,6 +1,6 @@
 {
   "tracking": "TRACKING",
-  "dashboard": "OVERVIEW",
+  "dashboard": "DASHBOARD",
   "orders": "ORDERS",
   "sync": "SYNC",
   "trackingShortcut": "Key [1]",
@@ -8,7 +8,20 @@
   "ordersShortcut": "Key [3]",
   "syncShortcut": "Key [4]",
   "route1Title": "[1] TRACKING",
-  "route2Title": "[2] OVERVIEW",
+  "route2Title": "[2] DASHBOARD",
   "route3Title": "[3] ORDERS",
-  "route4Title": "[4] SYNC"
+  "route4Title": "[4] SYNC",
+  "route1Sub": "Mold component heat treatment dispatch schedule",
+  "route2Sub": "System overview & Shift handover report A4",
+  "route3Sub": "Purchase order details & processed components",
+  "route4Sub": "Google Sheets sync & Bidirectional webhook",
+  "sections": {
+    "operations": "OPERATIONS",
+    "system": "SYSTEM"
+  },
+  "ariaLabel": "Main navigation rail",
+  "shortcutHint": "Key [{key}]",
+  "palette": {
+    "title": "Command Palette"
+  }
 }

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import type { Locale, I18nContextValue } from './types';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, FALLBACK_CHAIN, LOCALES_METADATA } from './config';
 
+export type { Locale, Namespace, TranslationNamespace, I18nContextValue, LocaleMetadata } from './types';
+
 // Import Vietnamese dictionaries
 import viCommon from './locales/vi/common.json';
 import viNav from './locales/vi/nav.json';
@@ -67,7 +69,11 @@ function getNestedValue(obj: any, path: string[]): string | undefined {
     if (curr == null || typeof curr !== 'object') return undefined;
     curr = curr[part];
   }
-  return typeof curr === 'string' ? curr : undefined;
+  if (typeof curr === 'string') return curr;
+  if (curr != null && typeof curr === 'object' && typeof curr['default'] === 'string') {
+    return curr['default'];
+  }
+  return undefined;
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
@@ -115,11 +121,45 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
         const dict = dictionaries[loc];
         if (!dict) continue;
 
+        const commonDict = dict['common'];
+
         if (parts.length === 1) {
-          result = getNestedValue(dict.common, [parts[0]]);
+          result = getNestedValue(commonDict, [parts[0]!]);
+          if (result === undefined && commonDict && typeof commonDict[key] === 'string') {
+            result = commonDict[key];
+          }
         } else {
           const [ns, ...rest] = parts;
-          result = getNestedValue(dict[ns], rest);
+          // 1. Registered top-level namespace lookup (dict[ns])
+          if (ns && dict[ns]) {
+            result = getNestedValue(dict[ns], rest as string[]);
+            // Also check flat dot-notation key inside dict[ns]
+            if (result === undefined && dict[ns]?.[rest.join('.')]) {
+              const v = dict[ns][rest.join('.')];
+              if (typeof v === 'string') result = v;
+            }
+          }
+
+          // 2. Unregistered namespace lookup inside dict.common (e.g. ticket.fields.partNo, auth.hero.badge, pallet.title)
+          if (result === undefined && commonDict) {
+            result = getNestedValue(commonDict, parts);
+          }
+
+          // 3. Namespace is 'common' explicitly (e.g. common.loading.permissions)
+          if (result === undefined && ns === 'common' && commonDict) {
+            result = getNestedValue(commonDict, rest as string[]);
+          }
+
+          // 4. Flat key lookups in common
+          if (result === undefined && commonDict) {
+            if (typeof commonDict[key] === 'string') {
+              result = commonDict[key];
+            } else if (typeof commonDict[parts.join('.')] === 'string') {
+              result = commonDict[parts.join('.')];
+            } else if (ns === 'common' && typeof commonDict[rest.join('.')] === 'string') {
+              result = commonDict[rest.join('.')];
+            }
+          }
         }
 
         if (result !== undefined) break;
@@ -129,9 +169,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
         result = key; // Fallback to raw key
       }
 
-      if (params) {
+      if (params && typeof result === 'string') {
         for (const [pKey, pVal] of Object.entries(params)) {
-          result = result.replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal));
+          const escapedKey = pKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          result = result.replace(new RegExp(`\\{${escapedKey}\\}`, 'g'), () => String(pVal));
         }
       }
 

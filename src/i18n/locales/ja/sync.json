@@ -1,8 +1,83 @@
 {
-  "title": "データ同期管理",
-  "googleSheets": "スプレッドシート連携",
-  "biDirectional": "双方向同期",
-  "availableLots": "連携可能ロット",
-  "syncNow": "今すぐ同期",
-  "webhookStatus": "Webhook状態"
+  "title": "データ同期設定",
+  "googleSheets": "Googleシート連携",
+  "biDirectional": "双方向連携",
+  "availableLots": "利用可能ロット",
+  "syncNow": "直ちに同期",
+  "webhookStatus": "Webhook状態",
+  "gateway": {
+    "title": "双方向通信ゲートウェイ",
+    "subtitle": "Googleシートとの同期およびGoogle Apps Scriptによる変更通知",
+    "inboundSection": "1. 受信同期 (Googleシート → MES)",
+    "sheetUrlLabel": "Googleシート CSVエクスポートURL:",
+    "syncModeLabel": "同期モード:",
+    "modeReplace": "全件上書き (Replace)",
+    "modeMerge": "更新・差分統合 (Merge)",
+    "autoRefreshLabel": "自動同期周期:",
+    "autoRefreshOff": "自動無効",
+    "refreshSeconds": "{sec} 秒",
+    "refreshMinutes": "{min} 分",
+    "loadPreview": "プレビュー読込",
+    "loading": "Googleシートからデータ取得中...",
+    "applyData": "システムへ反映",
+    "revertData": "元データへ復元",
+    "modeReplaceDesc": "既存キャッシュを消去し、Googleスプレッドシートから最新データを全件再取得します。",
+    "modeMergeDesc": "新規ロットを追加し、ID_Key が重複する既存ロットを上書き更新します。"
+  },
+  "preview": {
+    "title": "事前検証プレビュー (Staging Preview)",
+    "subtitle": "システム反映前に件数統計および変更差分を確認",
+    "totalRows": "総行数",
+    "validRows": "有効",
+    "errorRows": "書式エラー",
+    "newRows": "新規ロット",
+    "updatedRows": "更新対象",
+    "noPreview": "プレビューデータがありません。URLを入力して「プレビュー読込」をクリックしてください。",
+    "recordsUnit": "件"
+  },
+  "webhook": {
+    "badge": "双方向発信 (OUTBOUND)",
+    "title": "Google Apps Script Webhook 進捗通知連携",
+    "statusConnected": "接続待機中",
+    "statusNotConfigured": "未設定",
+    "autoPush": "自動通知項目: 状態・受入日・硬度",
+    "urlLabel": "Google Apps Script Webhook URL (POST):",
+    "urlPlaceholder": "https://script.google.com/macros/s/.../exec",
+    "save": "接続を保存",
+    "saved": "保存済",
+    "testConnection": "接続テスト",
+    "testing": "テスト中...",
+    "delete": "設定削除",
+    "description": "工程管理画面でロット状態が更新された際、システムはGoogle Apps ScriptへJSONを送信してマスターシートへ書き戻します。",
+    "toasts": {
+      "urlInvalid": "無効なURL形式です！Webhookは https://script.google.com/macros/s/.../exec の形式である必要があります",
+      "saveSuccess": "Googleシート書き戻しWebhookの設定が完了しました。",
+      "deleteSuccess": "書き戻しWebhook設定を削除しました。",
+      "testSuccess": "Webhook接続テストに成功しました！",
+      "testFailed": "Webhook接続テスト失敗: {error}"
+    }
+  },
+  "audit": {
+    "title": "Webhook書き戻し監査ログ",
+    "clear": "ログ消去",
+    "empty": "記録された同期イベントはありません。",
+    "cols": {
+      "time": "記録日時",
+      "lotId": "ロットID",
+      "event": "イベント",
+      "payload": "送信データ",
+      "status": "通信結果"
+    }
+  },
+  "status": {
+    "idle": "待機中",
+    "inProgress": "処理中",
+    "success": "成功",
+    "failed": "失敗",
+    "rowsLoaded": "{count} 件読み込み完了",
+    "cacheStatus": "キャッシュ容量: {size} MB"
+  },
+  "twoWay": {
+    "recentHeader": "変更履歴・監査ログ (AUDIT TRAIL)"
+  }
 }

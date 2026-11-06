@@ -10,5 +10,18 @@
   "route1Title": "[1] LUÂN CHUYỂN",
   "route2Title": "[2] TỔNG QUAN",
   "route3Title": "[3] ĐƠN ĐẶT HÀNG",
-  "route4Title": "[4] ĐỒNG BỘ"
+  "route4Title": "[4] ĐỒNG BỘ",
+  "route1Sub": "Bảng điều độ luân chuyển nhiệt luyện chi tiết khuôn",
+  "route2Sub": "Tổng quan hệ thống & Biên bản giao ca A4",
+  "route3Sub": "Chi tiết đơn đặt hàng & linh kiện gia công",
+  "route4Sub": "Đồng bộ Google Sheets & Webhook hai chiều",
+  "sections": {
+    "operations": "ĐIỀU HÀNH",
+    "system": "HỆ THỐNG"
+  },
+  "ariaLabel": "Thanh điều hướng chính",
+  "shortcutHint": "Phím [{key}]",
+  "palette": {
+    "title": "Bảng lệnh nhanh"
+  }
 }

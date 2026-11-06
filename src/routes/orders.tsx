@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDynamo } from '@/components/dynamo-shell';
+import { useTranslation } from '@/i18n';
 import { date, money, number, type QTItem } from '@/lib/dynamo-data';
 import { formatVendorName, canViewPricing } from '@/lib/dynamo-auth';
 import { isMaterialEquivalent } from '@/lib/materials-data';
@@ -21,13 +22,13 @@ import { LotUpdateButton } from '@/components/lot-update-dialog';
 import { JobTicketButton, BatchJobTicketModal } from '@/components/job-ticket';
 import { daysOver, isDueSoon, isMissingDue, isOverdue, isOpen, isDone } from '@/lib/dynamo-rules';
 
-const dueTag = (i: QTItem) =>
+const dueTag = (i: QTItem, t?: (k: string, p?: any) => string) =>
   isOverdue(i)
-    ? { t: `Quá hạn ${daysOver(i)}d`, c: 'border-destructive/60 bg-destructive/15 text-destructive font-bold' }
+    ? { t: t ? (t('tracking.dueTags.overdueDays', { days: daysOver(i) }) || `Quá hạn ${daysOver(i)}d`) : `Quá hạn ${daysOver(i)}d`, c: 'border-destructive/60 bg-destructive/15 text-destructive font-bold' }
     : isDueSoon(i)
-    ? { t: 'Cận hạn 48h', c: 'border-warning/60 bg-warning/15 text-warning font-bold' }
+    ? { t: t ? (t('tracking.dueTags.dueSoon48') || 'Cận hạn 48h') : 'Cận hạn 48h', c: 'border-warning/60 bg-warning/15 text-warning font-bold' }
     : isMissingDue(i)
-    ? { t: i.han_tra_est ? 'Hạn ước tính' : 'Thiếu hạn trả', c: 'border-border bg-secondary text-muted-foreground' }
+    ? { t: i.han_tra_est ? (t ? (t('tracking.dueTags.estDue') || 'Hạn ước tính') : 'Hạn ước tính') : (t ? (t('tracking.dueTags.missingDue') || 'Thiếu hạn trả') : 'Thiếu hạn trả'), c: 'border-border bg-secondary text-muted-foreground' }
     : null;
 
 export const Route = createFileRoute('/orders')({
@@ -54,6 +55,7 @@ type TableDensity = 'compact' | 'normal';
 type SubFilter = 'all' | 'overdue' | 'due_soon' | 'open' | 'done';
 
 function Orders() {
+  const { t, locale } = useTranslation();
   const { filtered, role, sourceLabel, syncedAt, pullLive, loading } = useDynamo();
   const search = Route.useSearch();
   const [materialFilter, setMaterialFilter] = useState<string | null>(search.material ?? null);
@@ -99,12 +101,12 @@ function Orders() {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         const nextIndex = currentIndex < groups.length - 1 ? currentIndex + 1 : 0;
-        setSelected(groups[nextIndex]);
+        setSelected(groups[nextIndex] ?? null);
         setSubFilter('all');
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : groups.length - 1;
-        setSelected(groups[prevIndex]);
+        setSelected(groups[prevIndex] ?? null);
         setSubFilter('all');
       }
     };
@@ -171,16 +173,16 @@ function Orders() {
   };
 
   const tableHeaders = [
-    'MÃ HÀNG',
-    'MÁC THÉP / HRC',
-    'KÍCH THƯỚC',
-    'SL',
-    'KHỐI LƯỢNG',
-    ...(isPricingAllowed ? ['ĐƠN GIÁ', 'THÀNH TIỀN'] : []),
-    'HẠN TRẢ',
-    'TRẠNG THÁI',
+    t('orders.headers.itemCode') || 'MÃ HÀNG',
+    t('orders.headers.material') || 'MÁC THÉP / HRC',
+    t('orders.headers.dimensions') || 'KÍCH THƯỚC',
+    t('orders.headers.qty') || 'SL',
+    t('orders.headers.weight') || 'KHỐI LƯỢNG',
+    ...(isPricingAllowed ? [t('orders.headers.unitPrice') || 'ĐƠN GIÁ', t('orders.headers.totalAmount') || 'THÀNH TIỀN'] : []),
+    t('tracking.columns.dueDate') || 'HẠN TRẢ',
+    t('common.status') || 'TRẠNG THÁI',
     'PDF',
-    'THAO TÁC',
+    t('orders.headers.actions') || 'THAO TÁC',
   ];
 
   return (
@@ -190,13 +192,13 @@ function Orders() {
         {/* Left: View Identity & Order Scope */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground">
-            [3] ĐƠN ĐẶT HÀNG
+            {t('nav.route3Title') || '[3] ĐƠN ĐẶT HÀNG'}
           </span>
           <span className="rounded-xs border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
-            {number(groups.length)} ĐƠN
+            {number(groups.length)} {t('orders.orderCount', { count: '' }).trim() || 'ĐƠN'}
           </span>
           <span className="rounded-xs border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-muted-foreground">
-            {number(filtered.length)} LÔ LINH KIỆN
+            {number(filtered.length)} {t('orders.actions.partsCount', { count: '' }).trim() || 'LÔ LINH KIỆN'}
           </span>
         </div>
 
@@ -206,12 +208,12 @@ function Orders() {
             type="button"
             onClick={() => void pullLive(true)}
             disabled={loading}
-            title="Làm mới dữ liệu từ Google Sheets (Phím tắt: Shift + R)"
+            title={t('tracking.toolbars.refresh') || 'Làm mới dữ liệu từ Google Sheets (Phím tắt: Shift + R)'}
             aria-label="Làm mới dữ liệu từ Google Sheets"
             className="inline-flex h-8 items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 text-xs font-bold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation disabled:opacity-60"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin text-primary' : 'text-primary'} />
-            <span>{loading ? 'Đang tải…' : 'Làm mới'}</span>
+            <span>{loading ? (t('common.loading') || 'Đang tải…') : (t('common.refresh') || 'Làm mới')}</span>
             <kbd className="hidden md:inline-block font-mono text-[9px] text-muted-foreground bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
               Shift+R
             </kbd>
@@ -221,7 +223,7 @@ function Orders() {
             <span className="font-mono text-[10px]">{sourceLabel}</span>
             {syncedAt ? (
               <span className="font-mono text-[10px] tabular-nums text-foreground/80">
-                · {new Date(syncedAt).toLocaleTimeString('vi-VN', { hour12: false })}
+                · {new Date(syncedAt).toLocaleTimeString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN', { hour12: false })}
               </span>
             ) : null}
           </div>
@@ -240,7 +242,7 @@ function Orders() {
           <div className="shrink-0 border-b border-border p-2.5 bg-secondary/20">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
-                Danh sách đơn hàng
+                {t('orders.masterListTitle') || 'Danh sách đơn'}
               </h2>
               <span className="font-mono text-xs font-bold tabular-nums text-foreground">
                 {number(visibleGroups.length)} / {number(groups.length)}
@@ -251,7 +253,7 @@ function Orders() {
             <input
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="Lọc mã đơn, mã hàng..."
+              placeholder={t('orders.searchPlaceholder') || 'Lọc mã đơn, mã hàng...'}
               aria-label="Lọc danh sách đơn"
               className="h-8 w-full rounded-xs border border-input bg-background pl-8 pr-2.5 text-xs outline-none transition-colors focus:border-primary font-mono shadow-2xs"
             />
@@ -259,13 +261,13 @@ function Orders() {
           {materialFilter && (
             <div className="mt-1.5 flex items-center justify-between rounded-xs bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
               <span>
-                Mác thép: <b>{materialFilter}</b>
+                {t('orders.headers.material') || 'Mác thép'}: <b>{materialFilter}</b>
               </span>
               <button
                 type="button"
                 onClick={() => setMaterialFilter(null)}
                 className="rounded-xs p-0.5 hover:bg-primary/20 cursor-pointer"
-                aria-label="Bỏ lọc mác thép"
+                aria-label={t('tracking.actions.clearFilter') || 'Bỏ lọc mác thép'}
               >
                 <X size={12} />
               </button>
@@ -301,21 +303,21 @@ function Orders() {
                   <div className="flex items-center gap-1 font-mono text-[10px] tabular-nums">
                     {overdueCount > 0 && (
                       <span className="rounded-xs bg-destructive/15 px-1 py-0.2 font-bold text-destructive">
-                        {overdueCount} trễ
+                        {overdueCount} {t('dashboard.bottlenecks.overdueCol') || 'trễ'}
                       </span>
                     )}
                     {dueSoonCount > 0 && (
                       <span className="rounded-xs bg-warning/15 px-1 py-0.2 font-bold text-warning">
-                        {dueSoonCount} cận
+                        {dueSoonCount} {t('dashboard.bottlenecks.dueSoonCol') || 'cận'}
                       </span>
                     )}
-                    <span className="text-muted-foreground">{g.length} mã</span>
+                    <span className="text-muted-foreground">{g.length} {t('orders.actions.partsCount', { count: '' }).trim() || 'mã'}</span>
                   </div>
                 </div>
 
                 <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                   <span className="truncate max-w-[160px]">
-                    {[...new Set(g.map((i) => i.phong_sx))].join(', ')} · {formatVendorName(g[0]?.cty_QT, role)}
+                    {[...new Set(g.map((i) => i.phong_sx))].join(', ')} · {formatVendorName(g[0]?.cty_QT, role, locale)}
                   </span>
                   <span className="font-mono tabular-nums">{date(g[0]?.ngay_gui_QT ?? '')}</span>
                 </div>
@@ -327,7 +329,7 @@ function Orders() {
                     </span>
                   ) : (
                     <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
-                      {number(orderPcs)} cái
+                      {number(orderPcs)} {t('common.units.pcs') || 'cái'}
                     </span>
                   )}
                   <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
@@ -340,12 +342,12 @@ function Orders() {
 
           {groups.length > LIST_LIMIT && (
             <p className="p-3 text-center text-[10px] text-muted-foreground font-mono">
-              Hiển thị {LIST_LIMIT}/{groups.length.toLocaleString('vi-VN')} đơn — lọc để tìm nhanh
+              Hiển thị {LIST_LIMIT}/{groups.length.toLocaleString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN')} đơn — lọc để tìm nhanh
             </p>
           )}
           {!groups.length && (
             <p className="p-6 text-center text-xs text-muted-foreground">
-              {localSearch ? `Không tìm thấy đơn khớp "${localSearch}"` : 'Chưa có đơn hàng trong phạm vi lọc'}
+              {localSearch ? (t('orders.detail.emptyParts') || `Không tìm thấy đơn khớp "${localSearch}"`) : (t('orders.actions.noSelectedOrder') || 'Chưa có đơn hàng trong phạm vi lọc')}
             </p>
           )}
         </div>
@@ -368,7 +370,7 @@ function Orders() {
                   onClick={() => setMobileView('list')}
                   className="inline-flex lg:hidden items-center gap-1.5 rounded-xs border border-border bg-background px-2 py-1 text-xs font-bold text-foreground hover:bg-secondary cursor-pointer"
                 >
-                  <ArrowLeft size={13} /> Danh sách đơn
+                  <ArrowLeft size={13} /> {t('orders.masterListTitle') || 'Danh sách đơn'}
                 </button>
 
                 <div className="flex items-center gap-2">
@@ -376,19 +378,19 @@ function Orders() {
                     {active}
                   </span>
                   <span className="rounded-xs bg-primary/10 border border-primary/20 px-1.5 py-0.2 font-mono text-[10px] font-bold text-primary uppercase">
-                    GỬI {date(first.ngay_gui_QT)}
+                    {t('tracking.columns.sentDate') || 'GỬI'} {date(first.ngay_gui_QT)}
                   </span>
                 </div>
 
                 <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span>·</span>
-                  <span>Đối tác: <b className="text-foreground">{formatVendorName(first.cty_QT, role)}</b></span>
+                  <span>{t('tracking.columns.partner') || 'Đối tác'}: <b className="text-foreground">{formatVendorName(first.cty_QT, role, locale)}</b></span>
                 </div>
 
                 {/* Inline Progress Bar */}
                 <div className="hidden md:flex items-center gap-2 pl-2 border-l border-border/80">
                   <span className="font-mono text-[10px] font-bold text-muted-foreground uppercase">
-                    Tiến độ:
+                    {t('orders.progressPrefix') || 'Tiến độ:'}
                   </span>
                   <div className="h-2 w-24 xl:w-32 overflow-hidden rounded-xs border border-border bg-secondary">
                     <div
@@ -400,7 +402,7 @@ function Orders() {
                     {progressPercent}%
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                    ({doneLots}/{allRows.length} lô hoàn tất)
+                    ({doneLots}/{allRows.length} {t('orders.progressSuffix') || 'lô hoàn tất'})
                   </span>
                 </div>
               </div>
@@ -412,26 +414,26 @@ function Orders() {
                   <button
                     type="button"
                     onClick={() => setDensity('compact')}
-                    title="Chế độ nén dòng"
+                    title={t('tracking.density.compact') || 'Chế độ nén dòng'}
                     className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${
                       density === 'compact'
                         ? 'bg-card text-foreground shadow-2xs font-bold'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <AlignJustify size={12} /> Nén
+                    <AlignJustify size={12} /> {t('tracking.density.compact') || 'Nén'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDensity('normal')}
-                    title="Chế độ dòng tiêu chuẩn"
+                    title={t('tracking.density.normal') || 'Chế độ dòng tiêu chuẩn'}
                     className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${
                       density === 'normal'
                         ? 'bg-card text-foreground shadow-2xs font-bold'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <Layers size={12} /> Vừa
+                    <Layers size={12} /> {t('tracking.density.normal') || 'Vừa'}
                   </button>
                 </div>
 
@@ -441,7 +443,7 @@ function Orders() {
                   onClick={() => setBatchPrintOpen(true)}
                   className="h-7.5 px-2.5 gap-1.5 text-xs font-bold rounded-xs cursor-pointer"
                 >
-                  <Printer size={13} /> In phiếu cả đơn
+                  <Printer size={13} /> {t('orders.actions.printAll') || t('orders.actions.printOrderTickets') || 'In phiếu cả đơn'}
                 </Button>
 
                 <Button
@@ -450,7 +452,7 @@ function Orders() {
                   onClick={exportCsv}
                   className="h-7.5 px-2.5 gap-1.5 text-xs font-bold rounded-xs cursor-pointer"
                 >
-                  <Download size={13} /> Xuất CSV
+                  <Download size={13} /> {t('orders.actions.exportOrderCsv') || 'Xuất CSV'}
                 </Button>
               </div>
             </div>
@@ -462,32 +464,32 @@ function Orders() {
               </span>
               <span className="text-border">|</span>
               <span className="text-muted-foreground whitespace-nowrap">
-                ĐỐI TÁC: <strong className="text-foreground">{formatVendorName(first.cty_QT, role)}</strong>
+                {t('tracking.columns.partner') || 'ĐỐI TÁC'}: <strong className="text-foreground">{formatVendorName(first.cty_QT, role, locale)}</strong>
               </span>
               <span className="text-border">|</span>
               <span className="text-muted-foreground whitespace-nowrap">
-                TỔNG KL: <strong className="text-foreground tabular-nums">{number(totalKg, 1)} kg</strong>
+                {t('orders.kpiTotalKg') || 'TỔNG KL'}: <strong className="text-foreground tabular-nums">{number(totalKg, 1)} kg</strong>
               </span>
               <span className="text-border">|</span>
               {isPricingAllowed ? (
                 <span className="text-muted-foreground whitespace-nowrap">
-                  TỔNG GIÁ TRỊ: <strong className="text-primary font-black tabular-nums">{money(total)}</strong>
+                  {t('orders.kpis.totalValue') || t('orders.kpiTotalValue') || 'TỔNG GIÁ TRỊ'}: <strong className="text-primary font-black tabular-nums">{money(total)}</strong>
                 </span>
               ) : (
                 <span className="text-muted-foreground whitespace-nowrap">
-                  TỔNG SỐ LƯỢNG: <strong className="text-primary font-black tabular-nums">{number(totalPcs)} cái</strong>
+                  {t('orders.kpis.totalQty') || t('orders.kpiTotalQty') || 'TỔNG SỐ LƯỢNG'}: <strong className="text-primary font-black tabular-nums">{number(totalPcs)} cái</strong>
                 </span>
               )}
               <span className="text-border">|</span>
               <span className="text-muted-foreground whitespace-nowrap">
-                QUY CÁCH: <strong className="text-foreground tabular-nums">{allRows.length} mã linh kiện</strong>
+                {t('orders.detail.totalItems') || 'QUY CÁCH'}: <strong className="text-foreground tabular-nums">{allRows.length} {t('orders.actions.partsCount', { count: '' }).trim() || 'mã linh kiện'}</strong>
               </span>
             </div>
 
             {/* Sub-filter tab bar */}
             <div className="shrink-0 flex items-center gap-1.5 border-b border-border bg-secondary/15 px-3.5 py-1.5 text-xs overflow-x-auto select-none">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 font-mono">
-                Xem:
+                {t('common.view') || 'Xem'}:
               </span>
               <button
                 type="button"
@@ -498,7 +500,7 @@ function Orders() {
                     : 'border-border bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Tất cả ({counts.all})
+                {t('orders.subFilters.all', { count: counts.all }) || `Tất cả (${counts.all})`}
               </button>
               {counts.overdue > 0 && (
                 <button
@@ -510,7 +512,7 @@ function Orders() {
                       : 'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20'
                   }`}
                 >
-                  Quá hạn ({counts.overdue})
+                  {t('orders.subFilters.overdue', { count: counts.overdue }) || `Quá hạn (${counts.overdue})`}
                 </button>
               )}
               {counts.due_soon > 0 && (
@@ -523,7 +525,7 @@ function Orders() {
                       : 'border-warning/40 bg-warning/10 text-warning hover:bg-warning/20'
                   }`}
                 >
-                  Cận hạn 48h ({counts.due_soon})
+                  {t('orders.subFilters.due_soon', { count: counts.due_soon }) || `Cận hạn 48h (${counts.due_soon})`}
                 </button>
               )}
               <button
@@ -535,7 +537,7 @@ function Orders() {
                     : 'border-border bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Đang gia công ({counts.open})
+                {t('orders.subFilters.open', { count: counts.open }) || `Đang gia công (${counts.open})`}
               </button>
               <button
                 type="button"
@@ -546,7 +548,7 @@ function Orders() {
                     : 'border-border bg-background text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Đã nhập kho ({counts.done})
+                {t('orders.subFilters.done', { count: counts.done }) || `Đã nhập kho (${counts.done})`}
               </button>
             </div>
 
@@ -555,16 +557,16 @@ function Orders() {
               <table className="w-full min-w-[950px] text-left text-xs">
                 <thead className="sticky top-0 z-10 border-b border-border bg-secondary/95 backdrop-blur-xs text-[10px] font-bold tracking-wider text-muted-foreground uppercase font-mono">
                   <tr>
-                    {tableHeaders.map((t) => (
-                      <th key={t} className="px-3.5 py-2">
-                        {t}
+                    {tableHeaders.map((hdr) => (
+                      <th key={hdr} className="px-3.5 py-2">
+                        {hdr}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {shown.map((i) => {
-                    const tag = dueTag(i);
+                    const tag = dueTag(i, t);
                     const padY = density === 'compact' ? 'py-1.5' : 'py-2.5';
                     return (
                       <tr
@@ -627,26 +629,26 @@ function Orders() {
 
             {filteredRows.length > ROW_LIMIT && (
               <p className="shrink-0 border-t border-border px-4 py-1.5 text-[10px] text-muted-foreground font-mono bg-secondary/10">
-                Hiển thị {ROW_LIMIT}/{filteredRows.length.toLocaleString('vi-VN')} dòng — xuất CSV để tải toàn bộ
+                Hiển thị {ROW_LIMIT}/{filteredRows.length.toLocaleString(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'vi-VN')} dòng — xuất CSV để tải toàn bộ
               </p>
             )}
 
             {/* Bottom Summary Bar */}
             <div className="shrink-0 flex items-center justify-between border-t border-border bg-secondary/40 px-4 py-2 select-none">
               <span className="text-xs text-muted-foreground font-mono">
-                Đang hiển thị {shown.length}/{filteredRows.length} lô gia công
+                {t('common.view') || 'Đang hiển thị'} {shown.length}/{filteredRows.length} {t('common.units.lots') || 'lô'}
               </span>
               <div className="flex items-center gap-3">
                 {isPricingAllowed ? (
                   <>
-                    <span className="text-xs font-semibold text-muted-foreground uppercase font-mono">Tổng cộng đơn:</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase font-mono">{t('orders.kpis.totalValue') || t('orders.kpiTotalValue') || 'Tổng cộng đơn:'}</span>
                     <strong className="font-mono text-base font-black tabular-nums text-primary">{money(total)}</strong>
                   </>
                 ) : (
                   <>
-                    <span className="text-xs font-semibold text-muted-foreground uppercase font-mono">Tổng linh kiện:</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase font-mono">{t('orders.kpis.totalQty') || t('orders.kpiTotalQty') || 'Tổng linh kiện:'}</span>
                     <strong className="font-mono text-base font-black tabular-nums text-primary">
-                      {number(totalPcs)} cái
+                      {number(totalPcs)} {t('common.units.pcs') || 'cái'}
                     </strong>
                   </>
                 )}
@@ -664,7 +666,7 @@ function Orders() {
         ) : (
           <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2.5 text-muted-foreground">
             <Package size={28} className="opacity-40" />
-            <p className="text-xs font-semibold">Không có đơn hàng phù hợp bộ lọc</p>
+            <p className="text-xs font-semibold">{t('orders.detail.emptyParts') || 'Không có đơn hàng phù hợp bộ lọc'}</p>
           </div>
         )}
       </div>

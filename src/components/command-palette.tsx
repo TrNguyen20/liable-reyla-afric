@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import * as React from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   DatabaseZap,
@@ -9,9 +9,8 @@ import {
   Moon,
   Package,
   RefreshCw,
-  Search,
   Sun,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -21,11 +20,11 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from '@/components/ui/command';
-import { useDynamo } from '@/components/dynamo-shell';
-import { formatVendorName, type Role } from '@/lib/dynamo-auth';
-import { type QTItem, type Workshop } from '@/lib/dynamo-data';
-import { isOverdue } from '@/lib/dynamo-rules';
+} from "@/components/ui/command";
+import { useDynamo } from "@/components/dynamo-shell";
+import { formatVendorName } from "@/lib/dynamo-auth";
+import { type QTItem, type Workshop } from "@/lib/dynamo-data";
+import { useTranslation } from "@/i18n";
 
 export function CommandPalette({
   open,
@@ -40,7 +39,8 @@ export function CommandPalette({
 }) {
   const navigate = useNavigate();
   const { dataset, role, setWorkshop, resetDataset } = useDynamo();
-  const [search, setSearch] = React.useState('');
+  const { t, locale } = useTranslation();
+  const [search, setSearch] = React.useState("");
 
   const searchResults = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -60,12 +60,12 @@ export function CommandPalette({
     return hits;
   }, [dataset, search]);
 
-  const handleSelectNav = (path: '/tracking' | '/dashboard' | '/orders' | '/sync') => {
+  const handleSelectNav = (path: "/tracking" | "/dashboard" | "/orders" | "/sync") => {
     onOpenChange(false);
     navigate({ to: path });
   };
 
-  const handleSelectWorkshop = (ws: 'Tất cả' | Workshop) => {
+  const handleSelectWorkshop = (ws: "Tất cả" | Workshop) => {
     setWorkshop(ws);
     onOpenChange(false);
   };
@@ -73,15 +73,15 @@ export function CommandPalette({
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput
-        placeholder="Tìm kiếm mã hàng, số đơn hàng, mã lô hoặc thao tác nhanh... (ESC để đóng)"
+        placeholder={t("common.command.placeholder")}
         value={search}
         onValueChange={setSearch}
       />
       <CommandList className="max-h-[380px]">
-        <CommandEmpty>Không tìm thấy kết quả phù hợp.</CommandEmpty>
+        <CommandEmpty>{t("common.command.empty")}</CommandEmpty>
 
         {searchResults.length > 0 && (
-          <CommandGroup heading="LÔ HÀNG & MÃ LINH KIỆN KHỚP">
+          <CommandGroup heading={t("common.command.matchedLots")}>
             {searchResults.map((item) => {
               return (
                 <CommandItem
@@ -89,18 +89,21 @@ export function CommandPalette({
                   value={`${item.ma_hang} ${item.ID_Key} ${item.So_DatHang} ${item.vat_lieu}`}
                   onSelect={() => {
                     onOpenChange(false);
-                    navigate({ to: '/tracking' });
+                    navigate({ to: "/tracking" });
                   }}
                   className="flex items-center justify-between py-2.5"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-secondary font-mono text-[11px] font-bold text-primary">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-xs bg-secondary font-mono text-[11px] font-bold text-primary">
                       {item.phong_sx}
                     </span>
                     <div className="truncate">
-                      <p className="font-mono text-xs font-bold text-foreground truncate">{item.ma_hang}</p>
+                      <p className="font-mono text-xs font-bold text-foreground truncate">
+                        {item.ma_hang}
+                      </p>
                       <p className="font-mono text-[10px] text-muted-foreground truncate">
-                        {item.ID_Key} · Đơn: {item.So_DatHang} · {item.vat_lieu} · {formatVendorName(item.cty_QT, role)}
+                        {item.ID_Key} · {t("common.command.orderPrefix")} {item.So_DatHang} ·{" "}
+                        {item.vat_lieu} · {formatVendorName(item.cty_QT, role, locale)}
                       </p>
                     </div>
                   </div>
@@ -115,43 +118,47 @@ export function CommandPalette({
           </CommandGroup>
         )}
 
-        <CommandGroup heading="ĐIỀU HƯỚNG NHANH">
-          <CommandItem onSelect={() => handleSelectNav('/tracking')}>
+        <CommandGroup heading={t("common.command.quickNav")}>
+          <CommandItem onSelect={() => handleSelectNav("/tracking")}>
             <ArrowLeftRight className="mr-2 h-4 w-4 text-primary" />
-            <span>Luân chuyển nhiệt luyện QT</span>
-            <CommandShortcut>Phím 1</CommandShortcut>
+            <span>{t("nav.route1Title")}</span>
+            <CommandShortcut>{t("nav.trackingShortcut")}</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => handleSelectNav('/dashboard')}>
+          <CommandItem onSelect={() => handleSelectNav("/dashboard")}>
             <LayoutDashboard className="mr-2 h-4 w-4 text-primary" />
-            <span>Tổng quan hệ thống</span>
-            <CommandShortcut>Phím 2</CommandShortcut>
+            <span>{t("nav.route2Title")}</span>
+            <CommandShortcut>{t("nav.dashboardShortcut")}</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => handleSelectNav('/orders')}>
+          <CommandItem onSelect={() => handleSelectNav("/orders")}>
             <Package className="mr-2 h-4 w-4 text-primary" />
-            <span>Đơn đặt hàng & chi tiết</span>
-            <CommandShortcut>Phím 3</CommandShortcut>
+            <span>{t("nav.route3Title")}</span>
+            <CommandShortcut>{t("nav.ordersShortcut")}</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => handleSelectNav('/sync')}>
+          <CommandItem onSelect={() => handleSelectNav("/sync")}>
             <DatabaseZap className="mr-2 h-4 w-4 text-primary" />
-            <span>Liên kết Google Sheets</span>
-            <CommandShortcut>Phím 4</CommandShortcut>
+            <span>{t("nav.route4Title")}</span>
+            <CommandShortcut>{t("nav.syncShortcut")}</CommandShortcut>
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="LỌC PHÂN XƯỞNG">
-          {(['Tất cả', 'PIN', 'INSERT', 'MOLD'] as const).map((ws) => (
+        <CommandGroup heading={t("common.command.workshopFilter")}>
+          {(["Tất cả", "PIN", "INSERT", "MOLD"] as const).map((ws) => (
             <CommandItem key={ws} onSelect={() => handleSelectWorkshop(ws)}>
               <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>Phân xưởng: {ws === 'Tất cả' ? 'Toàn nhà máy (ALL)' : ws}</span>
+              <span>
+                {ws === "Tất cả"
+                  ? t("common.command.allWorkshops")
+                  : t("common.command.workshopPrefix", { ws })}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="THAO TÁC HỆ THỐNG">
+        <CommandGroup heading={t("common.command.systemActions")}>
           <CommandItem
             onSelect={() => {
               onOpenChange(false);
@@ -159,7 +166,7 @@ export function CommandPalette({
             }}
           >
             <RefreshCw className="mr-2 h-4 w-4 text-muted-foreground" />
-            <span>Làm mới & Kéo dữ liệu từ Google Sheets</span>
+            <span>{t("common.command.pullData")}</span>
           </CommandItem>
           <CommandItem
             onSelect={() => {
@@ -169,7 +176,7 @@ export function CommandPalette({
           >
             <Sun className="mr-2 h-4 w-4 text-muted-foreground dark:hidden" />
             <Moon className="mr-2 h-4 w-4 text-muted-foreground hidden dark:inline" />
-            <span>Chuyển đổi giao diện Sáng / Tối</span>
+            <span>{t("common.command.toggleTheme")}</span>
           </CommandItem>
           <CommandItem
             onSelect={() => {
@@ -179,7 +186,7 @@ export function CommandPalette({
             className="text-destructive"
           >
             <LogOut className="mr-2 h-4 w-4 text-destructive" />
-            <span>Đăng xuất phiên làm việc</span>
+            <span>{t("common.command.logout")}</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>

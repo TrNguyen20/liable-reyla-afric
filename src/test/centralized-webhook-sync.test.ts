@@ -47,7 +47,7 @@ describe('Centralized Server-side Webhook & Bidirectional Sync Contract', () => 
   });
 
   it('TC-03: Trả về chuỗi rỗng khi chưa có Webhook nào được cấu hình', async () => {
-    delete process.env.DYNAMO_WEBHOOK_URL;
+    delete process.env['DYNAMO_WEBHOOK_URL'];
     await saveCentralWebhookUrl('', 'admin');
     const retrieved = await getCentralWebhookUrl();
     expect(retrieved).toBe('');
@@ -130,7 +130,7 @@ describe('Centralized Server-side Webhook & Bidirectional Sync Contract', () => 
   });
 
   it('TC-06: Khi chưa có tệp cấu hình và chưa có biến môi trường, tự động trả về DEFAULT_WEBHOOK_URL dự phòng trên serverless', async () => {
-    delete process.env.DYNAMO_WEBHOOK_URL;
+    delete process.env['DYNAMO_WEBHOOK_URL'];
     _resetCachedConfigForTesting();
     const retrieved = await getCentralWebhookUrl();
     expect(retrieved).toBe(DEFAULT_WEBHOOK_URL);

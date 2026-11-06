@@ -1,10 +1,40 @@
 {
-  "shift": "Working Shift",
+  "shift": "Work Shift",
   "shiftName": "Shift {shift}",
-  "liveHub": "LIVE HUB CONNECTED",
+  "liveHub": "LIVE HUB",
   "localCache": "LOCAL CACHE",
-  "totalLots": "Total Lots",
-  "externalHeatTreatment": "EXTERNAL SUBCONTRACT",
+  "totalLots": "Total lots",
+  "externalHeatTreatment": "EXTERNAL HEAT TREATMENT",
   "workshopLoad": "WORKSHOP LOAD",
-  "updatedAt": "Updated at"
+  "updatedAt": "Updated at",
+  "states": {
+    "syncing": "Syncing...",
+    "error": "Google Sheets Connection Error",
+    "ready": "Ready to sync",
+    "offline": "Offline",
+    "connected": "Connected"
+  },
+  "ribbon": {
+    "externalShort": "External:",
+    "loadShort": "Load:",
+    "openLots": "{count} open lots",
+    "expandTooltip": "Expand shopfloor KPI telemetry bar",
+    "kpiMetrics": "KPI Metrics",
+    "collapseTooltip": "Collapse KPI telemetry bar to maximize table view",
+    "collapse": "Collapse",
+    "datasetRows": "· {count} rows"
+  },
+  "shifts": {
+    "shift1": "Shift 1 (06:00 - 14:00)",
+    "shift2": "Shift 2 (14:00 - 22:00)",
+    "shift3": "Shift 3 (22:00 - 06:00)"
+  },
+  "labels": {
+    "connectionLive": "LIVE",
+    "connectionOffline": "OFFLINE",
+    "latency": "Latency: {ms}ms",
+    "memoryUsage": "Memory: {percent}%",
+    "activeWorkers": "Shift Workers: {count}",
+    "plantEfficiency": "Plant Efficiency: {percent}%"
+  }
 }

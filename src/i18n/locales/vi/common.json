@@ -23,5 +23,368 @@
   "view": "Góc nhìn",
   "logout": "Đăng xuất",
   "themeLight": "Chuyển Light mode",
-  "themeDark": "Chuyển Dark mode"
+  "themeDark": "Chuyển Dark mode",
+  "vendorMask": "Đã Ẩn",
+  "slogan": "Kỷ luật - Chính xác - An toàn - Đúng hạn",
+  "retry": "Thử lại",
+  "edit": "Chỉnh sửa",
+  "print": "In",
+  "copy": "Sao chép",
+  "copied": "Đã sao chép",
+  "actions": "Thao tác",
+  "status": "Trạng thái",
+  "date": "Ngày",
+  "time": "Thời gian",
+  "note": "Ghi chú",
+  "details": "Chi tiết",
+  "total": "Tổng cộng",
+  "units": {
+    "kg": "kg",
+    "pcs": "cái",
+    "lot": "lô",
+    "lots": "lô",
+    "items": "chi tiết",
+    "hours": "giờ",
+    "days": "ngày"
+  },
+  "meta": {
+    "title": "DYNAMO VIETNAM QT - MES",
+    "description": "Hệ thống điều hành nhà thầu phụ, nhiệt luyện và luân chuyển QT chuyên nghiệp cho xưởng gia công cơ khí chính xác."
+  },
+  "clock": {
+    "ariaLabel": "Đồng hồ thời gian thực"
+  },
+  "langSwitcher": {
+    "title": "Chuyển đổi ngôn ngữ / Switch Language / 言語切替",
+    "ariaLabel": "Chọn ngôn ngữ hệ thống"
+  },
+  "footer": {
+    "copyright": "© 2026 DYNAMO VIETNAM QT - MES · Hệ thống luân chuyển nhiệt luyện & xi mạ",
+    "runtime": "Môi trường mô phỏng (Edge Runtime)"
+  },
+  "notFound": {
+    "title": "Không tìm thấy tài nguyên",
+    "desc": "Đường dẫn yêu cầu không tồn tại trong hệ thống điều hành luân chuyển QT. Vui lòng kiểm tra lại URL hoặc quay về bảng điều độ chính.",
+    "backAction": "Quay về Luân chuyển QT"
+  },
+  "errorBoundary": {
+    "badge": "SỰ CỐ VẬN HÀNH / RUNTIME FAIL-SAFE",
+    "title": "Không thể kết nối hoặc kết xuất dữ liệu",
+    "desc": "Hệ thống phát hiện lỗi ngoại lệ trong luồng runtime. Bộ tự phục hồi sẵn sàng khôi phục phiên an toàn.",
+    "retry": "Thử tải lại luồng",
+    "selfHeal": "Khôi phục sạch (Self-Heal)",
+    "goHome": "Về Luân chuyển QT",
+    "toggleLogShow": "Xem nhật ký ngoại lệ kỹ thuật ▼",
+    "toggleLogHide": "Ẩn nhật ký kỹ thuật ▲"
+  },
+  "toasts": {
+    "refreshSuccess": "Đã làm mới {count} lô từ hệ thống ({elapsed}ms)",
+    "loadFailed": "Không tải được dữ liệu từ hệ thống.",
+    "loadError": "Lỗi tải dữ liệu: {msg}",
+    "accessDenied": "Vai trò của bạn không có quyền truy cập trang này.",
+    "copySuccess": "Đã sao chép mã {code}"
+  },
+  "rolesExtended": {
+    "switcherTooltip": "Chuyển đổi góc nhìn kiểm tra phân quyền",
+    "revertToast": "Đã quay lại góc nhìn Admin thực tế",
+    "impersonateToast": "Đang giả lập góc nhìn: {role}",
+    "cancelImpersonate": "Hủy giả lập",
+    "impersonatedBadge": "(GIẢ LẬP)",
+    "logoutAria": "Đăng xuất"
+  },
+  "dialogs": {
+    "confirmTitle": "Xác nhận hành động",
+    "confirmMessage": "Bạn có chắc chắn muốn thực hiện thao tác này không?",
+    "discardTitle": "Hủy bỏ thay đổi?",
+    "discardMessage": "Các thay đổi chưa lưu sẽ bị mất."
+  },
+  "filters": {
+    "search": "Tìm kiếm...",
+    "clear": "Xóa lọc mã lô",
+    "deselect": "Bỏ chọn",
+    "deselectAll": "Bỏ chọn hết",
+    "selectAll": "Chọn tất cả",
+    "min": "Từ (Min)",
+    "max": "Đến (Max)",
+    "allPartners": "Tất cả đối tác",
+    "allStatus": "Mọi logistics",
+    "resetFilter": "Đặt lại"
+  },
+  "table": {
+    "noData": "Không có dữ liệu",
+    "loadingRows": "Đang nạp dữ liệu hàng...",
+    "selectedRows": "Đã chọn {count} dòng",
+    "stickyPinLeft": "Ghim cột bên trái",
+    "stickyPinRight": "Ghim cột bên phải",
+    "autoFitColumns": "Tự căn chỉnh cột"
+  },
+  "auth": {
+    "meta": {
+      "title": "Đăng nhập | DYNAMO VIETNAM QT - MES",
+      "desc": "Đăng nhập hệ thống điều hành nhà thầu phụ, nhiệt luyện và luân chuyển QT."
+    },
+    "hero": {
+      "badge": "HỆ THỐNG ĐIỀU HÀNH QT NỘI BỘ",
+      "title": "Quản Lý Nhà Thầu Phụ Nhiệt Luyện & Luân Chuyển QT",
+      "subtitle": "Cổng điều hành tập trung phục vụ các xưởng PIN, INSERT, và MOLD. Kiểm soát chặt chẽ hành trình linh kiện, thời gian giao nhận và chất lượng tôi ram."
+    },
+    "features": {
+      "tracking": {
+        "title": "Luân chuyển nhiệt luyện / xi mạ 24/7",
+        "desc": "Giám sát hành trình từng lô hàng từ phân xưởng xuất đến nhà thầu phụ và hoàn tất nhập kho."
+      },
+      "leadTime": {
+        "title": "Kiểm soát trễ hạn đối tác",
+        "desc": "Phát hiện và cảnh báo sớm các lô hàng quá hạn giao trả, đảm bảo tiến độ lắp ráp khuôn."
+      },
+      "pricing": {
+        "title": "Đối soát đơn giá & định mức vật liệu",
+        "desc": "Tự động kiểm tra chênh lệch đơn giá theo quy cách Mác thép × Đơn vị × Nhà cung cấp."
+      }
+    },
+    "plant": {
+      "address": "DYNAMO VIETNAM CO., LTD. · KHU CÔNG NGHIỆP ĐỒNG AN 2",
+      "telemetry": "MES QT CORE: R&D-V1.0-DEMO · DATA SYNC: REAL-TIME"
+    },
+    "form": {
+      "badge": "XÁC THỰC DANH TÍNH",
+      "title": "Đăng Nhập Hệ Thống",
+      "subtitle": "Nhập mã xác thực do ban điều hành cấp để phân quyền truy cập theo vai trò công tác.",
+      "codeLabel": "Bước 2 · Mã truy cập (Access code)",
+      "kioskShow": "Phím số Kiosk",
+      "kioskHide": "Ẩn phím cảm ứng",
+      "codePlaceholderPos": "Nhập mã truy cập của {position}",
+      "codePlaceholderEmpty": "Chọn vị trí ở Bước 1 trước",
+      "codeAria": "Mã xác thực",
+      "clearAria": "Xóa mã",
+      "toggleAria": "Ẩn/hiện mã"
+    },
+    "steps": {
+      "aria": "Tiến trình xác thực",
+      "step1": "Bước 1 · Vị trí",
+      "step2": "Bước 2 · Mã truy cập ULID",
+      "unselected": "Chưa chọn",
+      "codeLoaded": "Đã nạp mã",
+      "codeEmpty": "Chưa nhập"
+    },
+    "positions": {
+      "admin": {
+        "label": "BGĐ / IT hệ thống",
+        "role": "Admin"
+      },
+      "leader": {
+        "label": "Trưởng / Phó phòng",
+        "role": "Leader"
+      },
+      "viewer": {
+        "label": "KTV / Nhân viên",
+        "role": "Viewer"
+      },
+      "partner": {
+        "label": "Nhà cung cấp ngoài",
+        "role": "Partner"
+      }
+    },
+    "kiosk": {
+      "heading": "BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)",
+      "clearAll": "C (Xóa hết)"
+    },
+    "lock": {
+      "title": "Thiết bị tạm khóa an toàn",
+      "desc": "Nhập sai 5 lần liên tiếp. Thử lại khi đồng hồ về 00:00.",
+      "attemptsLeft": "Còn {attemptsLeft}/5 lần thử trước khi khóa thiết bị."
+    },
+    "submit": {
+      "locked": "TẠM KHÓA · {mmss}",
+      "verifying": "ĐANG XÁC THỰC QUYỀN HẠN...",
+      "enter": "XÁC THỰC VỊ TRÍ & VÀO HỆ THỐNG"
+    },
+    "errors": {
+      "requirePosition": "Vui lòng chọn vị trí công tác (Bước 1) trước khi xác thực.",
+      "requireCode": "Vui lòng nhập mã định danh truy cập (Bước 2).",
+      "invalidCode": "Mã xác thực không hợp lệ hoặc đã hết hiệu lực.",
+      "roleMismatch": "Mã truy cập này không thuộc thẩm quyền của vị trí {label} đã chọn.",
+      "networkError": "Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút."
+    },
+    "support": {
+      "text": "Chưa có mã? Vui lòng liên hệ Quản trị viên để được cấp mã truy cập theo phân quyền công việc."
+    }
+  },
+  "command": {
+    "placeholder": "Tìm kiếm mã hàng, số đơn hàng, mã lô hoặc thao tác nhanh... (ESC để đóng)",
+    "empty": "Không tìm thấy kết quả phù hợp.",
+    "matchedLots": "LÔ HÀNG & MÃ LINH KIỆN KHỚP",
+    "orderPrefix": "Đơn:",
+    "quickNav": "ĐIỀU HƯỚNG NHANH",
+    "workshopFilter": "LỌC PHÂN XƯỞNG",
+    "allWorkshops": "Phân xưởng: Toàn nhà máy (ALL)",
+    "workshopPrefix": "Phân xưởng: {ws}",
+    "systemActions": "THAO TÁC HỆ THỐNG",
+    "pullData": "Làm mới & Kéo dữ liệu từ Google Sheets",
+    "toggleTheme": "Chuyển đổi giao diện Sáng / Tối",
+    "logout": "Đăng xuất phiên làm việc"
+  },
+  "lotUpdate": {
+    "triggerTitle": "Cập nhật tiến độ lô {lotId}",
+    "triggerBtn": "Cập nhật",
+    "dialogTitle": "Cập nhật lô {lotId}",
+    "dialogDesc": "Cập nhật trạng thái luân chuyển và thông số kiểm tra nhiệt luyện lô hàng",
+    "itemCode": "Mã hàng",
+    "orderNo": "Số đặt hàng",
+    "vendor": "Đơn vị gia công",
+    "dueDate": "Hạn trả",
+    "noDueDate": "Chưa có",
+    "newStatus": "Trạng thái mới",
+    "keepStatus": "(giữ nguyên)",
+    "needReason": "— cần lý do",
+    "actualReceiveDate": "Ngày nhận thực tế",
+    "actualHardness": "Độ cứng thực tế",
+    "qcPassConfirm": "Tôi xác nhận lô đã QC đạt",
+    "reasonLabel": "Lý do",
+    "reasonPlaceholder": "VD: Độ cứng không đạt, trả vendor gia công lại",
+    "confirmMove": "Xác nhận chuyển {TrangThai} → {targetStatus}? Bấm lại để lưu.",
+    "noChanges": "Chưa có thay đổi nào để lưu.",
+    "invalidMove": "Không được chuyển trực tiếp \"{from}\" → \"{to}\".",
+    "requireReason": "Nhập lý do (ít nhất 5 ký tự) cho thao tác trả/thu hồi.",
+    "requireVendor": "Lô chưa có vendor.",
+    "requireDue": "Lô chưa có hạn trả hợp lệ.",
+    "requireReceiveDate": "Cần ngày nhận hàng thực tế khi chuyển sang Kiểm tra QC.",
+    "requireReceiveDateStock": "Cần ngày nhận thực tế trước khi nhập kho.",
+    "requireHrcStock": "Cần độ cứng thực tế trước khi nhập kho.",
+    "requireQcCheck": "Cần xác nhận \"QC đạt\" trước khi nhập kho.",
+    "dateInvalid": "Ngày nhận không hợp lệ.",
+    "dateBeforeSent": "Ngày nhận không được trước ngày gửi QT.",
+    "dateInFuture": "Ngày nhận không được ở tương lai.",
+    "hrcInvalid": "Độ cứng không hợp lệ (VD: 58-62 HRC).",
+    "networkError": "Không kết nối được máy chủ.",
+    "sheetSyncError": "Chưa ghi được lên Google Sheet: {error}. Dữ liệu chưa thay đổi — bấm Thử lại.",
+    "syncSuccess": "Đã lưu và ghi lên Google Sheet: lô {lotId}",
+    "btnCancel": "Hủy bỏ",
+    "btnSaving": "Đang ghi…",
+    "btnConfirm": "Xác nhận & lưu",
+    "btnRetry": "Thử lại",
+    "btnSave": "Lưu & ghi lên Sheet"
+  },
+  "ticket": {
+    "previewTitle": "TRÌNH XEM TRƯỚC BẢN IN",
+    "previewDesc": "Chuẩn khổ A4 (210 x 297 mm) · Tỷ lệ thực 1:1.414 · Khung 4 chữ ký",
+    "formatA4": "Phiếu A4 chuẩn",
+    "formatPallet": "Tem Pallet",
+    "zoomLabel": "Thu phóng:",
+    "zoomFit": "Vừa màn hình",
+    "zoom100": "100% (1:1)",
+    "copyCode": "Copy mã",
+    "codeCopied": "Đã sao chép",
+    "printNow": "In phiếu ngay",
+    "batchTitle": "IN PHIẾU HÀNG LOẠT ({count} LÔ)",
+    "batchSummary": "Tổng cộng: {pcs} chi tiết · {kg} kg",
+    "tabManifest": "1. Bảng kê tổng hợp ({count} lô)",
+    "tabTickets": "2. Tập phiếu A4 từng lô ({count} trang)",
+    "printManifest": "In Bảng kê tổng hợp",
+    "printAllTickets": "In Tất cả {count} phiếu A4",
+    "companyName": "CÔNG TY TNHH DYNAMO VIỆT NAM",
+    "deptName": "KAIZEN MES · PHÂN XƯỞNG NHIỆT LUYỆN & GIA CÔNG NGOÀI (QT)",
+    "docInfo": "Số phiếu: {docCode} · Số ĐH: {orderNo}",
+    "title": "PHIẾU GIAO NHẬN & LỆNH GIA CÔNG NGOÀI",
+    "processes": "Quy trình: Tôi chân không / Nhiệt luyện thể tích / Thấm Carbon / Xi mạ kỹ thuật",
+    "sec1Title": "I. THÔNG TIN LINH KIỆN & YÊU CẦU KỸ THUẬT",
+    "fields": {
+      "partNo": "Mã linh kiện:",
+      "lotId": "Mã lô (ID):",
+      "senderDept": "Phân xưởng giao:",
+      "recipientVendor": "Đơn vị nhận:",
+      "material": "Mác thép / Vật liệu:",
+      "hardnessReq": "Độ cứng yêu cầu:",
+      "dimensions": "Kích thước SP:",
+      "quantity": "Số lượng xuất:",
+      "weight": "Tổng trọng lượng lô:",
+      "sendDate": "Ngày gửi xuất xưởng:",
+      "dueDate": "Hạn trả cam kết:",
+      "status": "Trạng thái:",
+      "unitPrice": "Đơn giá gia công:",
+      "totalPrice": "Tổng thành tiền (tạm tính):",
+      "hardnessDrawingFallback": "Theo bản vẽ",
+      "dueAgreementFallback": "Theo thỏa thuận",
+      "orderNo": "Số đơn hàng (PO):"
+    },
+    "sec2Title": "II. CHỈ DẪN KỸ THUẬT & QUY CÁCH ĐÓNG GÓI BÀN GIAO",
+    "notes": {
+      "surface": "Bảo vệ bề mặt: Phun dầu chống gỉ sét, quấn màng co bảo vệ ren và các bề mặt lắp ghép chính xác.",
+      "collision": "Tránh va chạm: Đặt khay nhựa / ngăn chia chống cọ xát trực tiếp giữa các linh kiện trong quá trình vận chuyển.",
+      "deformation": "Kiểm soát biến dạng: Độ cong vênh sau tôi ≤ 0.02 mm / 100mm. Báo cáo ngay nếu phát hiện nứt hoặc biến dạng nhiệt.",
+      "coupon": "Mẫu thử kèm theo (coupon): Gia công cùng mẻ tôi để đo kiểm độ cứng và cấu trúc tế vi kim tương."
+    },
+    "sec3Title": "III. KẾT QUẢ ĐO KIỂM TIẾP NHẬN THỰC TẾ (QC INSPECTION LOG)",
+    "qc": {
+      "point1": "Điểm đo 1 (HRC)",
+      "point2": "Điểm đo 2 (HRC)",
+      "point3": "Điểm đo 3 (HRC)",
+      "average": "Trung bình (HRC)",
+      "evaluation": "Đánh giá nghiệm thu: [ ] ĐẠT   [ ] KHÔNG ĐẠT"
+    },
+    "signatures": {
+      "logistics": "1. ĐIỀU VẬN DYNAMO",
+      "security": "2. BẢO VỆ CỔNG",
+      "vendor": "3. ĐƠN VỊ GIA CÔNG",
+      "qc": "4. QC NHẬP KHO",
+      "logisticsSub": "Lập lệnh & xuất kho",
+      "securitySub": "Kiểm tra xuất cổng",
+      "vendorSub": "Tiếp nhận & kiểm đếm",
+      "qcSub": "Nghiệm thu đạt chuẩn",
+      "logisticsSign": "Ký & ghi rõ họ tên",
+      "securitySign": "Ký & ghi giờ xuất",
+      "vendorSign": "Ký & đóng dấu xác nhận",
+      "qcSign": "Ký & ngày nhập kho"
+    },
+    "slogan": "Phương châm xưởng: KỶ LUẬT · CHÍNH XÁC · AN TOÀN · ĐÚNG HẠN",
+    "printedAt": "In lúc: {timestamp}"
+  },
+  "pallet": {
+    "title": "DYNAMO VIỆT NAM · TEM PALLET",
+    "subtitle": "LÔ HÀNG GIA CÔNG NGOÀI (QT)",
+    "workshop": "XƯỞNG {ws}",
+    "partHeading": "MÃ LINH KIỆN KHUÔN",
+    "trackingCode": "MÃ TRUY VẾT: {ID_Key}"
+  },
+  "manifest": {
+    "title": "BẢNG KÊ GIAO NHẬN LÔ HÀNG GIA CÔNG NGOÀI (QT DISPATCH MANIFEST)",
+    "total": "Tổng cộng:",
+    "cols": {
+      "idx": "STT",
+      "lotId": "MÃ LÔ",
+      "itemCode": "MÃ HÀNG",
+      "orderNo": "SỐ PO",
+      "ws": "XƯỞNG",
+      "material": "VẬT LIỆU",
+      "hardness": "ĐỘ CỨNG",
+      "qty": "SL",
+      "weight": "KG",
+      "partner": "ĐỐI TÁC",
+      "dueDate": "HẠN TRẢ",
+      "sign": "KÝ NHẬN"
+    }
+  },
+  "source": "Nguồn",
+  "cache": "Cache",
+  "lastSynced": "Đồng bộ gần nhất",
+  "noTimestamp": "Chưa có mốc thời gian",
+  "thisMonth": "Tháng này",
+  "lastMonth": "Tháng trước",
+  "selected": "Đang chọn",
+  "pagination": {
+    "prev": "Trang trước",
+    "page": "Trang",
+    "next": "Trang sau"
+  },
+  "jobTicket": {
+    "sec1": {
+      "size": "Kích thước SP",
+      "unitPrice": "Đơn giá gia công",
+      "totalPrice": "Thành tiền dự kiến"
+    }
+  },
+  "loading": "Đang tải…",
+  "loading.permissions": "Đang tải dữ liệu phân quyền…",
+  "loading.failedTitle": "Chưa tải được dữ liệu sản xuất",
+  "loading.syncing": "Đang đồng bộ dữ liệu nhiệt luyện từ Google Sheets…"
 }
