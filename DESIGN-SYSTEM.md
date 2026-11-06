@@ -76,8 +76,8 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 | `--background` | `bg-background` | Nền canvas chính | `oklch(0.968 0.003 250)` | `oklch(0.18 0.02 250)` |
 | `--card` | `bg-card` | Khối bảng / Thẻ kỹ thuật | `oklch(1 0 0)` | `oklch(0.24 0.02 250)` |
 | `--border` | `border-border` | Viền khung wireframe 1px | `oklch(0.89 0.008 250)` | `oklch(0.34 0.02 250)` |
-| `--primary` | `bg-primary`, `text-primary` | Màu nhận diện điều độ | `oklch(0.585 0.166 149.3)` | `oklch(0.68 0.16 150)` |
-| `--run` | `bg-run`, `text-run` | Trạng thái Đang chạy / Hoàn tất | `var(--primary)` | `oklch(0.68 0.16 150)` |
+| `--primary` | `bg-primary`, `text-primary` | Màu điều độ chính (Graphite/Titan) | `oklch(0.18 0.02 250)` (Đen Than) | `oklch(0.96 0.005 250)` (Trắng Titan) |
+| `--run` | `bg-run`, `text-run` | Trạng thái Đang chạy / Hoàn tất | `oklch(0.585 0.166 149.3)` (Xanh Andon) | `oklch(0.68 0.16 150)` (Xanh Andon) |
 | `--warning` | `bg-warning`, `text-warning` | Cảnh báo / Chờ xuất xưởng | `oklch(0.80 0.16 85)` | `oklch(0.82 0.15 85)` |
 | `--destructive`| `bg-destructive` | Sự cố / QC Không đạt / Lỗi | `oklch(0.55 0.22 27)` | `oklch(0.63 0.22 27)` |
 | `--info` | `bg-info`, `text-info` | Thông tin / Tại Vendor | `oklch(0.62 0.17 250)` | `oklch(0.72 0.14 250)` |
@@ -120,7 +120,7 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 - Tinh gọn nút bấm: Nút Làm Mới được quy hoạch tập trung tại Toolbar bảng điều độ (Shift+R).
 
 #### 3. Main Tracking Dashboard (`src/routes/tracking.tsx`)
-- Cấu trúc bảng 15 cột tinh gọn (ẩn cột Xưởng do đã có bộ lọc trên Toolbar): Header cố định (`sticky top-0 z-40`), Ghim cố định 2 đầu: Checkbox (`sticky left-0`, 40px) và Mã lô (`sticky left-[40px]`, 130px) ở mép trái; Phiếu A4 (`sticky right-0`, 58px) ở mép phải. 4 cột cố định không co giãn, 11 cột cuộn giữa với bộ đệm an toàn 10px.
+- Cấu trúc bảng 15 cột tinh gọn (ẩn cột Xưởng do đã có bộ lọc trên Toolbar): Header cố định (`sticky top-0 z-40`), Ghim cố định 2 đầu: Checkbox (`sticky left-0`, 40px) và Mã lô (`sticky left-[40px]`, 130px) ở mép trái; Phiếu A4 (`sticky right-0`, 58px) ở mép phải. 4 cột cố định không co giãn (bao gồm Đơn hàng 120px), 11 cột cuộn giữa (Ghi chú tối ưu 165px) với bộ đệm an toàn 10-15px.
 - Mã trạng thái Logistics & QC công nghiệp:
   - `Chờ xuất xưởng`: `border-warning/50 bg-warning/10 text-warning WAIT`
   - `Đang tại Vendor`: `border-info/50 bg-info/10 text-info TRANSIT`

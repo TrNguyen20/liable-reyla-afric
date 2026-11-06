@@ -22,6 +22,10 @@ describe('DYNAMO MES: Header v2.3 & Trilingual i18n Architecture Tests', () => {
     expect(shellSrc).toContain("label: 'ĐỒNG BỘ'");
     expect(shellSrc).not.toContain("label: 'LUÂN CHUYỂN QT'");
     expect(shellSrc).not.toContain("label: 'LIÊN KẾT GOOGLE SHEETS'");
+
+    // Kiểm tra tương phản cao Solid Dark Graphite cho Tab Active
+    expect(shellSrc).toContain('bg-slate-900 text-white');
+    expect(shellSrc).toContain('dark:bg-slate-100 dark:text-slate-950');
   });
 
   it('TC-HDR-02: Đồng bộ tên route [1] LUÂN CHUYỂN và [4] ĐỒNG BỘ trên toàn hệ thống', () => {

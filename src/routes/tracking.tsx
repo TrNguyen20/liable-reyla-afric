@@ -137,7 +137,7 @@ export type TableDensity = 'compact' | 'normal';
 const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 40,
   ID_Key: 130,
-  So_DatHang: 110,
+  So_DatHang: 120,
   ma_hang: 110,
   vat_lieu: 100,
   do_cung: 100,
@@ -148,7 +148,7 @@ const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   qc: 100,
   ngay_gui_QT: 115,
   han_tra: 115,
-  ghi_chu: 180,
+  ghi_chu: 165,
   ticket: 58,
 };
 
@@ -157,7 +157,7 @@ const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
 const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 40,
   ID_Key: 130,
-  So_DatHang: 110,
+  So_DatHang: 120,
   ma_hang: 100,
   vat_lieu: 90,
   do_cung: 90,
@@ -168,7 +168,7 @@ const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   qc: 90,
   ngay_gui_QT: 105,
   han_tra: 105,
-  ghi_chu: 160,
+  ghi_chu: 150,
   ticket: 58,
 };
 
@@ -1614,11 +1614,10 @@ function Tracking() {
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation ${
-                    filters.workshops.length > 0
+                  className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation ${filters.workshops.length > 0
                       ? 'border-primary/60 bg-primary/10 text-primary font-bold'
                       : 'border-border/80 bg-card text-foreground hover:bg-secondary'
-                  }`}
+                    }`}
                   title="Lọc nhanh theo phân xưởng gia công"
                 >
                   <Layers size={12} className={filters.workshops.length > 0 ? 'text-primary' : 'text-primary/80'} />
@@ -1651,9 +1650,8 @@ function Tracking() {
                       setFilters((f) => ({ ...f, workshops: [] }));
                       setTablePage(0);
                     }}
-                    className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${
-                      filters.workshops.length === 0 ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
-                    }`}
+                    className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${filters.workshops.length === 0 ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
+                      }`}
                   >
                     <span>Tất cả phân xưởng</span>
                     <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length}</span>
@@ -1674,9 +1672,8 @@ function Tracking() {
                           }));
                           setTablePage(0);
                         }}
-                        className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${
-                          isWsSelected ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
-                        }`}
+                        className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${isWsSelected ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <span className={`size-2 rounded-full ${ws === 'PIN' ? 'bg-info' : ws === 'INSERT' ? 'bg-primary' : 'bg-warning'}`} />
@@ -3127,7 +3124,7 @@ function Tracking() {
 
                         {/* 15. Ghi chú (Inline Quick-Edit & Comment cho mọi role) */}
                         <td
-                          className={`min-w-[180px] px-3.5 ${density === 'compact' ? 'py-1' : 'py-1.5'} text-xs transition-all ${savedCellKey === `${r.ID_Key}-ghi_chu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
+                          className={`min-w-[165px] px-3.5 ${density === 'compact' ? 'py-1' : 'py-1.5'} text-xs transition-all ${savedCellKey === `${r.ID_Key}-ghi_chu` ? 'bg-primary/20 ring-2 ring-primary rounded-xs' : ''
                             }`}
                           title={r.ghi_chu || undefined}
                         >
@@ -3149,7 +3146,7 @@ function Tracking() {
                               onKeyDown={(e) => handleCellKeyDown(e, r)}
                               onBlur={() => saveInlineEdit(r)}
                               rows={1}
-                              style={{ resize: 'both' }}
+                              style={{ resize: 'vertical' }}
                               className="min-h-[34px] w-full rounded-xs border-2 border-primary bg-background px-2 py-1 font-mono text-xs text-foreground outline-none shadow-xs leading-relaxed"
                               autoFocus
                             />
