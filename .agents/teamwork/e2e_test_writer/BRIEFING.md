@@ -18,7 +18,7 @@ Author comprehensive Vitest test suite for Trilingual Standardization [VI] [EN] 
 - Non-breaking invariant: All tests must be runnable via `npx vitest run src/test/i18n-standardization.test.ts`.
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T02:10:00Z
 
 ## Task Summary

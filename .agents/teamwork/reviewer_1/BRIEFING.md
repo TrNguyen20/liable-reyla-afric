@@ -19,7 +19,7 @@ Objective and adversarial review of the DYNAMO MES Trilingual Standardization [V
 - Keep BRIEFING.md under ~100 lines
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T10:15:00Z
 
 ## Review Scope

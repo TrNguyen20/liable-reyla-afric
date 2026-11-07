@@ -21,7 +21,7 @@ Key tasks:
    - The A4 Shift Handover sheet / printable report in `/dashboard`.
    - Data tables, filter bars, status filters, search inputs, batch action buttons, export buttons, dialogs/drawers.
 3. Identify every single hardcoded string, label, header, tooltip, badge, error/warning message, and form label across all these routes.
-4. Categorize what must be translated into [VI] [EN] [JA] vs what MUST be preserved as invariant domain terms (e.g. status codes `WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`; Order No, Lot ID; heat treatment symbols `QT`, tôi dầu, ram; vendor codes; tabular numbers).
+4. Categorize what must be translated into [VI] [EN] [JA] vs what MUST be preserved as invariant domain terms (e.g. status codes `WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`; Order No, Lot ULID; heat treatment symbols `QT`, tôi dầu, ram; vendor codes; tabular numbers).
 5. Review existing i18n key usage in these routes and identify what is missing or needs refactoring.
 6. Write your detailed survey to `.agents/teamwork/explorer_routes/survey.md`.
 7. Write `.agents/teamwork/explorer_routes/handoff.md` and send a message back.

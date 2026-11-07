@@ -90,7 +90,7 @@ While the current keys are 100% synchronized across VI, EN, and JA, the dictiona
 | 21 | `Shell` | Real-time LED Clock | Industrial clock displaying date and 24h digital time | Current system time, locale | Formatted time and localized date | Syncs every 1s | `src/components/dynamo-shell.tsx` |
 | 22 | `Shell` | Offline Banner | Warns when factory network drops, operating in local cache mode | Network `offline` event | Warning strip across top | Hides when back online | `src/components/dynamo-shell.tsx` |
 | 23 | `Telemetry` | Shopfloor Telemetry Bar | Compact/Expanded ribbon displaying live connection, shift, weight, workshop load | Dataset metrics, collapse state | Interactive telemetry bar | Graceful fallback on connection drop | `src/components/shopfloor-telemetry.tsx` |
-| 24 | `Command Palette` | Global Spotlight (⌘K / Ctrl+K) | Quick search across PO, Part ID, Lot ID, workshops, and actions | Search keystrokes | Filtered command list | "Không tìm thấy kết quả phù hợp" | `src/components/command-palette.tsx` |
+| 24 | `Command Palette` | Global Spotlight (⌘K / Ctrl+K) | Quick search across PO, Part ULID, Lot ULID, workshops, and actions | Search keystrokes | Filtered command list | "Không tìm thấy kết quả phù hợp" | `src/components/command-palette.tsx` |
 | 25 | `Job Ticket` | A4 Print Studio & Pallet Tag | Printable A4 work order ticket with vector Barcode (Code 39) & QR Code | Lot item, format (`a4`/`pallet`), zoom | High-res printable canvas | Fallback to `window.print()` | `src/components/job-ticket.tsx` |
 | 26 | `Lot Update` | Workflow Progress Modal | Status transition with reason prompt, actual receipt date, HRC | Target status, date, HRC, reason | Saves to server & Google Sheets | Blocks invalid transitions | `src/components/lot-update-dialog.tsx` |
 | 27 | `Fail-Safe` | Root Error Boundary | Self-healing mechanism that clears corrupted cache on crash | Runtime error object | Fail-safe UI with self-heal button | Reloads `/tracking` cleanly | `src/routes/__root.tsx` |
@@ -118,7 +118,7 @@ While the current keys are 100% synchronized across VI, EN, and JA, the dictiona
 
 | Field / Identifier | Specification & Usage | Constraints |
 |---|---|---|
-| **`ID_Key`** | Unique alphanumeric Lot ID (e.g. `2603-014`, `TEST-LOT-001`) | Never translate. Encoded into Code 39 barcode and QR matrix. |
+| **`ID_Key`** | Unique alphanumeric Lot ULID (e.g. `2603-014`, `TEST-LOT-001`) | Never translate. Encoded into Code 39 barcode and QR matrix. |
 | **`So_DatHang`** | Purchase Order / Production Order Number (e.g. `PO-2026-089`) | Never translate raw value. Column header may be localized. |
 | **`ma_hang`** | Part Number / Drawing Item Code (e.g. `PIN-CORE-042`) | Never translate raw value. |
 | **`ULID`** | 26-character Crockford Base32 cryptographic session token | Never translate. Must preserve strict character validation. |

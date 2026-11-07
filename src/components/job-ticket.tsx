@@ -737,8 +737,8 @@ export function JobTicketButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          title={`In phiếu gia công ${item.ma_hang}`}
-          aria-label={`Mở phiếu giao nhận ${item.ma_hang}`}
+          title={t("ticket.printFor", { itemCode: item.ma_hang }) || `In phiếu gia công ${item.ma_hang}`}
+          aria-label={t("ticket.openFor", { itemCode: item.ma_hang }) || `Mở phiếu giao nhận ${item.ma_hang}`}
           className="inline-flex size-7 items-center justify-center rounded-xs text-primary transition-colors hover:bg-primary/10 active:scale-95 cursor-pointer"
         >
           <Download size={15} />
@@ -781,8 +781,8 @@ export function JobTicketButton({
                   type="button"
                   onClick={() => setTicketFormat("a4")}
                   className={`rounded-xs px-2 py-1 font-semibold transition-colors cursor-pointer ${ticketFormat === "a4"
-                      ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   {t("ticket.formatA4")}
@@ -791,8 +791,8 @@ export function JobTicketButton({
                   type="button"
                   onClick={() => setTicketFormat("pallet")}
                   className={`rounded-xs px-2 py-1 font-semibold transition-colors cursor-pointer ${ticketFormat === "pallet"
-                      ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   {t("ticket.formatPallet")}
@@ -810,8 +810,8 @@ export function JobTicketButton({
                   type="button"
                   onClick={() => setZoomLevel("fit")}
                   className={`rounded-xs px-2 py-0.5 font-semibold transition-colors cursor-pointer ${zoomLevel === "fit"
-                      ? "bg-primary/20 text-primary font-bold"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/20 text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                   title={t("ticket.zoomFit")}
                 >
@@ -821,8 +821,8 @@ export function JobTicketButton({
                   type="button"
                   onClick={() => setZoomLevel("75")}
                   className={`rounded-xs px-1.5 py-0.5 font-mono font-semibold transition-colors cursor-pointer ${zoomLevel === "75"
-                      ? "bg-primary/20 text-primary font-bold"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/20 text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   75%
@@ -831,8 +831,8 @@ export function JobTicketButton({
                   type="button"
                   onClick={() => setZoomLevel("90")}
                   className={`rounded-xs px-1.5 py-0.5 font-mono font-semibold transition-colors cursor-pointer ${zoomLevel === "90"
-                      ? "bg-primary/20 text-primary font-bold"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/20 text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   90%
@@ -841,8 +841,8 @@ export function JobTicketButton({
                   type="button"
                   onClick={() => setZoomLevel("100")}
                   className={`rounded-xs px-1.5 py-0.5 font-mono font-semibold transition-colors cursor-pointer ${zoomLevel === "100"
-                      ? "bg-primary/20 text-primary font-bold"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/20 text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
                   {t("ticket.zoom100")}
@@ -876,7 +876,7 @@ export function JobTicketButton({
                 type="button"
                 onClick={() => setOpen(false)}
                 className="rounded-xs p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
-                title="Đóng"
+                title={t("close") || "Đóng"}
               >
                 <X size={16} />
               </button>
@@ -948,8 +948,8 @@ export function BatchJobTicketModal({
                 type="button"
                 onClick={() => setMode("manifest")}
                 className={`rounded-xs px-2.5 py-1 font-semibold transition-colors cursor-pointer ${mode === "manifest"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {t("ticket.tabManifest", { count: items.length })}
@@ -958,8 +958,8 @@ export function BatchJobTicketModal({
                 type="button"
                 onClick={() => setMode("tickets")}
                 className={`rounded-xs px-2.5 py-1 font-semibold transition-colors cursor-pointer ${mode === "tickets"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {t("ticket.tabTickets", { count: items.length })}
@@ -977,8 +977,8 @@ export function BatchJobTicketModal({
                 type="button"
                 onClick={() => setZoomLevel("fit")}
                 className={`rounded-xs px-2 py-0.5 font-semibold transition-colors cursor-pointer ${zoomLevel === "fit"
-                    ? "bg-primary/20 text-primary font-bold"
-                    : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/20 text-primary font-bold"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {t("ticket.zoomFit")}
@@ -987,8 +987,8 @@ export function BatchJobTicketModal({
                 type="button"
                 onClick={() => setZoomLevel("90")}
                 className={`rounded-xs px-1.5 py-0.5 font-mono font-semibold transition-colors cursor-pointer ${zoomLevel === "90"
-                    ? "bg-primary/20 text-primary font-bold"
-                    : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/20 text-primary font-bold"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 90%
@@ -997,8 +997,8 @@ export function BatchJobTicketModal({
                 type="button"
                 onClick={() => setZoomLevel("100")}
                 className={`rounded-xs px-1.5 py-0.5 font-mono font-semibold transition-colors cursor-pointer ${zoomLevel === "100"
-                    ? "bg-primary/20 text-primary font-bold"
-                    : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/20 text-primary font-bold"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 100%

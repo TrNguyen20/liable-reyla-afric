@@ -322,7 +322,7 @@ describe("DYNAMO MES: Trilingual Standardization [VI] [EN] [JA] Test Suite", () 
       }
     });
 
-    it("TC-I18N-T3-03: Bảo toàn mã định danh hệ thống (ID_Key, So_DatHang, ma_hang, ULID, SOP-MES-08)", () => {
+    it("TC-I18N-T3-03: Bảo toàn mã định danh hệ thống (ID_Key, So_DatHang, ma_hang, SOP-MES-08, mã truy cập ID)", () => {
       // 1. Database keys trên bảng tracking
       const trackingSrc = fs.readFileSync(trackingPath, "utf-8");
       expect(trackingSrc).toContain("ID_Key");
@@ -333,9 +333,9 @@ describe("DYNAMO MES: Trilingual Standardization [VI] [EN] [JA] Test Suite", () 
       const dashboardSrc = fs.readFileSync(dashboardPath, "utf-8");
       expect(dashboardSrc).toContain("SOP-MES-08");
 
-      // 3. Chuẩn khóa phiên bảo mật ULID Crockford Base32
+      // 3. Chuẩn xác thực mã bảo mật truy cập ID do Admin cấp
       const loginSrc = fs.readFileSync(loginPath, "utf-8");
-      expect(loginSrc).toContain("ULID");
+      expect(loginSrc).toContain("verifyCode");
     });
 
     it("TC-I18N-T3-04: Tuân thủ quy chuẩn UI Design Tokens (2px rounded-xs & font-mono tabular-nums)", () => {
@@ -567,6 +567,43 @@ describe("DYNAMO MES: Trilingual Standardization [VI] [EN] [JA] Test Suite", () 
         unmappedKeys,
         `Phát hiện ${unmappedKeys.length} vị trí gọi t() không phân giải được sang văn bản: ${JSON.stringify(unmappedKeys.slice(0, 5), null, 2)}`,
       ).toHaveLength(0);
+    });
+
+    it("TC-I18N-T4-06: Toàn bộ thuộc tính title/tooltip và hành động trên giao diện phải được chuẩn hóa i18n, cấm hardcode chuỗi Tiếng Việt thô", () => {
+      const trackingContent = fs.readFileSync(trackingPath, "utf-8");
+      const dashboardContent = fs.readFileSync(dashboardPath, "utf-8");
+      const loginContent = fs.readFileSync(loginPath, "utf-8");
+      const jobTicketContent = fs.readFileSync(path.join(rootDir, "src/components/job-ticket.tsx"), "utf-8");
+
+      const prohibitedStrings = [
+        "Chạm để sửa mã hàng",
+        "Click đúp để sửa mã hàng",
+        "Chạm để sửa mác thép",
+        "Click đúp để sửa mác thép",
+        "Chạm để sửa độ cứng",
+        "Click đúp để sửa nhanh độ cứng",
+        "Chạm để sửa số lượng",
+        "Click đúp để sửa số lượng",
+        "Chạm để sửa kg",
+        "Click đúp để sửa khối lượng kg",
+        "Chạm để sửa ngày gửi",
+        "Click đúp để sửa ngày gửi",
+        "Chạm để sửa hạn trả",
+        "Click đúp để sửa hạn trả",
+        "Chạm để sửa ghi chú",
+        "Click đúp để viết hoặc chỉnh sửa ghi chú",
+        "Kéo sang trái/phải để đổi độ rộng",
+        "Bấm để xem chi tiết & lịch sử lô",
+      ];
+
+      for (const str of prohibitedStrings) {
+        expect(trackingContent.includes(`"${str}"`), `tracking.tsx vẫn còn hardcode chuỗi: "${str}"`).toBe(false);
+      }
+
+      expect(dashboardContent.includes('title="Chỉ Quản trị viên'), "dashboard.tsx vẫn còn hardcode tooltip phân quyền").toBe(false);
+      expect(dashboardContent.includes('title="Mục tiêu 95%"'), "dashboard.tsx vẫn còn hardcode tooltip Mục tiêu 95%").toBe(false);
+      expect(jobTicketContent.includes('title="Đóng"'), "job-ticket.tsx vẫn còn hardcode tooltip Đóng").toBe(false);
+      expect(loginContent.includes('title="Quay lại chọn vị trí'), "login.tsx vẫn còn hardcode tooltip quay lại").toBe(false);
     });
   });
 });

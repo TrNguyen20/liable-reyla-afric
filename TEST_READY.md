@@ -36,7 +36,7 @@ npx vitest run --reporter=verbose
 
 The newly established test suite `src/test/i18n-standardization.test.ts` provides comprehensive, zero-facade verification across all 4 architectural tiers:
 
-| Tier | Test ID | Description | Status |
+| Tier | Test ULID | Description | Status |
 |---|---|---|:---:|
 | **Tier 1** | `TC-I18N-T1-01` | **21 JSON Dictionary Files Existence & Syntax**: Asserts all 21 files across 3 locales (`vi`, `en`, `ja`) and 7 namespaces (`common`, `nav`, `tracking`, `dashboard`, `orders`, `sync`, `telemetry`) exist and parse validly. | ✅ PASS |
 | **Tier 1** | `TC-I18N-T1-02` | **Recursive Key Parity Audit**: Recursively checks dot-notation key hierarchy across all namespaces. Asserts zero missing keys in EN/JA and zero extraneous keys. | ✅ PASS |

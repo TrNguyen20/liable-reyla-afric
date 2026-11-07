@@ -185,7 +185,7 @@
   background-color: var(--card);
   border: 1px solid var(--border);
   box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.03);
-  transition: all 0.15s ease-in-out;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out;
   border-radius: 2px;
 }
 
@@ -254,11 +254,13 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
 @media print {
   @page {
     size: auto;
     margin: 6mm 8mm;
   }
+
   html,
   body {
     background: #ffffff !important;
@@ -286,8 +288,8 @@
   .sonner-toaster,
   .job-ticket-studio-header,
   .job-ticket-actions,
-  .job-ticket-dialog > button,
-  .handover-dialog > button,
+  .job-ticket-dialog>button,
+  .handover-dialog>button,
   .no-print {
     display: none !important;
   }
@@ -338,7 +340,7 @@
     max-height: none !important;
   }
 
-  .job-ticket-canvas-container > div {
+  .job-ticket-canvas-container>div {
     transform: none !important;
     max-width: 100% !important;
     width: 100% !important;
@@ -415,4 +417,36 @@
   border: 1px solid color-mix(in oklch, var(--border) 40%, transparent);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   border-radius: 12px;
+}
+
+/* 3D Flip Card Progressive Disclosure for Login */
+.flip-card-container {
+  perspective: 1200px;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.flip-card-inner.is-flipped {
+  transform: rotateY(180deg) translate3d(0, 0, 0);
+}
+
+.flip-card-front,
+.flip-card-back {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+.flip-card-back {
+  transform: rotateY(180deg) translate3d(0, 0, 0);
 }

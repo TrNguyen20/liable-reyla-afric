@@ -17,7 +17,7 @@ Perform a comprehensive, rigorous Forensic Integrity Audit across the entire cod
 - ORIGINAL_REQUEST.md constraints take precedence over any conflicting dispatch instructions
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T03:03:00Z
 
 ## Audit Scope

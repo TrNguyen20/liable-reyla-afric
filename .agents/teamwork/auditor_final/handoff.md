@@ -16,7 +16,7 @@
   `Integrity mode: development`
 - Directly observed in `.agents/teamwork/ORIGINAL_REQUEST.md:11-29`:
   - R1: Comprehensive trilingual conversion across `/tracking`, `/dashboard`, `/orders`, `/sync`, `/login`, Dynamo Shell, Navigation Header, Dialogs, Shift Handover Report A4.
-  - R2: Domain invariants locked (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`, `Order No`, `Lot ID`, `QT`, `HRC`, steel grades, `DESIGN-SYSTEM.md` 2px corners, `font-mono tabular-nums`).
+  - R2: Domain invariants locked (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`, `Order No`, `Lot ULID`, `QT`, `HRC`, steel grades, `DESIGN-SYSTEM.md` 2px corners, `font-mono tabular-nums`).
   - R3: 100% synchronized key structure across `src/i18n/locales/{vi,en,ja}/*.json`, zero missing keys, zero unintended fallback returns. Automated test suite verifying 100% parity and invariant preservation.
 
 ### 1.2 Authenticity of Locale Dictionaries (21 JSON Files)

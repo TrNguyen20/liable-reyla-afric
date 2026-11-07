@@ -22,7 +22,7 @@ Milestone 1: i18n Dictionaries & Invariants Standardization in Trilingual [VI] [
 - Exact key parity across all 3 languages (100% match, zero diffs, no empty strings).
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: not yet
 
 ## Task Summary

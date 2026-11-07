@@ -47,7 +47,7 @@ The test framework organizes all verification into four distinct architectural t
 
 Tier 1 verifies that all locale dictionaries and configuration files exist, load without syntax errors, and maintain strict bidirectional key equality across all supported languages.
 
-| Test ID | Scope | Verification Description | Authoritative Source |
+| Test ULID | Scope | Verification Description | Authoritative Source |
 |---|---|---|---|
 | **`TC-I18N-T1-01`** | Dictionary Files Existence | Verifies that all 21 JSON dictionary files (3 locales × 7 namespaces: `common`, `nav`, `tracking`, `dashboard`, `orders`, `sync`, `telemetry`) exist on disk and parse validly as JSON. | `PROJECT.md` § Architecture |
 | **`TC-I18N-T1-02`** | Recursive Key Parity Audit | Recursively traverses `vi`, `en`, and `ja` JSON trees for all 7 namespaces and asserts: (1) Zero missing keys in `en` compared to `vi`, (2) Zero missing keys in `ja` compared to `vi`, (3) Zero extraneous keys in `en` or `ja` not defined in `vi`. | `ORIGINAL_REQUEST.md` R3, `survey.md` § 2.2 |
@@ -59,7 +59,7 @@ Tier 1 verifies that all locale dictionaries and configuration files exist, load
 
 Tier 2 guards against corrupt or malformed localization entries that cause UI misalignment, runtime exceptions, or missing text in production.
 
-| Test ID | Scope | Verification Description | Authoritative Source |
+| Test ULID | Scope | Verification Description | Authoritative Source |
 |---|---|---|---|
 | **`TC-I18N-T2-01`** | Leaf Value Integrity (No Empty Strings) | Asserts that no key in any of the 21 JSON files resolves to an empty string (`""`), `null`, `undefined`, or whitespace-only value. | `ORIGINAL_REQUEST.md` Acceptance Criteria |
 | **`TC-I18N-T2-02`** | Whitespace Trimming Audit | Asserts that every string leaf value equals `val.trim()`. Trailing or leading whitespace causes misalignments in monospaced industrial data grids. | `DESIGN-SYSTEM.md` Core Principles |
@@ -71,7 +71,7 @@ Tier 2 guards against corrupt or malformed localization entries that cause UI mi
 
 Tier 3 guarantees that universal manufacturing codes, metallurgy standards, database keys, and UI design tokens remain intact across all languages.
 
-| Test ID | Scope | Verification Description | Authoritative Source |
+| Test ULID | Scope | Verification Description | Authoritative Source |
 |---|---|---|---|
 | **`TC-I18N-T3-01`** | Shopfloor Lean Andon Status Codes | Asserts that the 6 universal status codes (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`, `PENDING`) are preserved verbatim in uppercase in all 3 language dictionaries and never translated into foreign words. | `DESIGN-SYSTEM.md` § 2.3.3, `survey.md` § 4.1 |
 | **`TC-I18N-T3-02`** | Metallurgy & Engineering Standards | Asserts that core heat treatment brand abbreviation `QT`, hardness scale `HRC`, tool steel grades (`SKD61`, `DAC`, `SKD11`, `DIEVAR`, `DH31-EX`), and workshops (`PIN`, `INSERT`, `MOLD`) are preserved verbatim across all 3 language dictionaries. | `DESIGN-SYSTEM.md` § 1, `survey.md` § 4.3 |
@@ -84,7 +84,7 @@ Tier 3 guarantees that universal manufacturing codes, metallurgy standards, data
 
 Tier 4 validates factory runtime behaviors under actual internationalization scenarios, including locale-sensitive time/date formatting, factory shifts, and partner confidentiality.
 
-| Test ID | Scope | Verification Description | Authoritative Source |
+| Test ULID | Scope | Verification Description | Authoritative Source |
 |---|---|---|---|
 | **`TC-I18N-T4-01`** | Locale-Aware Date Formatting (`formatDate`) | Verifies that dates format correctly: Vietnamese `DD/MM/YYYY`, English `MM/DD/YYYY`, Japanese standard `YYYY/MM/DD` and full format `YYYY年MM月DD日`. Handles edge cases (null, invalid dates, timestamps) safely. | `src/i18n/formatters.ts`, `survey.md` § 2.1 |
 | **`TC-I18N-T4-02`** | Production Shift Formatter (`formatShift`) | Verifies shift formatting: Vietnamese (`Ca 1`, `Ca 2`, `Ca 3`), English (`Shift 1`, `Shift 2`, `Shift 3`), Japanese (`1直`, `2直`, `3直`). Validates string/number inputs and fallback safety. | `src/i18n/formatters.ts`, `survey.md` § 2.1 |

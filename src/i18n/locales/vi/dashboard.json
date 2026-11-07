@@ -100,5 +100,11 @@
   "quickPresets": {
     "sevenDays": "7 ngày",
     "thisMonth": "Tháng này"
+  },
+  "tooltips": {
+    "permissionDenied": "Chỉ Quản trị viên hoặc đúng Đối tác gia công mới có quyền cập nhật tiến độ lô này",
+    "overdueLots": "Quá hạn: {count}",
+    "dueSoonLots": "Cận hạn: {count}",
+    "target95": "Mục tiêu 95%"
   }
 }

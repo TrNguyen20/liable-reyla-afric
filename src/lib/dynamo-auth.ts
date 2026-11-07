@@ -138,7 +138,7 @@ export class AttemptsError extends Error {
   constructor(public attemptsLeft: number) { super('INVALID'); }
 }
 
-/** Verify a ULID code on the server (the code list is never sent to the browser). */
+/** Verify an access code on the server (the code list is never sent to the browser). */
 export async function verifyCode(code: string): Promise<AuthEntry | null> {
   if (!code.trim()) return null;
 

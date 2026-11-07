@@ -449,7 +449,7 @@ function Dashboard() {
                             ) : (
                               <span
                                 className="inline-flex items-center gap-1 rounded-xs border border-border/60 bg-muted/20 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70"
-                                title="Chỉ Quản trị viên hoặc đúng Đối tác gia công mới có quyền cập nhật tiến độ lô này"
+                                title={t('dashboard.tooltips.permissionDenied') || 'Chỉ Quản trị viên hoặc đúng Đối tác gia công mới có quyền cập nhật tiến độ lô này'}
                               >
                                 <Lock size={11} className="opacity-70" /> Khóa
                               </span>
@@ -543,8 +543,8 @@ function Bottleneck({
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex h-2.5 overflow-hidden rounded-xs bg-secondary" style={{ width: `${(r.lots / max) * 100}%` }}>
-                      <span className="bg-destructive" style={{ width: `${(r.over / r.lots) * 100}%` }} title={`Quá hạn: ${r.over}`} />
-                      <span className="bg-warning" style={{ width: `${(r.soon / r.lots) * 100}%` }} title={`Cận hạn: ${r.soon}`} />
+                      <span className="bg-destructive" style={{ width: `${(r.over / r.lots) * 100}%` }} title={t('dashboard.tooltips.overdueLots', { count: r.over }) || `Quá hạn: ${r.over}`} />
+                      <span className="bg-warning" style={{ width: `${(r.soon / r.lots) * 100}%` }} title={t('dashboard.tooltips.dueSoonLots', { count: r.soon }) || `Cận hạn: ${r.soon}`} />
                       <span className="flex-1 bg-info/60" />
                     </div>
                   </td>
@@ -752,6 +752,7 @@ function Kpi({
   badge?: string;
   extra?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const cardContent = (
     <div
       className={`relative flex h-full flex-col justify-between rounded-xs border border-border bg-card p-3 shadow-2xs transition-all ${to
@@ -785,7 +786,7 @@ function Kpi({
               className={`absolute inset-y-0 left-0 rounded-xs transition-all ${meter >= 0.95 ? 'bg-primary' : 'bg-warning'}`}
               style={{ width: `${meter * 100}%` }}
             />
-            <span className="absolute -top-0.5 h-2.5 w-0.5 bg-foreground" style={{ left: '95%' }} title="Mục tiêu 95%" />
+            <span className="absolute -top-0.5 h-2.5 w-0.5 bg-foreground" style={{ left: '95%' }} title={t('dashboard.tooltips.target95') || 'Mục tiêu 95%'} />
           </div>
         )}
         {extra}

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Cpu,
@@ -57,6 +58,7 @@ function Login() {
   const { locale, setLocale, t, locales } = useTranslation();
   const [code, setCode] = useState("");
   const [position, setPosition] = useState<Position | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [kioskMode, setKioskMode] = useState(false);
   const [error, setError] = useState("");
@@ -69,32 +71,57 @@ function Login() {
   const locked = lockLeft > 0;
   const mmss = `${String(Math.floor(lockLeft / 60)).padStart(2, "0")}:${String(lockLeft % 60).padStart(2, "0")}`;
 
-  const positions: { id: Position; label: string; note: string; led: string }[] = [
+  const positions: { id: Position; label: string; note: string }[] = [
     {
       id: "admin",
       label: t("auth.positions.admin.label") || "BGĐ / IT hệ thống",
       note: t("auth.positions.admin.role") || "Admin",
-      led: "bg-dynamo",
     },
     {
       id: "leader",
       label: t("auth.positions.leader.label") || "Trưởng / Phó phòng",
       note: t("auth.positions.leader.role") || "Leader",
-      led: "bg-run",
     },
     {
       id: "viewer",
       label: t("auth.positions.viewer.label") || "KTV / Nhân viên",
       note: t("auth.positions.viewer.role") || "Viewer",
-      led: "bg-titan",
     },
     {
       id: "partner",
       label: t("auth.positions.partner.label") || "Nhà cung cấp ngoài",
       note: t("auth.positions.partner.role") || "Partner",
-      led: "bg-warning",
     },
   ];
+
+  const handleSelectPosition = (posId: Position) => {
+    setPosition(posId);
+    setError("");
+    // 150ms tactile micro-delay for LED feedback, then 3D flip to back face
+    setTimeout(() => {
+      setIsFlipped(true);
+      // Auto-focus access code input once flip animation has settled
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 500);
+    }, 150);
+  };
+
+  const handleBackToStep1 = () => {
+    setIsFlipped(false);
+    setError("");
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFlipped && !busy) {
+        setIsFlipped(false);
+        setError("");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFlipped, busy]);
 
   const features = [
     {
@@ -142,7 +169,7 @@ function Login() {
     if (!position) {
       setError(
         t("auth.errors.requirePosition") ||
-          "Vui lòng chọn vị trí công tác (Bước 1) trước khi xác thực.",
+        "Vui lòng chọn vị trí công tác (Bước 1) trước khi xác thực.",
       );
       return;
     }
@@ -165,7 +192,7 @@ function Login() {
         const label = positions.find((p) => p.id === position)?.label ?? "";
         setError(
           t("auth.errors.roleMismatch", { label }) ||
-            `Mã truy cập này không thuộc thẩm quyền của vị trí ${label} đã chọn. Vui lòng kiểm tra lại.`,
+          `Mã truy cập này không thuộc thẩm quyền của vị trí ${label} đã chọn. Vui lòng kiểm tra lại.`,
         );
         setBusy(false);
         return;
@@ -189,7 +216,7 @@ function Login() {
       } else {
         setError(
           t("auth.errors.networkError") ||
-            "Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.",
+          "Lỗi kết nối khi xác thực mã. Vui lòng thử lại sau ít phút.",
         );
       }
       setBusy(false);
@@ -197,7 +224,7 @@ function Login() {
   };
 
   return (
-    <div className="grid min-h-[100dvh] grid-cols-1 lg:grid-cols-12">
+    <div className="grid min-h-[100dvh] grid-cols-1 lg:grid-cols-12 transform-gpu">
       {/* Left Column: Industrial Plant Hero (Graphite Canvas) */}
       <section className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0b0e14] px-12 py-10 text-slate-100 lg:col-span-7 lg:flex xl:col-span-7">
         {/* Subtle Engineering Grid Background */}
@@ -221,7 +248,7 @@ function Login() {
               <p className="font-display text-base font-extrabold tracking-wide text-white">
                 DYNAMO VIETNAM QT - MES
               </p>
-              <p className="font-mono text-[9px] font-bold tracking-[.3em] text-primary">
+              <p className="font-mono text-[9px] font-bold tracking-[.3em] text-white">
                 PRECISION SHOPFLOOR SUBCONTRACT CONTROL
               </p>
             </div>
@@ -264,7 +291,7 @@ function Login() {
           <div className="divide-y divide-slate-800/80">
             {features.map((f) => (
               <div key={f.title} className="flex gap-4 p-5 transition-colors hover:bg-slate-800/30">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xs border border-primary/30 bg-primary/10 text-primary">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xs border text-sky-400 bg-sky-500/10 border-sky-500/30">
                   <f.icon size={18} strokeWidth={2} />
                 </span>
                 <div>
@@ -279,7 +306,7 @@ function Login() {
         {/* Bottom Plant Telemetry Bar */}
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-t border-slate-800/80 pt-6 text-[11px] text-slate-500">
           <p className="flex items-center gap-2">
-            <Factory size={14} className="text-primary" />
+            <Factory size={14} className="text-slate-500" />
             <span>
               {t("auth.plant.address") || "DYNAMO VIETNAM CO., LTD. · KHU CÔNG NGHIỆP ĐỒNG AN 2"}
             </span>
@@ -313,11 +340,10 @@ function Login() {
                 key={item.code}
                 type="button"
                 onClick={() => setLocale(item.code)}
-                className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                  isCurrent
-                    ? "bg-slate-900 text-emerald-300 border border-slate-800 shadow-2xs font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                }`}
+                className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${isCurrent
+                  ? "bg-slate-900 text-emerald-300 border border-slate-800 shadow-2xs font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  }`}
                 title={`${item.label} (${item.nativeName})`}
               >
                 {item.shortLabel}
@@ -333,352 +359,356 @@ function Login() {
             <p className="font-display text-base font-extrabold text-foreground">
               DYNAMO VIETNAM QT - MES
             </p>
-            <p className="font-mono text-[9px] font-bold tracking-[.25em] text-primary">
+            <p className="font-mono text-[9px] font-bold tracking-[.25em] text-white">
               PRECISION SHOPFLOOR SUBCONTRACT CONTROL
             </p>
           </div>
 
-          {/* Login Card */}
-          <div className="mes-card p-7 shadow-xs">
-            <div className="mb-6">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                  {t("auth.form.badge") || "XÁC THỰC DANH TÍNH"}
-                </span>
-                <span className="rounded-xs border border-primary/20 bg-primary/10 px-1.5 py-0.2 font-mono text-[9px] font-bold text-primary">
-                  ULID TOKEN
-                </span>
-              </div>
-              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">
-                {t("auth.form.title") || "Đăng Nhập Hệ Thống"}
-              </h2>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {t("auth.form.subtitle") ||
-                  "Nhập mã xác thực do ban điều hành cấp để phân quyền theo vai trò tương ứng."}
-              </p>
-            </div>
-
-            {(() => {
-              const steps = [
-                {
-                  label: t("auth.steps.step1") || "Vị trí",
-                  value: position
-                    ? positions.find((p) => p.id === position)?.label
-                    : t("auth.steps.unselected") || "Chưa chọn",
-                },
-                {
-                  label: t("auth.steps.step2") || "Mã truy cập ULID",
-                  value: code.trim()
-                    ? t("auth.steps.codeLoaded") || "Đã nạp mã"
-                    : t("auth.steps.codeEmpty") || "Chưa nhập",
-                },
-              ];
-              const activeStep = !position ? 0 : !code.trim() ? 1 : 2;
-              return (
-                <ol
-                  aria-label={t("auth.steps.aria") || "Tiến trình xác thực"}
-                  aria-live="polite"
-                  className="mb-5 flex items-center gap-3 rounded-xs border border-border bg-card px-3 py-2.5"
-                >
-                  {steps.map((s, i) => {
-                    const state =
-                      i < activeStep ? "done" : i === activeStep ? "current" : "upcoming";
-                    return (
-                      <li
-                        key={s.label}
-                        aria-current={state === "current" ? "step" : undefined}
-                        className="flex min-w-0 flex-1 items-center gap-2.5"
-                      >
-                        <span
-                          aria-hidden
-                          className={`flex size-6 shrink-0 items-center justify-center rounded-xs border font-mono text-[11px] font-semibold tabular-nums transition-colors ${
-                            state === "done"
-                              ? "border-run bg-run text-background"
-                              : state === "current"
-                                ? "border-primary text-primary ring-2 ring-primary/25"
-                                : "border-muted-foreground/40 text-muted-foreground"
-                          }`}
-                        >
-                          {state === "done" ? <CheckCircle2 size={14} /> : i + 1}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block font-mono text-[10px] text-muted-foreground">
-                            Bước {i + 1} · {s.label}
-                          </span>
-                          <span
-                            className={`block truncate text-[11px] font-semibold ${state === "upcoming" ? "text-muted-foreground" : "text-foreground"}`}
-                          >
-                            {s.value}
-                          </span>
-                        </span>
-                        {i < steps.length - 1 && (
-                          <span
-                            aria-hidden
-                            className={`ml-auto h-px w-6 shrink-0 ${i < activeStep ? "bg-run" : "bg-border"}`}
-                          />
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
-              );
-            })()}
-
-            <form onSubmit={submit} className="space-y-5">
-              <fieldset>
-                <legend className="mb-1.5 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-                  {t("auth.steps.step1") || "Bước 1 · Vị trí công tác"}
-                </legend>
-                <div
-                  role="radiogroup"
-                  aria-label="Vị trí công tác"
-                  className="grid grid-cols-2 gap-px overflow-hidden rounded-xs border border-border bg-border"
-                >
-                  {positions.map((p) => {
-                    const active = position === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        onClick={() => {
-                          setPosition(p.id);
-                          setError("");
-                        }}
-                        className={`flex min-h-[52px] items-start gap-2.5 p-2.5 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
-                          active
-                            ? "bg-muted shadow-[inset_0_0_0_2px_var(--color-dynamo)]"
-                            : "bg-card hover:bg-muted/50"
-                        }`}
-                      >
-                        <span
-                          aria-hidden
-                          className={`mt-1 size-2 shrink-0 rounded-full transition-opacity ${p.led} ${active ? "opacity-100" : "opacity-25"}`}
-                        />
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold text-foreground">
-                            {p.label}
-                          </span>
-                          <span className="block truncate text-[10px] text-muted-foreground">
-                            {p.note}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label
-                    htmlFor="access-code"
-                    className="font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase"
-                  >
-                    {t("auth.form.codeLabel") || "Bước 2 · Mã truy cập (Access code)"}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setKioskMode((v) => !v)}
-                    className="flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline"
-                  >
-                    <Smartphone size={12} />
-                    {kioskMode
-                      ? t("auth.form.kioskHide") || "Ẩn phím cảm ứng"
-                      : t("auth.form.kioskShow") || "Phím số Kiosk"}
-                  </button>
-                </div>
-                <div className="relative">
-                  <KeyRound
-                    size={16}
-                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  />
-                  <input
-                    id="access-code"
-                    ref={inputRef}
-                    disabled={locked}
-                    type={showCode ? "text" : "password"}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={code}
-                    onChange={(e) => {
-                      setCode(e.target.value);
-                      setError("");
-                    }}
-                    placeholder={
-                      position
-                        ? t("auth.form.codePlaceholderPos", {
-                            position: positions.find((p) => p.id === position)?.label ?? '',
-                          }) ||
-                          `Nhập mã truy cập của ${positions.find((p) => p.id === position)?.label}`
-                        : t("auth.form.codePlaceholderEmpty") || "Chọn vị trí ở Bước 1 trước"
-                    }
-                    aria-label={t("auth.form.codeAria") || "Mã xác thực"}
-                    aria-invalid={!!error}
-                    className="h-11 w-full rounded-xs border border-input bg-background/60 pl-10 pr-20 font-mono tabular-nums text-xs tracking-wider text-foreground outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-primary aria-[invalid=true]:border-destructive"
-                  />
-                  <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
-                    {code && (
-                      <button
-                        type="button"
-                        onClick={() => setCode("")}
-                        aria-label={t("auth.form.clearAria") || "Xóa mã"}
-                        className="flex size-8 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground active:scale-[0.98]"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setShowCode((v) => !v)}
-                      aria-label={
-                        showCode
-                          ? t("auth.form.toggleAria") || "Ẩn mã"
-                          : t("auth.form.toggleAria") || "Hiện mã"
-                      }
-                      className="flex size-8 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground active:scale-[0.98]"
-                    >
-                      {showCode ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Industrial Touchscreen Virtual Numpad */}
-                {kioskMode && (
-                  <div className="mt-3 overflow-hidden rounded-xs border border-border bg-card p-2.5 shadow-2xs">
-                    <p className="mb-2 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {t("auth.kiosk.heading") || "BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)"}
-                    </p>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
-                        <button
-                          key={digit}
-                          type="button"
-                          disabled={locked}
-                          onClick={() => {
-                            setCode((prev) => prev + digit);
-                            setError("");
-                          }}
-                          className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
-                        >
-                          {digit}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        disabled={locked || !code}
-                        onClick={() => setCode("")}
-                        className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-xs font-bold text-destructive transition-all hover:bg-destructive/10 hover:border-destructive active:scale-95 disabled:opacity-40"
-                      >
-                        {t("auth.kiosk.clearAll") || "C (Xóa hết)"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={locked}
-                        onClick={() => {
-                          setCode((prev) => prev + "0");
-                          setError("");
-                        }}
-                        className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40"
-                      >
-                        0
-                      </button>
-                      <button
-                        type="button"
-                        disabled={locked || !code}
-                        onClick={() => setCode((prev) => prev.slice(0, -1))}
-                        className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-xs font-bold text-muted-foreground transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-40"
-                        aria-label="Xóa 1 ký tự"
-                      >
-                        <Delete size={16} />
-                      </button>
+          {/* 3D Flip Card Container */}
+          <div className="flip-card-container w-full">
+            <div className={`flip-card-inner ${isFlipped ? "is-flipped" : ""}`}>
+              {/* Mặt trước: BƯỚC 1 - VỊ TRÍ CÔNG TÁC */}
+              <div
+                className={`flip-card-front mes-card p-7 shadow-xs flex flex-col justify-start min-h-[360px] gap-5 ${isFlipped ? "absolute inset-0 pointer-events-none opacity-0" : "relative z-10 opacity-100"
+                  } transition-opacity duration-300`}
+                aria-hidden={isFlipped}
+              >
+                <div>
+                  {/* Top Bar Mặt trước */}
+                  <div className="h-7 mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                        {t("auth.form.badge") || "XÁC THỰC DANH TÍNH"}
+                      </span>
+                      <span className="rounded-xs border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-mono text-[9px] font-bold text-primary">
+                        BƯỚC 1/2
+                      </span>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {locked ? (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  className="overflow-hidden rounded-xs border border-destructive/60 bg-destructive/10"
-                >
-                  <div className="h-1.5 w-full bg-[repeating-linear-gradient(45deg,var(--color-destructive)_0_8px,transparent_8px_16px)] opacity-70" />
-                  <div className="flex items-center justify-between gap-3 p-3">
-                    <div className="flex items-start gap-2 text-xs text-destructive">
-                      <Lock size={14} className="mt-0.5 shrink-0" />
-                      <div>
-                        <p className="font-bold uppercase tracking-wider">
-                          {t("auth.lock.title") || "Thiết bị tạm khóa an toàn"}
-                        </p>
-                        <p className="mt-0.5 text-destructive/80">
-                          {t("auth.lock.desc") ||
-                            "Nhập sai 5 lần liên tiếp. Thử lại khi đồng hồ về 00:00."}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="font-mono text-2xl font-bold tabular-nums text-destructive">
-                      {mmss}
+                    <span className="font-mono text-[9px] font-bold tracking-wider text-muted-foreground uppercase">
+                      PHÂN QUYỀN ID
                     </span>
                   </div>
-                  <div className="h-1 w-full bg-destructive/20">
+
+                  {/* Header Mặt trước */}
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                    {t("auth.form.title") || "Đăng Nhập Hệ Thống"}
+                  </h2>
+                  <p className="mt-1.5 text-xs text-muted-foreground leading-normal">
+                    {t("auth.form.subtitle") ||
+                      "Chọn vị trí công tác của bạn để mở khóa bảng điều hành tương ứng."}
+                  </p>
+
+                  <fieldset className="mt-6">
+                    <legend className="mb-2 block font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                      {t("auth.steps.step1") || "Bước 1 · Chọn vị trí công tác"}
+                    </legend>
                     <div
-                      className="h-full bg-destructive transition-[width] duration-1000 ease-linear"
-                      style={{ width: `${(lockLeft / 120) * 100}%` }}
-                    />
-                  </div>
+                      role="radiogroup"
+                      aria-label="Vị trí công tác"
+                      className="grid grid-cols-2 gap-2"
+                    >
+                      {positions.map((p) => {
+                        const active = position === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => handleSelectPosition(p.id)}
+                            className={`flex min-h-[58px] items-start gap-2.5 p-3 rounded-xs border text-left transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${active
+                              ? "border-primary bg-primary/10 text-primary shadow-[inset_0_0_0_1px_var(--color-primary)] font-bold"
+                              : "border-border/80 bg-card hover:bg-muted/60 hover:border-primary/50 text-foreground"
+                              }`}
+                          >
+                            <span
+                              aria-hidden
+                              className={`mt-1 size-2 shrink-0 rounded-full transition-all ${active
+                                ? "bg-primary opacity-100 ring-2 ring-primary/30 fx-run-dot"
+                                : "bg-primary/40 opacity-40"
+                                }`}
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-xs font-semibold leading-snug">
+                                {p.label}
+                              </span>
+                              <span className="block truncate text-[10px] text-muted-foreground mt-0.5">
+                                {p.note}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
                 </div>
-              ) : error ? (
-                <div
-                  role="alert"
-                  className="rounded-xs border-l-2 border-destructive bg-destructive/10 p-3 text-xs text-destructive"
-                >
-                  <p className="font-semibold">{error}</p>
-                  {attemptsLeft !== null && (
-                    <p className="mt-1 font-mono tabular-nums text-destructive/80">
-                      {t("auth.lock.attemptsLeft", { attemptsLeft }) ||
-                        `Còn ${attemptsLeft}/5 lần thử trước khi khóa thiết bị.`}
-                    </p>
-                  )}
-                </div>
-              ) : null}
 
-              <Button
-                type="submit"
-                disabled={busy || locked}
-                className="h-11 w-full gap-2 rounded-xs bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                <div className="mt-auto border-t border-border/60 pt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1.5 font-mono text-[10px]">
+                    <ShieldCheck size={14} className="text-primary" />
+                    Phân quyền truy cập ID · Bảo mật công nghiệp
+                  </span>
+                  <span className="font-mono text-[10px] text-primary font-bold">
+                    CHỌN ĐỂ TIẾP TỤC →
+                  </span>
+                </div>
+              </div>
+
+              {/* Mặt sau: BƯỚC 2 - MÃ TRUY CẬP (ACCESS CODE) */}
+              <div
+                className={`flip-card-back mes-card p-7 shadow-xs flex flex-col justify-start min-h-[360px] gap-5 ${!isFlipped ? "absolute inset-0 pointer-events-none opacity-0" : "relative z-10 opacity-100"
+                  } transition-opacity duration-300`}
+                aria-hidden={!isFlipped}
               >
-                {locked ? (
-                  <>
-                    <Lock size={15} />{" "}
-                    {t("auth.submit.locked", { mmss }) || (
-                      <>
-                        TẠM KHÓA · <span className="font-mono tabular-nums">{mmss}</span>
-                      </>
-                    )}
-                  </>
-                ) : busy ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    {t("auth.submit.verifying") || "ĐANG XÁC THỰC QUYỀN HẠN..."}
-                  </>
-                ) : (
-                  <>
-                    {t("auth.submit.enter") || "XÁC THỰC VỊ TRÍ & VÀO HỆ THỐNG"}{" "}
-                    <ArrowRight size={15} />
-                  </>
-                )}
-              </Button>
-            </form>
+                <div>
+                  {/* Top Bar Mặt sau */}
+                  <div className="h-7 mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-xs border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-mono text-[9px] font-bold text-primary">
+                        BƯỚC 2/2
+                      </span>
+                      {position && (
+                        <div className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-bold text-primary">
+                          <span className="size-1.5 rounded-full bg-primary fx-run-dot" />
+                          <span>{positions.find((p) => p.id === position)?.label}</span>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleBackToStep1}
+                      className="h-6 px-2 text-[11px] font-semibold border border-border/80 bg-secondary/50 rounded-xs hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer active:scale-98 inline-flex items-center gap-1 text-foreground"
+                      title={t('auth.form.backToStep1Tooltip') || 'Quay lại chọn vị trí công tác khác (Phím tắt: Esc)'}
+                    >
+                      <ArrowLeft size={12} className="text-primary" />
+                      <span>{t('auth.form.changeRole') || 'Đổi vị trí'}</span>
+                    </button>
+                  </div>
 
-            <div className="mt-5 border-t border-border/60 pt-4 text-[11px] text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-primary" />
-                <p>
-                  {t("auth.support.text") ||
-                    "Chưa có mã? Vui lòng liên hệ Quản trị viên để được cấp mã truy cập theo chức năng."}
-                </p>
+                  {/* Header Mặt sau */}
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                    Nhập Mã Xác Thực ID
+                  </h2>
+                  <p className="mt-1.5 text-xs text-muted-foreground leading-normal">
+                    Nhập mã truy cập do Quản trị viên cấp để mở khóa quyền điều hành.
+                  </p>
+
+                  <form onSubmit={submit} className="mt-6 space-y-4">
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label
+                          htmlFor="access-code"
+                          className="font-mono text-[11px] font-bold tracking-wider text-muted-foreground uppercase"
+                        >
+                          {t("auth.form.codeLabel") || "Bước 2 · Mã truy cập"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setKioskMode((v) => !v)}
+                          className="flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                        >
+                          <Smartphone size={12} />
+                          {kioskMode
+                            ? t("auth.form.kioskHide") || "Ẩn phím cảm ứng"
+                            : t("auth.form.kioskShow") || "Phím số Kiosk"}
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <KeyRound
+                          size={16}
+                          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        />
+                        <input
+                          id="access-code"
+                          ref={inputRef}
+                          disabled={locked}
+                          type={showCode ? "text" : "password"}
+                          autoComplete="off"
+                          spellCheck={false}
+                          value={code}
+                          onChange={(e) => {
+                            setCode(e.target.value);
+                            setError("");
+                          }}
+                          placeholder={
+                            position
+                              ? t("auth.form.codePlaceholderPos", {
+                                position: positions.find((p) => p.id === position)?.label ?? '',
+                              }) ||
+                              `Nhập mã truy cập của ${positions.find((p) => p.id === position)?.label}`
+                              : "Nhập mã xác thực ID do Admin cấp..."
+                          }
+                          aria-label={t("auth.form.codeAria") || "Mã xác thực"}
+                          aria-invalid={!!error}
+                          className="h-11 w-full rounded-xs border border-input bg-background/60 pl-10 pr-20 font-mono tabular-nums text-xs tracking-wider text-foreground outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-primary aria-[invalid=true]:border-destructive"
+                        />
+                        <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center">
+                          {code && (
+                            <button
+                              type="button"
+                              onClick={() => setCode("")}
+                              aria-label={t("auth.form.clearAria") || "Xóa mã"}
+                              className="flex size-8 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground active:scale-[0.98] cursor-pointer"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowCode((v) => !v)}
+                            aria-label={
+                              showCode
+                                ? t("auth.form.toggleAria") || "Ẩn mã"
+                                : t("auth.form.toggleAria") || "Hiện mã"
+                            }
+                            className="flex size-8 items-center justify-center rounded-xs text-muted-foreground hover:text-foreground active:scale-[0.98] cursor-pointer"
+                          >
+                            {showCode ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Industrial Touchscreen Virtual Numpad */}
+                      {kioskMode && (
+                        <div className="mt-3 overflow-hidden rounded-xs border border-border bg-card p-2.5 shadow-2xs">
+                          <p className="mb-2 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {t("auth.kiosk.heading") || "BÀN PHÍM CẢM ỨNG HIỆN TRƯỜNG (KIOSK MODE)"}
+                          </p>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                              <button
+                                key={digit}
+                                type="button"
+                                disabled={locked}
+                                onClick={() => {
+                                  setCode((prev) => prev + digit);
+                                  setError("");
+                                }}
+                                className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40 cursor-pointer"
+                              >
+                                {digit}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              disabled={locked || !code}
+                              onClick={() => setCode("")}
+                              className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-xs font-bold text-destructive transition-all hover:bg-destructive/10 hover:border-destructive active:scale-95 disabled:opacity-40 cursor-pointer"
+                            >
+                              {t("auth.kiosk.clearAll") || "C (Xóa hết)"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={locked}
+                              onClick={() => {
+                                setCode((prev) => prev + "0");
+                                setError("");
+                              }}
+                              className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-base font-bold text-foreground transition-all hover:bg-primary/10 hover:border-primary active:scale-95 disabled:opacity-40 cursor-pointer"
+                            >
+                              0
+                            </button>
+                            <button
+                              type="button"
+                              disabled={locked || !code}
+                              onClick={() => setCode((prev) => prev.slice(0, -1))}
+                              className="flex h-11 items-center justify-center rounded-xs border border-border/80 bg-background font-mono text-xs font-bold text-muted-foreground transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-40 cursor-pointer"
+                              aria-label="Xóa 1 ký tự"
+                            >
+                              <Delete size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {locked ? (
+                      <div
+                        role="alert"
+                        aria-live="polite"
+                        className="overflow-hidden rounded-xs border border-destructive/60 bg-destructive/10"
+                      >
+                        <div className="h-1.5 w-full bg-[repeating-linear-gradient(45deg,var(--color-destructive)_0_8px,transparent_8px_16px)] opacity-70" />
+                        <div className="flex items-center justify-between gap-3 p-3">
+                          <div className="flex items-start gap-2 text-xs text-destructive">
+                            <Lock size={14} className="mt-0.5 shrink-0" />
+                            <div>
+                              <p className="font-bold uppercase tracking-wider">
+                                {t("auth.lock.title") || "Thiết bị tạm khóa an toàn"}
+                              </p>
+                              <p className="mt-0.5 text-destructive/80">
+                                {t("auth.lock.desc") ||
+                                  "Nhập sai 5 lần liên tiếp. Thử lại khi đồng hồ về 00:00."}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-mono text-2xl font-bold tabular-nums text-destructive">
+                            {mmss}
+                          </span>
+                        </div>
+                        <div className="h-1 w-full bg-destructive/20">
+                          <div
+                            className="h-full bg-destructive transition-[width] duration-1000 ease-linear"
+                            style={{ width: `${(lockLeft / 120) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : error ? (
+                      <div
+                        role="alert"
+                        className="rounded-xs border-l-2 border-destructive bg-destructive/10 p-3 text-xs text-destructive"
+                      >
+                        <p className="font-semibold">{error}</p>
+                        {attemptsLeft !== null && (
+                          <p className="mt-1 font-mono tabular-nums text-destructive/80">
+                            {t("auth.lock.attemptsLeft", { attemptsLeft }) ||
+                              `Còn ${attemptsLeft}/5 lần thử trước khi khóa thiết bị.`}
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+
+                    <Button
+                      type="submit"
+                      disabled={busy || locked}
+                      className="h-11 w-full gap-2 rounded-xs bg-primary font-display text-xs font-bold tracking-wider uppercase text-primary-foreground hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground cursor-pointer"
+                    >
+                      {locked ? (
+                        <>
+                          <Lock size={15} />{" "}
+                          {t("auth.submit.locked", { mmss }) || (
+                            <>
+                              TẠM KHÓA · <span className="font-mono tabular-nums">{mmss}</span>
+                            </>
+                          )}
+                        </>
+                      ) : busy ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          {t("auth.submit.verifying") || "ĐANG XÁC THỰC QUYỀN HẠN..."}
+                        </>
+                      ) : (
+                        <>
+                          {t("auth.submit.enter") || "XÁC THỰC VÀO HỆ THỐNG"}{" "}
+                          <ArrowRight size={15} />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="mt-auto border-t border-border/60 pt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck size={14} className="mt-0.5 shrink-0 text-primary" />
+                    <p>
+                      {t("auth.support.text") ||
+                        "Chưa có mã? Vui lòng liên hệ Quản trị viên để được cấp mã truy cập theo chức năng."}
+                    </p>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground/70 shrink-0 ml-2">
+                    <kbd className="rounded-xs border border-border bg-muted/60 px-1 py-0.5 text-[9px] font-bold">Esc</kbd>
+                  </span>
+                </div>
               </div>
             </div>
           </div>

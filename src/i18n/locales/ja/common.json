@@ -157,12 +157,14 @@
       "codePlaceholderEmpty": "先にステップ1で役職を選択してください",
       "codeAria": "認証コード",
       "clearAria": "コード消去",
-      "toggleAria": "コード表示切替"
+      "toggleAria": "コード表示切替",
+      "backToStep1Tooltip": "別の役職選択に戻る（ショートカット: Esc）",
+      "changeRole": "役職変更"
     },
     "steps": {
       "aria": "認証手順",
       "step1": "ステップ1 · 役職",
-      "step2": "ステップ2 · ULIDアクセスコード",
+      "step2": "ステップ2 · IDアクセスコード",
       "unselected": "未選択",
       "codeLoaded": "コード入力済",
       "codeEmpty": "未入力"
@@ -276,6 +278,8 @@
     "copyCode": "コードをコピー",
     "codeCopied": "コピー完了",
     "printNow": "直ちに印刷",
+    "printFor": "{itemCode} の加工指示書を印刷",
+    "openFor": "{itemCode} の作業指示伝票を開く",
     "batchTitle": "一括帳票印刷 ({count} ロット)",
     "batchSummary": "合計: {pcs} 個 · {kg} kg",
     "tabManifest": "1. 総合受渡目録 ({count} ロット)",

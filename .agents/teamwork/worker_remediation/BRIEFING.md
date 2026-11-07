@@ -19,7 +19,7 @@ Remediation Specialist for Iteration 2 of DYNAMO MES Trilingual Standardization 
 - `npx tsc --noEmit`, `npm test`, and `npm run build` must all pass 100%.
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T03:41:00Z
 
 ## Task Summary

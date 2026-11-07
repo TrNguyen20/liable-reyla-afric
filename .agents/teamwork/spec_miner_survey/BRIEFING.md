@@ -15,10 +15,10 @@ Mine and document all specifications, domain invariants, existing i18n architect
 - Report all findings in `.agents/teamwork/spec_miner_survey/survey.md`.
 - Produce self-contained `handoff.md` and coordinate via `send_message`.
 - Respect all MES Design System rules (Graphite Wireframe UI, rounded-xs, tabular-nums).
-- Preserve domain invariants (WAIT, TRANSIT, STOCKED, PASS, FAIL; ULID, Lot ID, Order No; heat treatment technical terms; vendor masking; etc.).
+- Preserve domain invariants (WAIT, TRANSIT, STOCKED, PASS, FAIL; ULID, Lot ULID, Order No; heat treatment technical terms; vendor masking; etc.).
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T09:06:40Z
 
 ## Task Summary

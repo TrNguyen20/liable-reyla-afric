@@ -17,7 +17,7 @@ Conduct independent adversarial re-verification of the DYNAMO MES Trilingual Sta
 - Rigorous adversarial review: stress-test edge cases, key coverage, TS types, tests
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T03:47:00Z
 
 ## Review Scope

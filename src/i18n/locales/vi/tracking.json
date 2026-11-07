@@ -138,5 +138,37 @@
   "filters": {
     "missingHardness": "Chưa có độ cứng",
     "hasNote": "Có ghi chú"
+  },
+  "inlineEdit": {
+    "touch": {
+      "itemCode": "Chạm để sửa mã hàng",
+      "material": "Chạm để sửa mác thép",
+      "hardness": "Chạm để sửa độ cứng",
+      "quantity": "Chạm để sửa số lượng",
+      "weight": "Chạm để sửa khối lượng kg",
+      "sentDate": "Chạm để sửa ngày gửi",
+      "dueDate": "Chạm để sửa hạn trả",
+      "note": "Chạm để sửa ghi chú"
+    },
+    "doubleClick": {
+      "itemCode": "Click đúp để sửa mã hàng",
+      "material": "Click đúp để sửa mác thép",
+      "hardness": "Click đúp để sửa nhanh độ cứng",
+      "quantity": "Click đúp để sửa số lượng",
+      "weight": "Click đúp để sửa khối lượng kg",
+      "sentDate": "Click đúp để sửa ngày gửi",
+      "dueDate": "Click đúp để sửa hạn trả",
+      "note": "Click đúp để viết hoặc chỉnh sửa ghi chú"
+    },
+    "addNote": "+ Thêm ghi chú..."
+  },
+  "table": {
+    "selectLot": "Chọn lô {lotId}",
+    "viewLotDetail": "Bấm để xem chi tiết & lịch sử lô",
+    "dragColumnTooltip": "Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)",
+    "openFilter": "Mở bộ lọc {column}"
+  },
+  "drawer": {
+    "sizePlaceholder": "VD: Ø30x120, 45x60x12..."
   }
 }

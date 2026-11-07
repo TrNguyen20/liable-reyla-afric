@@ -18,7 +18,7 @@ Final Adversarial Re-Check of the DYNAMO MES Trilingual Standardization [VI] [EN
 - Confirm either CONFIRM_CORRECT or FLAG_DEFECTS
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: not yet
 
 ## Review Scope

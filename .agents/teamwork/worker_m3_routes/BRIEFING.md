@@ -28,7 +28,7 @@ Localize 4 core routes (`/tracking`, `/dashboard`, `/orders`, `/sync` & A4 Hando
   - `npm test`
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T02:25:14Z
 
 ## Task Summary

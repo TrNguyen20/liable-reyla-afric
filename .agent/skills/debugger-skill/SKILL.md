@@ -30,7 +30,7 @@ Execute debugging through these six steps in order:
 For production incidents, always start with the three observability pillars before reading code:
 
 1. **Distributed traces** — Find the first failing span in the trace. Identify the emitting service and the exact operation that returned an error or exceeded latency SLO. All subsequent investigation starts from that span, not from the symptom surface.
-2. **Correlated logs** — Narrow the log window to ±2 minutes around the first trace error timestamp. Filter by the failing service name and correlation/trace ID. Use `Bash` with `grep`, `jq`, or `awk` against accessible log files in the repo to extract the relevant lines.
+2. **Correlated logs** — Narrow the log window to ±2 minutes around the first trace error timestamp. Filter by the failing service name and correlation/trace ULID. Use `Bash` with `grep`, `jq`, or `awk` against accessible log files in the repo to extract the relevant lines.
 3. **Change correlation** — Before forming hypotheses, check whether any deploy, config change, feature flag flip, or traffic spike occurred within 30 minutes before the first error. Use `git log --since` and diff tooling available in the repo. A change correlation often resolves the need for deeper code inspection.
 
 Only after exhausting these three pillars should you move into static code analysis and hypothesis testing.

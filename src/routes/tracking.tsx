@@ -368,9 +368,9 @@ function HeaderFilterCell({
               ? `Nhấp để sắp xếp: ${isSorted
                 ? sortDir === 'asc'
                   ? 'Tăng dần → Giảm dần'
-                  : field === 'ngay_gui_QT'
-                    ? 'Giảm dần → Tăng dần'
-                    : 'Giảm dần → Mặc định'
+                : field === 'ngay_gui_QT'
+                  ? 'Giảm dần → Tăng dần'
+                  : 'Giảm dần → Mặc định'
                 : 'A → Z (Tăng dần)'
               }`
               : undefined
@@ -401,7 +401,7 @@ function HeaderFilterCell({
                 ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
                 : 'text-muted-foreground/70 hover:bg-background/80 hover:text-foreground'
                 }`}
-              title={`Mở bộ lọc ${title}`}
+              title={t('tracking.table.openFilter', { column: title }) || `Mở bộ lọc ${title}`}
             >
               <Filter size={12} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
             </button>
@@ -426,7 +426,7 @@ function HeaderFilterCell({
             onResetWidth?.();
           }}
           className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
-          title="Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)"
+          title={t('tracking.table.dragColumnTooltip') || 'Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)'}
         >
           <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
         </div>
@@ -2723,7 +2723,7 @@ function Tracking() {
                           <div className="relative z-10 flex items-center justify-center">
                             <input
                               type="checkbox"
-                              aria-label={`Chọn lô ${r.ID_Key}`}
+                              aria-label={t('tracking.table.selectLot', { lotId: r.ID_Key }) || `Chọn lô ${r.ID_Key}`}
                               checked={isSelected}
                               onChange={() => toggleSelectLot(r.ID_Key)}
                               className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
@@ -2750,7 +2750,7 @@ function Tracking() {
                             type="button"
                             onClick={() => setDetailLot(r)}
                             className="relative z-10 font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
-                            title="Bấm để xem chi tiết & lịch sử lô"
+                            title={t('tracking.table.viewLotDetail') || 'Bấm để xem chi tiết & lịch sử lô'}
                           >
                             {r.ID_Key}
                           </button>
@@ -2786,7 +2786,7 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
                               className="flex items-center gap-1 group/edit cursor-pointer"
-                              title={canEdit ? 'Click đúp để sửa mã hàng' : undefined}
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.itemCode') || 'Click đúp để sửa mã hàng') : undefined}
                             >
                               <span>{r.ma_hang}</span>
                               {canEdit && (
@@ -2794,7 +2794,7 @@ function Tracking() {
                                   type="button"
                                   onClick={() => startInlineEdit(r.ID_Key, 'ma_hang', r.ma_hang)}
                                   className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Chạm để sửa mã hàng"
+                                  title={t('tracking.inlineEdit.touch.itemCode') || 'Chạm để sửa mã hàng'}
                                 >
                                   <Edit2 size={11} />
                                 </button>
@@ -2824,7 +2824,7 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
                               className="flex items-center justify-center gap-1 group/edit cursor-pointer"
-                              title={canEdit ? 'Click đúp để sửa mác thép' : undefined}
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.material') || 'Click đúp để sửa mác thép') : undefined}
                             >
                               <span className="truncate">{r.vat_lieu}</span>
                               {canEdit && (
@@ -2832,7 +2832,7 @@ function Tracking() {
                                   type="button"
                                   onClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu)}
                                   className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Chạm để sửa mác thép"
+                                  title={t('tracking.inlineEdit.touch.material') || 'Chạm để sửa mác thép'}
                                 >
                                   <Edit2 size={11} />
                                 </button>
@@ -2860,17 +2860,19 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
                               className="flex items-center justify-center gap-1.5 group/edit cursor-pointer"
-                              title="Click đúp để sửa nhanh độ cứng"
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.hardness') || 'Click đúp để sửa nhanh độ cứng') : undefined}
                             >
                               <span>{r.do_cung || '—'}</span>
-                              <button
-                                type="button"
-                                onClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
-                                className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa độ cứng"
-                              >
-                                <Edit2 size={11} />
-                              </button>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung)}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title={t('tracking.inlineEdit.touch.hardness') || 'Chạm để sửa độ cứng'}
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                              )}
                             </div>
                           )}
                         </td>
@@ -2894,7 +2896,7 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
                               className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title={canEdit ? 'Click đúp để sửa số lượng' : undefined}
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.quantity') || 'Click đúp để sửa số lượng') : undefined}
                             >
                               <span>{number(r.so_luong)}</span>
                               {canEdit && (
@@ -2902,7 +2904,7 @@ function Tracking() {
                                   type="button"
                                   onClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
                                   className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Chạm để sửa số lượng"
+                                  title={t('tracking.inlineEdit.touch.quantity') || 'Chạm để sửa số lượng'}
                                 >
                                   <Edit2 size={11} />
                                 </button>
@@ -2931,7 +2933,7 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
                               className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title={canEdit ? 'Click đúp để sửa khối lượng kg' : undefined}
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.weight') || 'Click đúp để sửa khối lượng kg') : undefined}
                             >
                               <span>{number(r.kg_Lot, 1)}</span>
                               {canEdit && (
@@ -2939,7 +2941,7 @@ function Tracking() {
                                   type="button"
                                   onClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_Lot))}
                                   className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Chạm để sửa kg"
+                                  title={t('tracking.inlineEdit.touch.weight') || 'Chạm để sửa kg'}
                                 >
                                   <Edit2 size={11} />
                                 </button>
@@ -3083,7 +3085,7 @@ function Tracking() {
                             <div
                               onDoubleClick={() => canEdit && startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
                               className="flex items-center justify-center gap-1 group/edit cursor-pointer"
-                              title={canEdit ? 'Click đúp để sửa ngày gửi' : undefined}
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.sentDate') || 'Click đúp để sửa ngày gửi') : undefined}
                             >
                               <span>{date(r.ngay_gui_QT)}</span>
                               {canEdit && (
@@ -3091,7 +3093,7 @@ function Tracking() {
                                   type="button"
                                   onClick={() => startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_QT)}
                                   className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Chạm để sửa ngày gửi"
+                                  title={t('tracking.inlineEdit.touch.sentDate') || 'Chạm để sửa ngày gửi'}
                                 >
                                   <Edit2 size={11} />
                                 </button>
@@ -3119,14 +3121,14 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
                               className="flex items-center justify-center gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa hạn trả"
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.dueDate') || 'Click đúp để sửa hạn trả') : undefined}
                             >
                               <span>{date(r.han_tra)}</span>
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'han_tra', r.han_tra)}
                                 className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                title="Chạm để sửa hạn trả"
+                                title={t('tracking.inlineEdit.touch.dueDate') || 'Chạm để sửa hạn trả'}
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -3166,19 +3168,19 @@ function Tracking() {
                             <div
                               onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
                               className="flex items-start justify-between gap-1 group/edit cursor-pointer py-0.5"
-                              title="Click đúp để viết hoặc chỉnh sửa ghi chú"
+                              title={t('tracking.inlineEdit.doubleClick.note') || 'Click đúp để viết hoặc chỉnh sửa ghi chú'}
                             >
                               <span
                                 className={`text-xs ${density === 'compact' ? 'line-clamp-1' : 'break-words whitespace-pre-wrap'} leading-relaxed ${r.ghi_chu ? 'text-foreground' : 'text-muted-foreground/60 italic'
                                   }`}
                               >
-                                {r.ghi_chu || '+ Thêm ghi chú...'}
+                                {r.ghi_chu || (t('tracking.inlineEdit.addNote') || '+ Thêm ghi chú...')}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu ?? '')}
                                 className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity shrink-0 ml-1 mt-0.5 p-0.5 rounded hover:bg-secondary cursor-pointer touch-manipulation"
-                                title="Chạm để sửa ghi chú"
+                                title={t('tracking.inlineEdit.touch.note') || 'Chạm để sửa ghi chú'}
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -4015,7 +4017,7 @@ function LotDetailDrawer({
                 <input
                   type="text"
                   value={form.Kich_Thuoc_SP}
-                  placeholder="VD: Ø30x120, 45x60x12..."
+                  placeholder={t('tracking.drawer.sizePlaceholder') || 'VD: Ø30x120, 45x60x12...'}
                   onChange={(e) => setForm({ ...form, Kich_Thuoc_SP: e.target.value })}
                   className="w-full rounded-xs border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground"
                 />
