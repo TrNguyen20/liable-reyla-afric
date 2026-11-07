@@ -2,7 +2,7 @@
 
 > **Agent**: `teamwork_orchestrator` (Project Orchestrator)  
 > **Working Directory**: `.agents/teamwork/orchestrator_1/`  
-> **Parent Conversation ID**: `d9754fb4-6ebe-4628-b68e-283a2abe0dc6`  
+> **Parent Conversation ULID**: `d9754fb4-6ebe-4628-b68e-283a2abe0dc6`  
 > **Timestamp**: 2026-11-06T03:51:00Z  
 > **Standard**: Graphite Wireframe UI Specification (v2.2.0) & `ORIGINAL_REQUEST.md`  
 > **Status**: **COMPLETE / PRODUCTION READY**  

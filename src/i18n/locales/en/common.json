@@ -157,12 +157,14 @@
       "codePlaceholderEmpty": "Select position in Step 1 first",
       "codeAria": "Access code",
       "clearAria": "Clear code",
-      "toggleAria": "Toggle code visibility"
+      "toggleAria": "Toggle code visibility",
+      "backToStep1Tooltip": "Back to choose another position (Shortcut: Esc)",
+      "changeRole": "Change Position"
     },
     "steps": {
       "aria": "Authentication Progress",
       "step1": "Step 1 · Position",
-      "step2": "Step 2 · ULID Access Code",
+      "step2": "Step 2 · Access Code",
       "unselected": "Unselected",
       "codeLoaded": "Code loaded",
       "codeEmpty": "Empty"
@@ -173,7 +175,7 @@
         "role": "Admin"
       },
       "leader": {
-        "label": "Department Head / Supervisor",
+        "label": "Supervisor",
         "role": "Leader"
       },
       "viewer": {
@@ -276,6 +278,8 @@
     "copyCode": "Copy Code",
     "codeCopied": "Copied",
     "printNow": "Print Now",
+    "printFor": "Print job ticket for {itemCode}",
+    "openFor": "Open job ticket for {itemCode}",
     "batchTitle": "BATCH PRINT TICKETS ({count} LOTS)",
     "batchSummary": "Total: {pcs} pcs · {kg} kg",
     "tabManifest": "1. Dispatch Manifest ({count} lots)",

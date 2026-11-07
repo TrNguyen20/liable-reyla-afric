@@ -29,7 +29,7 @@ Implement Milestone 2: Shell, Navigation Header, Login & Shared Components in Tr
 - Run tests and achieve 100% pass on design-system, i18n, and full test suite.
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T02:43:00Z
 
 ## Task Summary

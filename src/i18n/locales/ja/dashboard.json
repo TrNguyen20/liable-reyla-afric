@@ -100,5 +100,11 @@
   "quickPresets": {
     "sevenDays": "7日間",
     "thisMonth": "今月"
+  },
+  "tooltips": {
+    "permissionDenied": "管理者または該当の委託先のみがこのロットの進捗を更新できます",
+    "overdueLots": "期限超過: {count}",
+    "dueSoonLots": "期限間近: {count}",
+    "target95": "目標 95%"
   }
 }

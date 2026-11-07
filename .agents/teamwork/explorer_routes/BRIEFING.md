@@ -12,11 +12,11 @@ Investigate all official business routes (/tracking, /dashboard, /orders, /sync)
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement or modify source code
-- Invariant domain terms preservation (WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ID, technical heat treatment symbols QT/tôi dầu/ram, vendor codes, tabular numbers)
+- Invariant domain terms preservation (WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ULID, technical heat treatment symbols QT/tôi dầu/ram, vendor codes, tabular numbers)
 - Strict compliance with DESIGN-SYSTEM.md (Graphite Wireframe, rounded-xs, font-mono tabular-nums)
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T02:07:20Z
 
 ## Investigation State

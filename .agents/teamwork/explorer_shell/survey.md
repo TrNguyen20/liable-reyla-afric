@@ -121,7 +121,7 @@ Trang này hiện đang **thiếu hoàn toàn bộ chuyển ngữ Tam Ngữ và 
 | Wizard Steps | "Bước 1 · Vị trí" / "Bước 2 · Mã truy cập ULID" | `auth.steps.step1`, `auth.steps.step2` | Step 1: Position / Step 2: ULID Access Code |
 | Wizard Steps | "Chưa chọn", "Đã nạp mã", "Chưa nhập" | `auth.steps.unselected`, `auth.steps.codeLoaded`, `auth.steps.codeEmpty` | Status labels |
 | Step 1 Roles | "BGĐ / IT hệ thống" (note: "Admin") | `auth.positions.admin.label` | BOD / System IT (Admin) / 経営陣・社内IT (Admin) |
-| Step 1 Roles | "Trưởng / Phó phòng" (note: "Leader") | `auth.positions.leader.label` | Department Head / Supervisor (Leader) / 管理職・リーダー (Leader) |
+| Step 1 Roles | "Trưởng / Phó phòng" (note: "Leader") | `auth.positions.leader.label` | Supervisor (Leader) / 管理職・リーダー (Leader) |
 | Step 1 Roles | "KTV / Nhân viên" (note: "Viewer") | `auth.positions.viewer.label` | Technician / Operator (Viewer) / 技術員・作業者 (Viewer) |
 | Step 1 Roles | "Nhà cung cấp ngoài" (note: "Partner") | `auth.positions.partner.label` | External Subcontractor (Partner) / 外注委託先 (Partner) |
 | Step 2 Input | "Bước 2 · Mã truy cập (Access code)" | `auth.form.codeLabel` | Step 2 · Access Code / ステップ2 · アクセスコード |
@@ -244,7 +244,7 @@ Trang này hiện đang **thiếu hoàn toàn bộ chuyển ngữ Tam Ngữ và 
 | **A4 Banner** | "PHIẾU GIAO NHẬN & LỆNH GIA CÔNG NGOÀI" | `common.ticket.title` | EN: SUBCONTRACT DISPATCH & WORK ORDER / JA: 外注加工指示書・受渡伝票 |
 | **A4 Banner** | "Quy trình: Tôi chân không / Nhiệt luyện thể tích / Thấm Carbon / Xi mạ kỹ thuật" | `common.ticket.processes` | EN: Vacuum Hardening / Through Hardening / Carburizing / Technical Plating / JA: 真空焼入・全体熱処理・浸炭・工業めっき |
 | **Mục I** | "I. THÔNG TIN LINH KIỆN & YÊU CẦU KỸ THUẬT" | `common.ticket.sec1Title` | I. PART SPECIFICATIONS & TECHNICAL REQUIREMENTS / I. 部品情報・技術仕様 |
-| Mục I Fields | "Mã linh kiện:", "Mã lô (ID):", "Phân xưởng giao:", "Đơn vị nhận:" | `common.ticket.fields.partNo`, `lotId`, `senderDept`, `recipientVendor` | Bảng thuộc tính linh kiện |
+| Mục I Fields | "Mã linh kiện:", "Mã lô (ULID):", "Phân xưởng giao:", "Đơn vị nhận:" | `common.ticket.fields.partNo`, `lotId`, `senderDept`, `recipientVendor` | Bảng thuộc tính linh kiện |
 | Mục I Fields | "Mác thép / Vật liệu:", "Độ cứng yêu cầu:", "Kích thước SP:", "Số lượng xuất:" | `common.ticket.fields.material`, `hardnessReq`, `dimensions`, `quantity` | Độ cứng fallback: "Theo bản vẽ" |
 | Mục I Fields | "Tổng trọng lượng lô:", "Ngày gửi xuất xưởng:", "Hạn trả cam kết:", "Trạng thái:" | `common.ticket.fields.weight`, `sendDate`, `dueDate`, `status` | Hạn trả fallback: "Theo thỏa thuận" |
 | Mục I Fields | "Đơn giá gia công:", "Tổng thành tiền (tạm tính):" | `common.ticket.fields.unitPrice`, `totalPrice` | Dành cho vai trò Admin/Leader |
@@ -364,8 +364,8 @@ Tuân thủ nghiêm ngặt theo `DESIGN-SYSTEM.md` (Graphite Wireframe UI Specif
    - `FAIL` (QC Không đạt)
 2. **Mã định danh kỹ thuật & Hệ thống**:
    - `Order No` / `Số PO` (Giữ nguyên cấu trúc định danh đơn)
-   - `Lot ID` / `ID_Key` (Mã lô nhiệt luyện, e.g., `DVN-QT-PIN-...`)
-   - `ULID TOKEN` (Mã xác thực truy cập công nghiệp)
+   - `Lot ULID` / `ID_Key` (Mã lô nhiệt luyện, e.g., `DVN-QT-PIN-...`)
+   - `ULID ACCESS` (Mã xác thực truy cập công nghiệp)
 3. **Thuật ngữ & ký hiệu chuyên ngành nhiệt luyện**:
    - `QT` (Quenching & Tempering / Tôi và ram)
    - `HRC` (Độ cứng Rockwell thang C, e.g., `58-62 HRC`)

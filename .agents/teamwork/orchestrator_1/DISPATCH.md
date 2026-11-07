@@ -7,5 +7,5 @@
 
 Requirements:
 - R1. Chuyển đổi toàn diện chuẩn Tam Ngữ [VI] [EN] [JA] trên toàn bộ hệ thống (`/tracking`, `/dashboard`, `/orders`, `/sync`, `/login`, Dynamo Shell, Navigation Header, Dialogs, Biên bản bàn giao ca A4).
-- R2. Bảo toàn nguyên vẹn các từ đặc thù khái niệm và quy chuẩn hệ thống (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`, Order No, Lot ID, thuật ngữ QT/tôi dầu/ram, tên riêng/mã nhà cung cấp per `DESIGN-SYSTEM.md`, 2px corners, monospaced tabular numbers).
+- R2. Bảo toàn nguyên vẹn các từ đặc thù khái niệm và quy chuẩn hệ thống (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`, Order No, Lot ULID, thuật ngữ QT/tôi dầu/ram, tên riêng/mã nhà cung cấp per `DESIGN-SYSTEM.md`, 2px corners, monospaced tabular numbers).
 - R3. Kế hoạch triển khai triệt để, lâu dài và phối hợp đa tác nhân (`src/i18n/locales/{vi,en,ja}/*.json`, namespace hợp lý, automated test suite, npm test passing 100%).

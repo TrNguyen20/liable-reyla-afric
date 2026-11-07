@@ -138,5 +138,37 @@
   "filters": {
     "missingHardness": "硬度未設定",
     "hasNote": "備考あり"
+  },
+  "inlineEdit": {
+    "touch": {
+      "itemCode": "タップして品目コードを編集",
+      "material": "タップして鋼種・材質を編集",
+      "hardness": "タップして硬度を編集",
+      "quantity": "タップして数量を編集",
+      "weight": "タップして重量（kg）を編集",
+      "sentDate": "タップして発送日を編集",
+      "dueDate": "タップして納期を編集",
+      "note": "タップして備考を編集"
+    },
+    "doubleClick": {
+      "itemCode": "ダブルクリックして品目コードを編集",
+      "material": "ダブルクリックして鋼種・材質を編集",
+      "hardness": "ダブルクリックして硬度を素早く編集",
+      "quantity": "ダブルクリックして数量を編集",
+      "weight": "ダブルクリックして重量（kg）を編集",
+      "sentDate": "ダブルクリックして発送日を編集",
+      "dueDate": "ダブルクリックして納期を編集",
+      "note": "ダブルクリックして備考を記入・編集"
+    },
+    "addNote": "+ 備考を追加..."
+  },
+  "table": {
+    "selectLot": "ロット {lotId} を選択",
+    "viewLotDetail": "クリックしてロット詳細と履歴を表示",
+    "dragColumnTooltip": "左右にドラッグして列幅を変更（ダブルクリックでリセット）",
+    "openFilter": "{column}のフィルターを開く"
+  },
+  "drawer": {
+    "sizePlaceholder": "例: Ø30x120, 45x60x12..."
   }
 }

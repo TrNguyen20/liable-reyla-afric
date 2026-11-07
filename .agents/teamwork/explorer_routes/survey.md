@@ -368,7 +368,7 @@ Qua rà soát toàn bộ codebase:
   - Quy trình kỹ thuật: `'Quy trình: Tôi chân không / Nhiệt luyện thể tích / Thấm Carbon / Xi mạ kỹ thuật'`
   - **Mục I. THÔNG TIN LINH KIỆN & YÊU CẦU KỸ THUẬT**:
     - `'Mã linh kiện:'`
-    - `'Mã lô (ID):'`
+    - `'Mã lô (ULID):'`
     - `'Phân xưởng giao:'`
     - `'Đơn vị nhận:'`
     - `'Mác thép / Vật liệu:'`
@@ -524,7 +524,7 @@ Qua rà soát toàn bộ codebase:
 ## 5. DANH MỤC THUẬT NGỮ BẤT BIẾN (INVARIANT DOMAIN TERMS)
 
 Căn cứ nghiêm ngặt theo `ORIGINAL_REQUEST.md` (R2) và `DESIGN-SYSTEM.md`:
-> *"Giữ nguyên không dịch các từ đặc trưng/đặc thù khái niệm: các mã trạng thái nghiệp vụ chuẩn (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`), mã định danh hệ thống (Order No, Lot ID), ký hiệu kỹ thuật nhiệt luyện (QT, tôi dầu, ram...), và tên riêng/mã nhà cung cấp."*
+> *"Giữ nguyên không dịch các từ đặc trưng/đặc thù khái niệm: các mã trạng thái nghiệp vụ chuẩn (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`), mã định danh hệ thống (Order No, Lot ULID), ký hiệu kỹ thuật nhiệt luyện (QT, tôi dầu, ram...), và tên riêng/mã nhà cung cấp."*
 
 ### Bảng Phân Định Thuật Ngữ Giữ Nguyên Ở Cả 3 Ngôn Ngữ [VI] [EN] [JA]:
 
@@ -538,7 +538,7 @@ Căn cứ nghiêm ngặt theo `ORIGINAL_REQUEST.md` (R2) và `DESIGN-SYSTEM.md`:
 | | `PENDING` | Chưa kiểm tra QC | Giữ nguyên 7 chữ in hoa monospaced |
 | | `INSPECT` | Đang trong quá trình đo kiểm | Giữ nguyên 7 chữ in hoa monospaced |
 | **Định danh kỹ thuật** | `Order No` / `So_DatHang` | Số đặt hàng / Đơn mua hàng (PO) | Giữ nguyên chuỗi mã định danh thực tế |
-| | `Lot ID` / `ID_Key` | Mã lô truy vết (Barcode / QR) | Giữ nguyên tiền tố `Q...` hoặc `TEST-LOT-...` |
+| | `Lot ULID` / `ID_Key` | Mã lô truy vết (Barcode / QR) | Giữ nguyên tiền tố `Q...` hoặc `TEST-LOT-...` |
 | | `ma_hang` | Mã linh kiện khuôn | Giữ nguyên ký hiệu bản vẽ (VD: `9075-P3`) |
 | **Ký hiệu nhiệt luyện** | `QT` | Quenching & Tempering (Tôi + Ram) | Giữ nguyên 2 chữ in hoa `QT` |
 | | `HRC` | Đơn vị đo độ cứng Rockwell C | Giữ nguyên `HRC` (VD: `58-62 HRC`, `44±1`) |

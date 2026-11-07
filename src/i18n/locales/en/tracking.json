@@ -138,5 +138,37 @@
   "filters": {
     "missingHardness": "Missing hardness",
     "hasNote": "Has notes"
+  },
+  "inlineEdit": {
+    "touch": {
+      "itemCode": "Touch to edit item code",
+      "material": "Touch to edit material",
+      "hardness": "Touch to edit hardness",
+      "quantity": "Touch to edit quantity",
+      "weight": "Touch to edit weight (kg)",
+      "sentDate": "Touch to edit sent date",
+      "dueDate": "Touch to edit due date",
+      "note": "Touch to edit note"
+    },
+    "doubleClick": {
+      "itemCode": "Double-click to edit item code",
+      "material": "Double-click to edit material",
+      "hardness": "Double-click to quick-edit hardness",
+      "quantity": "Double-click to edit quantity",
+      "weight": "Double-click to edit weight (kg)",
+      "sentDate": "Double-click to edit sent date",
+      "dueDate": "Double-click to edit due date",
+      "note": "Double-click to write or edit note"
+    },
+    "addNote": "+ Add note..."
+  },
+  "table": {
+    "selectLot": "Select lot {lotId}",
+    "viewLotDetail": "Click to view lot details & history",
+    "dragColumnTooltip": "Drag left/right to resize (Double-click to reset)",
+    "openFilter": "Open filter for {column}"
+  },
+  "drawer": {
+    "sizePlaceholder": "e.g. Ø30x120, 45x60x12..."
   }
 }

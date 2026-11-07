@@ -20,7 +20,7 @@ Adversarially challenge and stress-test the Trilingual i18n implementation to ex
 - Must deliver explicit confirmation: CONFIRM_CORRECT or FLAG_DEFECTS.
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T03:10:00Z
 
 ## Review Scope

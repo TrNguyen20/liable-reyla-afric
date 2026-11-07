@@ -12,7 +12,7 @@ Facilitate task execution and monitoring for trilingual [VI] [EN] [JA] standardi
 ## 🔒 Key Constraints
 - No technical decisions — relay only
 - Victory Audit is MANDATORY before reporting completion
-- Preserve special domain terms/codes without translation: WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ID, heat treatment technical terms (QT, tôi dầu, ram...), vendor names/codes per DESIGN-SYSTEM.md
+- Preserve special domain terms/codes without translation: WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ULID, heat treatment technical terms (QT, tôi dầu, ram...), vendor names/codes per DESIGN-SYSTEM.md
 - UI constraints: minimal 2px corners (rounded-xs), monospaced data grid (font-mono tabular-nums), high contrast Graphite Wireframe
 - 100% i18n coverage across all routes (/tracking, /dashboard, /orders, /sync, /login) and Dynamo Shell
 - Synchronized keys across all locales vi, en, ja in src/i18n/locales/

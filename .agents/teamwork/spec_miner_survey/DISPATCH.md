@@ -12,7 +12,7 @@ Key tasks:
    - Check if any keys are missing or malformed.
 3. Catalog all DOMAIN-SPECIFIC INVARIANT TERMS that MUST NOT be translated (or must be handled specially):
    - Status codes: WAIT, TRANSIT, STOCKED, PASS, FAIL.
-   - Identifiers: Order No, Lot ID, ULID.
+   - Identifiers: Order No, Lot ULID, ULID.
    - Technical heat treatment terms: QT, tôi dầu, ram...
    - Vendor names / codes and masking (`formatVendorName`, `canViewPricing`).
    - Monospaced tabular-nums numbers and UI 2px corner rules (`rounded-xs`).

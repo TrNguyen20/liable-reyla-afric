@@ -8,7 +8,7 @@ Orchestrate the complete, long-term trilingual [VI] [EN] [JA] standardization ac
 - Roles: orchestrator, user_liaison, human_reporter, successor
 - Working directory: d:\NTT-2025\KAIZEN\m.Clone-github (internet)\liable-reyla-afric\.agents\teamwork\orchestrator_1
 - Original parent: sentinel
-- Original parent conversation ID: d9754fb4-6ebe-4628-b68e-283a2abe0dc6
+- Original parent conversation ULID: d9754fb4-6ebe-4628-b68e-283a2abe0dc6
 
 ## 🔒 My Workflow
 - **Pattern**: Project Pattern (Survey → Decompose & Dual Track → Milestones → Iteration Loops → Hardening)
@@ -44,14 +44,14 @@ Orchestrate the complete, long-term trilingual [VI] [EN] [JA] standardization ac
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly (DISPATCH-ONLY).
 - NEVER run build/test commands directly.
-- Preserve domain-specific invariants: WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ID, heat treatment terms (QT, tôi dầu, ram...), vendor names/codes.
+- Preserve domain-specific invariants: WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ULID, heat treatment terms (QT, tôi dầu, ram...), vendor names/codes.
 - Maintain UI constraints: rounded-xs (2px), font-mono tabular-nums, Graphite Wireframe aesthetics.
 - Pass all automated test suites (npm test exit code 0).
 - Forensic Auditor verdict CLEAN is non-negotiable (binary veto).
 - Never reuse a subagent after handoff delivery.
 
 ## Current Parent
-- Conversation ID: d9754fb4-6ebe-4628-b68e-283a2abe0dc6
+- Conversation ULID: d9754fb4-6ebe-4628-b68e-283a2abe0dc6
 - Updated: 2026-11-06T01:57:00Z
 
 ## Key Decisions Made
@@ -59,7 +59,7 @@ Orchestrate the complete, long-term trilingual [VI] [EN] [JA] standardization ac
 - Dispatched final triad: `reviewer_recheck`, `challenger_recheck`, and `auditor_final`.
 
 ## Team Roster
-| Agent | Type | Work Item | Status | Conv ID |
+| Agent | Type | Work Item | Status | Conv ULID |
 |-------|------|-----------|--------|---------|
 | spec_miner_1 | teamwork_spec_miner | i18n Spec & Domain Terms Miner | completed | 5dfbbca8-354f-4d32-ba39-fcf1a7ef4d0c |
 | explorer_shell | teamwork_explorer | Shell and Common UI Explorer | completed | 7eb23480-b749-4d52-a20a-b2dae4d8ff84 |

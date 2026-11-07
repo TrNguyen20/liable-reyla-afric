@@ -100,5 +100,11 @@
   "quickPresets": {
     "sevenDays": "7 days",
     "thisMonth": "This month"
+  },
+  "tooltips": {
+    "permissionDenied": "Only Admins or the assigned subcontractor can update this lot's progress",
+    "overdueLots": "Overdue: {count}",
+    "dueSoonLots": "Due soon: {count}",
+    "target95": "Target 95%"
   }
 }

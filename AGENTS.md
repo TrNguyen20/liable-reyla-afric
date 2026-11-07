@@ -24,7 +24,7 @@
 >    - `[2] /dashboard`: Tổng quan hệ thống & Biên bản bàn giao ca A4.
 >    - `[3] /orders`: Chi tiết đơn đặt hàng & linh kiện gia công.
 >    - `[4] /sync`: Đồng bộ Google Sheets (Phân quyền Admin).
->    - `/login`: Xác thực mã bảo mật ULID.
+>    - `/login`: Xác thực mã bảo mật truy cập ID do Admin cấp.
 >    - `/`: Chuyển hướng tự động vào `/tracking`.
 >    - *Đã dọn dẹp*: `/materials` và `/audit-costs` đã bị loại bỏ hoàn toàn.
 > 5. **Automated Enforcement**: All UI modifications must pass `src/test/design-system-compliance.test.ts` and `src/test/app-routing.test.tsx` on `npm test`.

@@ -13,11 +13,11 @@ Investigate and survey UI components related to the application shell, navigatio
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement / do NOT modify source code
 - Strictly comply with DESIGN-SYSTEM.md (2px rounded-xs, font-mono tabular-nums, no pill buttons except LED dots)
-- Preserve domain-specific concepts / status codes (WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ID, QT terminology)
+- Preserve domain-specific concepts / status codes (WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ULID, QT terminology)
 - Focus on Shell, Header, Language Switcher, Login, Common Dialogs/Modals/Toasts
 
 ## Current Parent
-- Conversation ID: 934eddce-648a-4237-a754-5951df6a9240
+- Conversation ULID: 934eddce-648a-4237-a754-5951df6a9240
 - Updated: 2026-11-06T02:10:00Z
 
 ## Investigation State
@@ -35,7 +35,7 @@ Investigate and survey UI components related to the application shell, navigatio
 - **Key findings**:
   - Login page (`/login`) is 100% hardcoded Vietnamese with zero i18n hooks and lacks a language switcher.
   - Telemetry bar, Command palette, Job ticket A4, Lot update dialog, and Webhook config are not yet integrated with `useTranslation()`.
-  - Invariants (WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ID, QT, HRC, coupon) cataloged and confirmed.
+  - Invariants (WAIT, TRANSIT, STOCKED, PASS, FAIL, Order No, Lot ULID, QT, HRC, coupon) cataloged and confirmed.
   - Design system compliance: Detected a few `rounded-md`/`rounded-lg` instances in `__root.tsx` and `alert-dialog.tsx` that need cleanup to 2px `rounded-xs`.
   - Full inventory of all hardcoded strings and proposed key structure documented in `survey.md`.
 - **Unexplored areas**: None within the assigned shell/navigation/login/common scope.

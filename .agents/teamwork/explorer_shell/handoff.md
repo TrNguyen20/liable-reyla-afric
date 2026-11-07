@@ -68,7 +68,7 @@
 3. *Từ Quan sát 1 về test `TC-HDR-01`*: Test file `src/test/i18n-and-header.test.ts` trực tiếp kiểm tra sự tồn tại của chuỗi `label: 'LUÂN CHUYỂN'` và `label: 'ĐỒNG BỘ'` trong `src/components/dynamo-shell.tsx`.
    ➔ **Hạn chế kỹ thuật bắt buộc**: Bắt buộc giữ nguyên thuộc tính `label: 'LUÂN CHUYỂN'` và `label: 'ĐỒNG BỘ'` trong mảng cấu hình `nav` của `dynamo-shell.tsx` làm giá trị fallback/test invariant, và hiển thị giao diện qua `t(n.labelKey) || n.label`.
 
-4. *Từ R2 trong ORIGINAL_REQUEST.md & DESIGN-SYSTEM.md*: Các mã trạng thái nghiệp vụ chuẩn (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`), mã định danh kỹ thuật (`Order No`, `Lot ID`, `ULID TOKEN`), ký hiệu nhiệt luyện (`QT`, `HRC`, `coupon`) và tên thương hiệu (`DYNAMO VIETNAM`, xưởng `PIN`, `INSERT`, `MOLD`) phải được giữ nguyên vẹn trên cả 3 ngôn ngữ.
+4. *Từ R2 trong ORIGINAL_REQUEST.md & DESIGN-SYSTEM.md*: Các mã trạng thái nghiệp vụ chuẩn (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`), mã định danh kỹ thuật (`Order No`, `Lot ULID`, `ULID ACCESS`), ký hiệu nhiệt luyện (`QT`, `HRC`, `coupon`) và tên thương hiệu (`DYNAMO VIETNAM`, xưởng `PIN`, `INSERT`, `MOLD`) phải được giữ nguyên vẹn trên cả 3 ngôn ngữ.
    ➔ **Quy tắc chuyển ngữ**: Trong tệp từ điển `en/*.json` và `ja/*.json`, không dịch các thuật ngữ này, giữ nguyên định dạng in hoa/viết tắt chuyên ngành.
 
 5. *Từ cấu trúc hiện tại của `src/i18n/`*: `src/i18n/types.ts` chỉ định nghĩa 7 namespaces. Nếu thêm namespace `auth`, cần cập nhật cả `types.ts`, `index.tsx`, và tạo 3 tệp `auth.json`. Hoặc cách tiếp cận an toàn hơn: đưa các chuỗi dùng chung và auth vào `common.json` (dưới dạng `common.auth.*`), vừa tận dụng cơ chế fallback 1 cấp của hàm `t()`, vừa bảo toàn 100% tính tương thích của test `TC-I18N-01`.

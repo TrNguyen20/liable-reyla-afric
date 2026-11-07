@@ -130,7 +130,7 @@
     },
     "features": {
       "tracking": {
-        "title": "Luân chuyển nhiệt luyện / xi mạ 24/7",
+        "title": "Luân chuyển nhiệt luyện / xử lý bề mặt 24/7",
         "desc": "Giám sát hành trình từng lô hàng từ phân xưởng xuất đến nhà thầu phụ và hoàn tất nhập kho."
       },
       "leadTime": {
@@ -150,19 +150,21 @@
       "badge": "XÁC THỰC DANH TÍNH",
       "title": "Đăng Nhập Hệ Thống",
       "subtitle": "Nhập mã xác thực do ban điều hành cấp để phân quyền truy cập theo vai trò công tác.",
-      "codeLabel": "Bước 2 · Mã truy cập (Access code)",
+      "codeLabel": "Bước 2 · Mã truy cập",
       "kioskShow": "Phím số Kiosk",
       "kioskHide": "Ẩn phím cảm ứng",
       "codePlaceholderPos": "Nhập mã truy cập của {position}",
       "codePlaceholderEmpty": "Chọn vị trí ở Bước 1 trước",
       "codeAria": "Mã xác thực",
       "clearAria": "Xóa mã",
-      "toggleAria": "Ẩn/hiện mã"
+      "toggleAria": "Ẩn/hiện mã",
+      "backToStep1Tooltip": "Quay lại chọn vị trí công tác khác (Phím tắt: Esc)",
+      "changeRole": "Đổi vị trí"
     },
     "steps": {
       "aria": "Tiến trình xác thực",
       "step1": "Bước 1 · Vị trí",
-      "step2": "Bước 2 · Mã truy cập ULID",
+      "step2": "Bước 2 · Mã truy cập",
       "unselected": "Chưa chọn",
       "codeLoaded": "Đã nạp mã",
       "codeEmpty": "Chưa nhập"
@@ -276,6 +278,8 @@
     "copyCode": "Copy mã",
     "codeCopied": "Đã sao chép",
     "printNow": "In phiếu ngay",
+    "printFor": "In phiếu gia công {itemCode}",
+    "openFor": "Mở phiếu giao nhận {itemCode}",
     "batchTitle": "IN PHIẾU HÀNG LOẠT ({count} LÔ)",
     "batchSummary": "Tổng cộng: {pcs} chi tiết · {kg} kg",
     "tabManifest": "1. Bảng kê tổng hợp ({count} lô)",
