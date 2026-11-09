@@ -73,3 +73,16 @@ Người dùng có thể yêu cầu chỉ định nhanh subagent thông qua ngô
 - `"Kiểm tra cấu hình deploy Vercel..."` ➔ Tự động kích hoạt `deployment-expert`.
 - `"Thử nghiệm refactor nhánh riêng..."` ➔ Tự động kích hoạt `self` (`branch`).
 <!-- SUBAGENT_PROTOCOL:END -->
+
+<!-- SUPERPOWERS:BEGIN -->
+> [!IMPORTANT]
+> ### ⚡ SUPERPOWERS ENGINEERING PROTOCOL
+> **Triết lý cốt lõi: "Quy tắc 1%" (The 1% Rule)**:
+> Nếu có khả năng dù chỉ 1% một task cần skill, Agent bắt buộc phải kích hoạt skill đó thay vì vội vàng viết code ngay.
+>
+> Agent MUST strictly follow the Superpowers lifecycle:
+> 1. **Brainstorming First**: Clarify requirements before touching any code.
+> 2. **Implementation Plan**: Break down work into atomic testable phases.
+> 3. **TDD Enforcement**: Write failing tests first, verify, then write implementation.
+> 4. **Systematic Debugging**: Form hypotheses and find root cause; never apply random patches.
+<!-- SUPERPOWERS:END -->

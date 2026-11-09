@@ -1,6 +1,6 @@
 import type { QTItem, Status, Vendor, Workshop } from '@/lib/dynamo-data';
 
-export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cC9VnRrjf3IgADbzYL1VulrqgcSf2h56XkXEJILdyuE/edit#gid=1963478526';
+export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1eeZkR7il4UnYXDQvTMAIUOx-sV2LbmkVRlCbTq_odyo/edit?gid=1963478526#gid=1963478526';
 
 export function sheetCsvUrl(url: string, bustCache = true) {
   const id = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1];
@@ -84,45 +84,129 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
   const items: QTItem[] = [];
   let skipped = 0; let estimatedDue = 0; let badDates = 0;
   const seen = new Set<string>(); const duplicates: string[] = []; const unknownStatus: string[] = [];
+
   for (const r of rows) {
-    const ID_Key = (r['ID_Key'] ?? '').trim();
+    // Dual-Key Normalization: supports both 36-column new schema and legacy keys
+    const id_nhiet_qt = (r['id_nhiet_qt'] ?? r['ID_Key'] ?? '').trim();
+    const ID_Key = id_nhiet_qt;
     const ma_hang = (r['ma_hang'] ?? '').trim();
-    const So_DatHang = (r['So_DatHang'] ?? '').trim();
-    if (!ID_Key || !ma_hang || !So_DatHang) { skipped++; continue; }
-    if (seen.has(ID_Key)) { duplicates.push(ID_Key); continue; }
-    seen.add(ID_Key);
+    const so_dat_hang = (r['so_dat_hang'] ?? r['So_DatHang'] ?? '').trim();
+    const So_DatHang = so_dat_hang;
+
+    if (!id_nhiet_qt || !ma_hang || !so_dat_hang) { skipped++; continue; }
+    if (seen.has(id_nhiet_qt)) { duplicates.push(id_nhiet_qt); continue; }
+    seen.add(id_nhiet_qt);
+
+    const id_ma_hang = (r['id_ma_hang'] ?? '').trim() || undefined;
+    const ngay_tao = (r['ngay_tao'] ?? '').trim() || undefined;
+    const nguoi_tao = num(r['nguoi_tao']) || undefined;
+    const quoc_gia = (r['quoc_gia'] ?? '').trim() || 'Vietnam';
     const phong_sx = ((r['phong_sx'] ?? '').trim().toUpperCase() || 'PIN') as Workshop;
-    const ngay_gui_QT = toIsoDate(r['ngay_gui_QT']) || toIsoDate(r['ngay_tao']);
-    const ngay_nhan = toIsoDate(r['ngay_nhan_QT']);
+    const doi_tuong_hang = (r['doi_tuong_hang'] ?? '').trim() || (phong_sx === 'MOLD' ? 'Khuôn' : 'Linh kiện khuôn');
+
+    const ngay_gui_qt = toIsoDate(r['ngay_gui_qt'] ?? r['ngay_gui_QT']) || toIsoDate(r['ngay_tao']);
+    const ngay_gui_QT = ngay_gui_qt;
+
     const so_luong = num(r['so_luong']);
-    const kg_Lot = num(r['kg_Lot']);
-    const don_gia = num(r['don_gia']);
+    const vat_lieu = (r['vat_lieu'] ?? '').trim() || 'Chưa rõ';
+    const do_cung = (r['do_cung'] ?? '').trim() || '—';
+    const kich_thuoc_sp = (r['kich_thuoc_sp'] ?? r['Kich_Thuoc_SP'] ?? '').trim() || '—';
+    const Kich_Thuoc_SP = kich_thuoc_sp;
+    const kg_lot = num(r['kg_lot'] ?? r['kg_Lot']);
+    const kg_Lot = kg_lot;
     const don_vi_tinh = (r['don_vi_tinh'] ?? '').trim().toLowerCase() === 'kg' ? 'Kg' : 'pcs';
-    const thanh_tien = num(r['thanh_tien']) || Math.round((don_vi_tinh === 'Kg' ? kg_Lot : so_luong) * don_gia);
-    const raw = (r['TrangThai'] ?? '').trim();
-    const TrangThai: Status = statusMap[raw] ?? 'Đang tại Vendor';
-    if (raw && !statusMap[raw]) unknownStatus.push(`${ID_Key}: "${raw}"`);
-    if ((r['ngay_gui_QT'] && !toIsoDate(r['ngay_gui_QT'])) || (r['ngay_nhan_QT'] && !ngay_nhan)) badDates++;
-    const srcDue = toIsoDate(r['han_tra']);
+    const so_luong_tinh = num(r['so_luong_tinh']) || (don_vi_tinh === 'Kg' ? kg_lot : so_luong);
+    const don_gia = num(r['don_gia']);
+    const thanh_tien = num(r['thanh_tien']) || Math.round((so_luong_tinh || (don_vi_tinh === 'Kg' ? kg_lot : so_luong)) * don_gia);
+    const ty_gia = num(r['ty_gia']) || 1;
+
+    const ghi_chu_khi_gui = (r['ghi_chu_khi_gui'] ?? r['ghi_chu'] ?? r['Ghi_chu'] ?? r['Ghi chú'] ?? r['GHI_CHU'] ?? r['note'] ?? r['Note'] ?? '').trim() || undefined;
+    const ghi_chu = ghi_chu_khi_gui;
+
+    const cty_qt = ((r['cty_qt'] ?? r['cty_QT'] ?? '').trim().toUpperCase() || 'YAMAICHI') as Vendor;
+    const cty_QT = cty_qt;
+
+    const trang_thai = (r['trang_thai'] ?? r['TrangThai'] ?? '').trim();
+    const TrangThai: Status = statusMap[trang_thai] ?? 'Đang tại Vendor';
+    if (trang_thai && !statusMap[trang_thai]) unknownStatus.push(`${id_nhiet_qt}: "${trang_thai}"`);
+
+    const ten_file_dat_hang = (r['ten_file_dat_hang'] ?? '').trim() || undefined;
+
+    // 12 Vendor feedback fields (ncc_*)
+    const ncc_ngay_qt = toIsoDate(r['ncc_ngay_qt']) || undefined;
+    const ncc_ngay_tra_qt = toIsoDate(r['ncc_ngay_tra_qt']) || undefined;
+    const ncc_id_lot_qt = (r['ncc_id_lot_qt'] ?? '').trim() || undefined;
+    const ncc_name_qt = (r['ncc_name_qt'] ?? '').trim() || undefined;
+    const ncc_giando = (r['ncc_giando'] ?? '').trim() || undefined;
+    const ncc_ket_qua_hrc = (r['ncc_ket_qua_hrc'] ?? '').trim() || undefined;
+    const ncc_ket_qua_qc = (r['ncc_ket_qua_qc'] ?? '').trim() || undefined;
+    const ncc_don_gia = num(r['ncc_don_gia']) || undefined;
+    const ncc_tatus = (r['ncc_tatus'] ?? '').trim() || undefined;
+    const ncc_thongtinkhac1 = (r['ncc_thongtinkhac1'] ?? '').trim() || undefined;
+    const ncc_thongtinkhac2 = (r['ncc_thongtinkhac2'] ?? '').trim() || undefined;
+    const ncc_file1 = (r['ncc_file1'] ?? '').trim() || undefined;
+
+    // Return due date & validation
+    const srcDue = ncc_ngay_tra_qt || toIsoDate(r['han_tra']);
+    const han_tra = srcDue || addDays(ngay_gui_qt, 7);
+    const han_tra_est = !srcDue;
     if (!srcDue) estimatedDue++;
-    const ghi_chu = (r['ghi_chu'] ?? r['Ghi_chu'] ?? r['Ghi chú'] ?? r['GHI_CHU'] ?? r['note'] ?? r['Note'] ?? '').trim();
+
+    const ngay_nhan = toIsoDate(r['ncc_ngay_tra_qt'] ?? r['ngay_nhan_QT']);
+    if (((r['ngay_gui_qt'] ?? r['ngay_gui_QT']) && !toIsoDate(r['ngay_gui_qt'] ?? r['ngay_gui_QT'])) || ((r['ncc_ngay_tra_qt'] ?? r['ngay_nhan_QT']) && !ngay_nhan)) badDates++;
+
     items.push({
-      ID_Key, phong_sx,
-      doi_tuong_hang: (r['doi_tuong_hang'] ?? '').trim() || (phong_sx === 'MOLD' ? 'Khuôn' : 'Linh kiện khuôn'),
-      ma_hang, so_luong,
-      vat_lieu: (r['vat_lieu'] ?? '').trim() || 'Chưa rõ',
-      do_cung: (r['do_cung'] ?? '').trim() || '—',
-      Kich_Thuoc_SP: (r['Kich_Thuoc_SP'] ?? '').trim() || '—',
-      kg_Lot, don_vi_tinh, don_gia, thanh_tien,
-      ngay_gui_QT, cty_QT: ((r['cty_QT'] ?? '').trim().toUpperCase() || 'YAMAICHI') as Vendor,
-      TrangThai, So_DatHang,
-      han_tra: srcDue || addDays(ngay_gui_QT, 7),
-      han_tra_est: !srcDue,
+      id_nhiet_qt,
+      ID_Key,
+      id_ma_hang,
+      ma_hang,
+      so_dat_hang,
+      So_DatHang,
+      ten_file_dat_hang,
+      ngay_tao,
+      nguoi_tao,
+      quoc_gia,
+      phong_sx,
+      doi_tuong_hang,
+      so_luong,
+      vat_lieu,
+      do_cung,
+      kich_thuoc_sp,
+      Kich_Thuoc_SP,
+      kg_lot,
+      kg_Lot,
+      don_vi_tinh,
+      so_luong_tinh,
+      don_gia,
+      thanh_tien,
+      ty_gia,
+      ngay_gui_qt,
+      ngay_gui_QT,
+      ghi_chu_khi_gui,
+      ghi_chu,
+      cty_qt,
+      cty_QT,
+      trang_thai,
+      TrangThai,
+      han_tra,
+      han_tra_est,
       ngay_nhan: ngay_nhan || undefined,
       cong_doan: (r['loai_hang'] ?? '').trim() || 'Nhiệt luyện',
-      ghi_chu: ghi_chu || undefined,
+      ncc_ngay_qt,
+      ncc_ngay_tra_qt,
+      ncc_id_lot_qt,
+      ncc_name_qt,
+      ncc_giando,
+      ncc_ket_qua_hrc,
+      ncc_ket_qua_qc,
+      ncc_don_gia,
+      ncc_tatus,
+      ncc_thongtinkhac1,
+      ncc_thongtinkhac2,
+      ncc_file1,
     });
   }
+
   return { items, total: rows.length, skipped, duplicates, unknownStatus, estimatedDue, badDates };
 }
 
@@ -205,4 +289,3 @@ export async function clearDataset() {
     db.close();
   } catch { /* ignore */ }
 }
-
