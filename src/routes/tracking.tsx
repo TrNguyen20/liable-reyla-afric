@@ -35,6 +35,7 @@ import {
   PenLine,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useDynamo } from '@/components/dynamo-shell';
 import { useTranslation } from '@/i18n';
 import { playAudioCue } from '@/lib/audio-cues';
@@ -168,12 +169,44 @@ export type TableDensity = 'compact' | 'normal';
 
 const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 40,
-  ID_Key: 130,
-  So_DatHang: 120,
   ma_hang: 110,
+  ngay_tao: 140,
+  nguoi_tao: 90,
+  quoc_gia: 90,
+  phong_sx: 90,
+  doi_tuong_hang: 110,
+  id_ma_hang: 140,
+  so_luong: 70,
   vat_lieu: 100,
   do_cung: 100,
-  so_luong: 70,
+  kich_thuoc_sp: 110,
+  kg_lot: 70,
+  don_vi_tinh: 70,
+  so_luong_tinh: 80,
+  don_gia: 90,
+  thanh_tien: 100,
+  ty_gia: 60,
+  ngay_gui_qt: 105,
+  cty_qt: 110,
+  trang_thai: 110,
+  so_dat_hang: 140,
+  ten_file_dat_hang: 100,
+  ghi_chu_khi_gui: 140,
+  ncc_ngay_qt: 105,
+  ncc_ngay_tra_qt: 105,
+  ncc_id_lot_qt: 110,
+  ncc_name_qt: 110,
+  ncc_giando: 90,
+  ncc_ket_qua_hrc: 95,
+  ncc_ket_qua_qc: 85,
+  ncc_don_gia: 95,
+  ncc_tatus: 100,
+  ncc_thongtinkhac1: 110,
+  ncc_thongtinkhac2: 110,
+  ncc_file1: 90,
+  ticket: 58,
+  ID_Key: 130,
+  So_DatHang: 120,
   kg_Lot: 70,
   cty_QT: 125,
   TrangThai: 110,
@@ -181,27 +214,56 @@ const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   ngay_gui_QT: 115,
   han_tra: 115,
   ghi_chu: 165,
-  ticket: 58,
 };
 
 // Minimum content-aware widths: prevents columns from collapsing below title/icon/cell content
-// Calibrated so that when collapsed to minimum, every column retains an even ~12px padding
 const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 40,
-  ID_Key: 130,
-  So_DatHang: 120,
-  ma_hang: 100,
+  ma_hang: 110,
+  ngay_tao: 110,
+  nguoi_tao: 70,
+  quoc_gia: 70,
+  phong_sx: 70,
+  doi_tuong_hang: 80,
+  id_ma_hang: 110,
+  so_luong: 60,
   vat_lieu: 90,
   do_cung: 90,
-  so_luong: 60,
-  kg_Lot: 60,
-  cty_QT: 115,
-  TrangThai: 100,
-  qc: 90,
-  ngay_gui_QT: 105,
-  han_tra: 105,
-  ghi_chu: 150,
+  kich_thuoc_sp: 90,
+  kg_lot: 60,
+  don_vi_tinh: 50,
+  so_luong_tinh: 60,
+  don_gia: 70,
+  thanh_tien: 80,
+  ty_gia: 50,
+  ngay_gui_qt: 90,
+  cty_qt: 90,
+  trang_thai: 90,
+  so_dat_hang: 110,
+  ten_file_dat_hang: 70,
+  ghi_chu_khi_gui: 100,
+  ncc_ngay_qt: 90,
+  ncc_ngay_tra_qt: 90,
+  ncc_id_lot_qt: 80,
+  ncc_name_qt: 80,
+  ncc_giando: 70,
+  ncc_ket_qua_hrc: 70,
+  ncc_ket_qua_qc: 70,
+  ncc_don_gia: 70,
+  ncc_tatus: 80,
+  ncc_thongtinkhac1: 80,
+  ncc_thongtinkhac2: 80,
+  ncc_file1: 70,
   ticket: 58,
+  ID_Key: 110,
+  So_DatHang: 110,
+  kg_Lot: 60,
+  cty_QT: 100,
+  TrangThai: 90,
+  qc: 80,
+  ngay_gui_QT: 90,
+  han_tra: 90,
+  ghi_chu: 100,
 };
 
 interface TableFilterState {
@@ -348,10 +410,10 @@ function HeaderFilterCell({
 }: {
   title: string;
   field?: SortField;
-  sortCol: SortField;
-  sortDir: SortDirection;
+  sortCol?: SortField;
+  sortDir?: SortDirection;
   isFiltered?: boolean;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   stickyClass?: string;
   align?: 'start' | 'end' | 'center';
@@ -364,7 +426,7 @@ function HeaderFilterCell({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const isSorted = field && sortCol === field;
+  const isSorted = Boolean(field && sortCol && sortCol === field);
   const isSticky = stickyLeft !== undefined || stickyClass.includes('sticky');
 
   const handleTitleClick = (e: React.MouseEvent) => {
@@ -424,7 +486,8 @@ function HeaderFilterCell({
           )}
         </button>
 
-        <Popover open={open} onOpenChange={setOpen}>
+        {children && (
+<Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -446,6 +509,7 @@ function HeaderFilterCell({
             {open && children}
           </PopoverContent>
         </Popover>
+        )}
       </div>
       {onResize && (
         <div
@@ -530,6 +594,8 @@ function Tracking() {
       return next;
     });
   };
+
+  const handleResetWidth = handleResetColWidth;
 
   const handleResetAllColWidths = () => {
     setColWidths(DEFAULT_COL_WIDTHS);
@@ -854,9 +920,10 @@ function Tracking() {
         if (filters.sendFrom && row.ngay_gui_QT < filters.sendFrom) return false;
         if (filters.sendTo && row.ngay_gui_QT > filters.sendTo) return false;
         // 13. han_tra
+        const due = row.ncc_ngay_tra_qt || row.han_tra || '';
         if (filters.missingDueOnly && hasValidDue(row)) return false;
-        if (filters.dueFrom && row.han_tra < filters.dueFrom) return false;
-        if (filters.dueTo && row.han_tra > filters.dueTo) return false;
+        if (filters.dueFrom && (!due || due < filters.dueFrom)) return false;
+        if (filters.dueTo && (!due || due > filters.dueTo)) return false;
         // 14. ghi_chu
         if (filters.noteSearch && !(row.ghi_chu ?? '').toLowerCase().includes(filters.noteSearch.toLowerCase())) {
           return false;
@@ -909,16 +976,22 @@ function Tracking() {
           case 'qc':
             cmp = qcOf(a).localeCompare(qcOf(b));
             break;
-          case 'han_tra':
-            cmp = a.han_tra.localeCompare(b.han_tra);
+          case 'han_tra': {
+            const dueA = a.ncc_ngay_tra_qt || a.han_tra || '';
+            const dueB = b.ncc_ngay_tra_qt || b.han_tra || '';
+            cmp = dueA.localeCompare(dueB);
             break;
+          }
           case 'ghi_chu':
             cmp = (a.ghi_chu ?? '').localeCompare(b.ghi_chu ?? '');
             break;
           case 'ngay_gui_QT':
-          default:
-            cmp = a.ngay_gui_QT.localeCompare(b.ngay_gui_QT) || a.han_tra.localeCompare(b.han_tra);
+          default: {
+            const dueA = a.ncc_ngay_tra_qt || a.han_tra || '';
+            const dueB = b.ncc_ngay_tra_qt || b.han_tra || '';
+            cmp = a.ngay_gui_QT.localeCompare(b.ngay_gui_QT) || dueA.localeCompare(dueB);
             break;
+          }
         }
         return sortDir === 'asc' ? cmp : -cmp;
       });
@@ -1256,7 +1329,7 @@ function Tracking() {
         logisticsOf(r),
         qcOf(r),
         date(r.ngay_gui_QT),
-        date(r.han_tra),
+        date(r.ncc_ngay_tra_qt || r.han_tra || ""),
         `"${(r.ghi_chu ?? '').replace(/"/g, '""')}"`,
       ].join(','),
     );
@@ -1302,7 +1375,7 @@ function Tracking() {
       case 'ngay_gui_QT':
         return item.ngay_gui_QT;
       case 'han_tra':
-        return item.han_tra;
+        return item.ncc_ngay_tra_qt || item.han_tra || '';
       case 'ghi_chu':
         return item.ghi_chu ?? '';
       case 'logistics':
@@ -1927,7 +2000,6 @@ function Tracking() {
                       <input
                         type="checkbox"
                         ref={selectAllCheckboxRef}
-                        type="checkbox"
                         aria-label={t('tracking.columns.checkbox') || 'Chọn tất cả trên trang này'}
                         checked={isAllPageSelected}
                         onChange={toggleSelectAllPage}
@@ -3532,7 +3604,7 @@ function LotDetailDrawer({
                     {t('tracking.columns.dueDate') || 'Hạn trả gia công'}:
                   </span>
                   <p className="font-mono font-bold text-foreground">
-                    {date(item.han_tra)}
+                    {date(item.ncc_ngay_tra_qt || item.han_tra || "")}
                   </p>
                 </div>
 

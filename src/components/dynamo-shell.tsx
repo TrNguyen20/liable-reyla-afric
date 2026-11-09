@@ -38,7 +38,7 @@ import { toast } from "sonner";
 import { playAudioCue } from "@/lib/audio-cues";
 import { clearDataset, loadDataset, saveDataset } from "@/lib/dynamo-source";
 import { checkDatasetVersion, fetchDatasetDeltas, logoutSession } from "@/lib/auth.functions";
-import { fetchScopedSheet } from "@/lib/sheet.functions";
+import { fetchScopedSheet, type ScopedSheetResult } from "@/lib/sheet.functions";
 import { LIVE_LABEL, LIVE_SHEET_URL } from "@/lib/live-sheet";
 import { ShopfloorTelemetry } from "@/components/shopfloor-telemetry";
 import { CommandPalette } from "@/components/command-palette";
@@ -237,7 +237,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       setLoadError("");
       const t0 = performance.now();
       try {
-        const r = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } });
+        const rawRes = await fetchScopedSheet({ data: { url: LIVE_SHEET_URL } });
+        const r: ScopedSheetResult = rawRes instanceof Response ? await rawRes.json() : (rawRes as unknown as ScopedSheetResult);
         const elapsed = Math.round(performance.now() - t0);
         applyDataset(r.items, LIVE_LABEL);
         if (r.version) {

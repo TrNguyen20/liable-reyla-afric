@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { fetchScopedSheet } from '@/lib/sheet.functions';
+import { fetchScopedSheet, type ScopedSheetResult } from '@/lib/sheet.functions';
 import { useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -179,7 +179,8 @@ function Sync() {
     setError('');
     const t0 = performance.now();
     try {
-      const res = await fetchScopedSheet({ data: { url: sheetUrl.trim(), forceGoogle: true } });
+      const rawRes = await fetchScopedSheet({ data: { url: sheetUrl.trim(), forceGoogle: true } });
+      const res: ScopedSheetResult = rawRes instanceof Response ? await rawRes.json() : (rawRes as unknown as ScopedSheetResult);
       const elapsed = Math.round(performance.now() - t0);
       setStats(res);
       setStagedRows(res.items);

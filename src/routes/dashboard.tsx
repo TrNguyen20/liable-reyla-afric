@@ -6,6 +6,7 @@ import {
   CircleAlert,
   Clock3,
   Download,
+  FileText,
   Filter,
   Lock,
   PackageCheck,
@@ -433,7 +434,7 @@ function Dashboard() {
                             </div>
                           </td>
                           <td className="px-2.5 py-1.5 font-mono tabular-nums">
-                            {hasValidDue(r) ? date(r.han_tra) : <span className="text-warning font-semibold">{t('tracking.dueTags.missingDue') || 'Thiếu hạn'}</span>}
+                            {hasValidDue(r) ? date(r.ncc_ngay_tra_qt || r.han_tra || "") : <span className="text-warning font-semibold">{t('tracking.dueTags.missingDue') || 'Thiếu hạn'}</span>}
                           </td>
                           <td className="px-3 py-1.5 font-semibold">
                             <span className={`font-mono text-xs ${isOverdue(r) ? 'text-destructive font-bold andon-pulse' : isDueSoon(r) ? 'text-warning font-bold' : 'text-muted-foreground'}`}>
