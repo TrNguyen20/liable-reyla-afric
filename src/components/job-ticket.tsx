@@ -12,7 +12,6 @@ import {
   Maximize2,
   Minimize2,
   Printer,
-  QrCode,
   Scale,
   ShieldCheck,
   Sparkles,
