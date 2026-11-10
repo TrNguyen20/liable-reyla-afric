@@ -64,10 +64,72 @@ export type QTItem = {
 export const statuses: Status[] = ['Chờ xuất xưởng','Đang tại Vendor','Kiểm tra QC','Đã nhập kho'];
 export const money = (value: number) => isPricingVisible() ? new Intl.NumberFormat('vi-VN').format(value) + ' ₫' : '*** ₫';
 export const number = (value: number, decimals = 0) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: decimals }).format(value);
-export const date = (value: string) => new Date(value + 'T00:00:00').toLocaleDateString('vi-VN');
-export const daysLate = (value: string) => Math.max(0, Math.floor((new Date().setHours(0,0,0,0) - new Date(value + 'T00:00:00').getTime()) / 86400000));
+
+/** Parses ISO YYYY-MM-DD, ISO with time, or Google Sheets format (e.g. M/D/YYYY [H:m:s] or D/M/YYYY) */
+export const parseFlexibleDate = (value: string | undefined): Date | null => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  // 1. Standard ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    if (raw.length === 10) {
+      const d = new Date(raw + 'T00:00:00');
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  // 2. Formats with slashes: M/D/YYYY HH:mm:ss or D/M/YYYY HH:mm:ss
+  // e.g. "10/28/2026 18:04:16" or "5/11/2026 7:51:15"
+  const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (match) {
+    const part1 = Number(match[1]);
+    const part2 = Number(match[2]);
+    const year = Number(match[3]);
+    const hours = match[4] !== undefined ? Number(match[4]) : 0;
+    const minutes = match[5] !== undefined ? Number(match[5]) : 0;
+    const seconds = match[6] !== undefined ? Number(match[6]) : 0;
+
+    let month = part1;
+    let day = part2;
+    if (part1 > 12) {
+      day = part1;
+      month = part2;
+    }
+
+    const d = new Date(year, month - 1, day, hours, minutes, seconds);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  // 3. Fallback to native Date parser
+  const fallback = new Date(raw);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+};
+
+export const date = (value: string) => {
+  const d = parseFlexibleDate(value);
+  return d ? d.toLocaleDateString('vi-VN') : '—';
+};
+
+export const dateTime = (value: string) => {
+  const d = parseFlexibleDate(value);
+  if (!d) return '—';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const tStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${dStr} ${tStr}`;
+};
+
+export const daysLate = (value: string) => {
+  const d = parseFlexibleDate(value);
+  if (!d) return 0;
+  return Math.max(0, Math.floor((new Date().setHours(0,0,0,0) - d.getTime()) / 86400000));
+};
+
 /** Overdue only when the due date is official (not estimated). Kept in sync with dynamo-rules.isOverdue. */
 export const isLate = (row: QTItem) => {
   const due = row.ncc_ngay_tra_qt || row.han_tra;
-  return row.TrangThai !== 'Đã nhập kho' && !row.han_tra_est && !!due && /^\d{4}-\d{2}-\d{2}$/.test(due) && daysLate(due) > 0;
+  return row.TrangThai !== 'Đã nhập kho' && !row.han_tra_est && !!due && daysLate(due) > 0;
 };

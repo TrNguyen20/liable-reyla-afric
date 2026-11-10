@@ -39,7 +39,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useDynamo } from '@/components/dynamo-shell';
 import { useTranslation } from '@/i18n';
 import { playAudioCue } from '@/lib/audio-cues';
-import { date, money, number, type QTItem, type Status, type Workshop, type Vendor } from '@/lib/dynamo-data';
+import { date, dateTime, parseFlexibleDate, money, number, type QTItem, type Status, type Workshop, type Vendor } from '@/lib/dynamo-data';
 import { formatVendorName, canViewPricing } from '@/lib/dynamo-auth';
 import { updateLotProgress } from '@/lib/auth.functions';
 import { isMaterialEquivalent } from '@/lib/materials-data';
@@ -95,25 +95,53 @@ const FOCUS: { key: Focus; label: string; tone: string }[] = [
   { key: 'qc_fail', label: 'QC không đạt', tone: 'border-destructive/60 bg-destructive/15 text-destructive' },
 ];
 
-const PAGE_SIZES = [30, 50, 100, 200];
+const PAGE_SIZES = [30, 50, 100, 200, 500, 1000];
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const DAY = 86400000;
 
 type SortField =
   | 'ID_Key'
   | 'So_DatHang'
+  | 'so_dat_hang'
   | 'phong_sx'
   | 'ma_hang'
+  | 'ngay_tao'
+  | 'nguoi_tao'
+  | 'doi_tuong_hang'
+  | 'id_ma_hang'
   | 'vat_lieu'
   | 'do_cung'
+  | 'kich_thuoc_sp'
   | 'so_luong'
+  | 'kg_lot'
   | 'kg_Lot'
+  | 'don_vi_tinh'
+  | 'so_luong_tinh'
+  | 'don_gia'
+  | 'thanh_tien'
   | 'cty_QT'
+  | 'cty_qt'
+  | 'trang_thai'
   | 'TrangThai'
+  | 'ten_file_dat_hang'
+  | 'ghi_chu_khi_gui'
   | 'qc'
   | 'ngay_gui_QT'
+  | 'ngay_gui_qt'
   | 'han_tra'
-  | 'ghi_chu';
+  | 'ghi_chu'
+  | 'ncc_ngay_qt'
+  | 'ncc_ngay_tra_qt'
+  | 'ncc_id_lot_qt'
+  | 'ncc_name_qt'
+  | 'ncc_giando'
+  | 'ncc_ket_qua_hrc'
+  | 'ncc_ket_qua_qc'
+  | 'ncc_don_gia'
+  | 'ncc_tatus'
+  | 'ncc_thongtinkhac1'
+  | 'ncc_thongtinkhac2'
+  | 'ncc_file1';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -294,6 +322,11 @@ interface TableFilterState {
   stockedOnly: boolean;
   noQcOnly: boolean;
   syncFailedOnly: boolean;
+  createdFrom?: string;
+  createdTo?: string;
+  targetItemSearch?: string;
+  sheetStatusSearch?: string;
+  vendorQcVerdicts?: string[];
 }
 
 const defaultFilters: TableFilterState = {
@@ -324,6 +357,11 @@ const defaultFilters: TableFilterState = {
   stockedOnly: false,
   noQcOnly: false,
   syncFailedOnly: false,
+  createdFrom: '',
+  createdTo: '',
+  targetItemSearch: '',
+  sheetStatusSearch: '',
+  vendorQcVerdicts: [],
 };
 
 function HeaderSortControls({
@@ -669,6 +707,21 @@ function Tracking() {
 
   // Pagination states
   const [tablePage, setTablePage] = useState(0);
+  const [jumpPageInput, setJumpPageInput] = useState<string>('1');
+
+  useEffect(() => {
+    setJumpPageInput(String(tablePage + 1));
+  }, [tablePage]);
+
+  const handleJumpPage = () => {
+    const pageNum = parseInt(jumpPageInput, 10);
+    if (!Number.isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      setTablePage(pageNum - 1);
+      playAudioCue('pop');
+    } else {
+      setJumpPageInput(String(tablePage + 1));
+    }
+  };
   const [pageSize, setPageSize] = useState(30);
 
   // Selection states (for Bulk Actions)
@@ -924,6 +977,28 @@ function Tracking() {
         if (filters.missingDueOnly && hasValidDue(row)) return false;
         if (filters.dueFrom && (!due || due < filters.dueFrom)) return false;
         if (filters.dueTo && (!due || due > filters.dueTo)) return false;
+        // Filter: Ngày tạo
+        if (filters.createdFrom && row.ngay_tao) {
+          const d = parseFlexibleDate(row.ngay_tao);
+          if (d && d < new Date(filters.createdFrom + 'T00:00:00')) return false;
+        }
+        if (filters.createdTo && row.ngay_tao) {
+          const d = parseFlexibleDate(row.ngay_tao);
+          if (d && d > new Date(filters.createdTo + 'T23:59:59')) return false;
+        }
+        // Filter: Đối tượng hàng
+        if (filters.targetItemSearch && !(row.doi_tuong_hang ?? '').toLowerCase().includes(filters.targetItemSearch.toLowerCase())) {
+          return false;
+        }
+        // Filter: Trạng thái gốc
+        if (filters.sheetStatusSearch && !(row.trang_thai ?? '').toLowerCase().includes(filters.sheetStatusSearch.toLowerCase())) {
+          return false;
+        }
+        // Filter: NCC Nghiệm thu QC
+        if (filters.vendorQcVerdicts && filters.vendorQcVerdicts.length > 0 && !filters.vendorQcVerdicts.includes(String(row.ncc_ket_qua_qc ?? ''))) {
+          return false;
+        }
+
         // 14. ghi_chu
         if (filters.noteSearch && !(row.ghi_chu ?? '').toLowerCase().includes(filters.noteSearch.toLowerCase())) {
           return false;
@@ -947,6 +1022,7 @@ function Tracking() {
             cmp = a.ID_Key.localeCompare(b.ID_Key);
             break;
           case 'So_DatHang':
+          case 'so_dat_hang':
             cmp = a.So_DatHang.localeCompare(b.So_DatHang);
             break;
           case 'phong_sx':
@@ -954,6 +1030,21 @@ function Tracking() {
             break;
           case 'ma_hang':
             cmp = a.ma_hang.localeCompare(b.ma_hang);
+            break;
+          case 'ngay_tao':
+            cmp = (a.ngay_tao ?? '').localeCompare(b.ngay_tao ?? '');
+            break;
+          case 'nguoi_tao':
+            cmp = (a.nguoi_tao ?? 0) - (b.nguoi_tao ?? 0);
+            break;
+          case 'doi_tuong_hang':
+            cmp = (a.doi_tuong_hang ?? '').localeCompare(b.doi_tuong_hang ?? '');
+            break;
+          case 'id_ma_hang':
+            cmp = (a.id_ma_hang ?? '').localeCompare(b.id_ma_hang ?? '');
+            break;
+          case 'kich_thuoc_sp':
+            cmp = (a.kich_thuoc_sp ?? '').localeCompare(b.kich_thuoc_sp ?? '');
             break;
           case 'vat_lieu':
             cmp = a.vat_lieu.localeCompare(b.vat_lieu);
@@ -964,24 +1055,77 @@ function Tracking() {
           case 'so_luong':
             cmp = a.so_luong - b.so_luong;
             break;
+          case 'kg_lot':
           case 'kg_Lot':
             cmp = a.kg_Lot - b.kg_Lot;
             break;
+          case 'don_vi_tinh':
+            cmp = (a.don_vi_tinh ?? '').localeCompare(b.don_vi_tinh ?? '');
+            break;
+          case 'so_luong_tinh':
+            cmp = (a.so_luong_tinh ?? 0) - (b.so_luong_tinh ?? 0);
+            break;
+          case 'don_gia':
+            cmp = (a.don_gia ?? 0) - (b.don_gia ?? 0);
+            break;
+          case 'thanh_tien':
+            cmp = (a.thanh_tien ?? 0) - (b.thanh_tien ?? 0);
+            break;
+          case 'cty_qt':
           case 'cty_QT':
             cmp = String(a.cty_QT).localeCompare(String(b.cty_QT));
+            break;
+          case 'trang_thai':
+            cmp = (a.trang_thai ?? '').localeCompare(b.trang_thai ?? '');
             break;
           case 'TrangThai':
             cmp = a.TrangThai.localeCompare(b.TrangThai);
             break;
+          case 'ten_file_dat_hang':
+            cmp = (a.ten_file_dat_hang ?? '').localeCompare(b.ten_file_dat_hang ?? '');
+            break;
+          case 'ghi_chu_khi_gui':
+            cmp = (a.ghi_chu_khi_gui ?? a.ghi_chu ?? '').localeCompare(b.ghi_chu_khi_gui ?? b.ghi_chu ?? '');
+            break;
           case 'qc':
             cmp = qcOf(a).localeCompare(qcOf(b));
             break;
-          case 'han_tra': {
-            const dueA = a.ncc_ngay_tra_qt || a.han_tra || '';
-            const dueB = b.ncc_ngay_tra_qt || b.han_tra || '';
-            cmp = dueA.localeCompare(dueB);
+          case 'ncc_ngay_qt':
+            cmp = (a.ncc_ngay_qt ?? '').localeCompare(b.ncc_ngay_qt ?? '');
             break;
-          }
+          case 'ncc_ngay_tra_qt':
+            cmp = (a.ncc_ngay_tra_qt ?? '').localeCompare(b.ncc_ngay_tra_qt ?? '');
+            break;
+          case 'ncc_id_lot_qt':
+            cmp = (a.ncc_id_lot_qt ?? '').localeCompare(b.ncc_id_lot_qt ?? '');
+            break;
+          case 'ncc_name_qt':
+            cmp = (a.ncc_name_qt ?? '').localeCompare(b.ncc_name_qt ?? '');
+            break;
+          case 'ncc_giando':
+            cmp = (a.ncc_giando ?? '').localeCompare(b.ncc_giando ?? '');
+            break;
+          case 'ncc_ket_qua_hrc':
+            cmp = (a.ncc_ket_qua_hrc ?? '').localeCompare(b.ncc_ket_qua_hrc ?? '');
+            break;
+          case 'ncc_ket_qua_qc':
+            cmp = (a.ncc_ket_qua_qc ?? '').localeCompare(b.ncc_ket_qua_qc ?? '');
+            break;
+          case 'ncc_don_gia':
+            cmp = (a.ncc_don_gia ?? 0) - (b.ncc_don_gia ?? 0);
+            break;
+          case 'ncc_tatus':
+            cmp = (a.ncc_tatus ?? '').localeCompare(b.ncc_tatus ?? '');
+            break;
+          case 'ncc_thongtinkhac1':
+            cmp = (a.ncc_thongtinkhac1 ?? '').localeCompare(b.ncc_thongtinkhac1 ?? '');
+            break;
+          case 'ncc_thongtinkhac2':
+            cmp = (a.ncc_thongtinkhac2 ?? '').localeCompare(b.ncc_thongtinkhac2 ?? '');
+            break;
+          case 'ncc_file1':
+            cmp = (a.ncc_file1 ?? '').localeCompare(b.ncc_file1 ?? '');
+            break;
           case 'ghi_chu':
             cmp = (a.ghi_chu ?? '').localeCompare(b.ghi_chu ?? '');
             break;
@@ -2048,15 +2192,52 @@ function Tracking() {
                   {/* Column 2: Ngày tạo */}
                   <HeaderFilterCell
                     title={t('tracking.columns.createdDate') || 'NGÀY TẠO'}
+                    field="ngay_tao"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={Boolean(filters.createdFrom || filters.createdTo)}
                     width={colWidths.ngay_tao}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ngay_tao')}
                     onResetWidth={() => handleResetWidth('ngay_tao')}
-                  />
+                  >
+                    <div className="space-y-2">
+                      <HeaderSortControls
+                        field="ngay_tao"
+                        currentField={sortCol}
+                        currentDir={sortDir}
+                        onSort={handleSort}
+                      />
+                      <div className="border-t border-border/60 pt-2 space-y-1.5">
+                        <label className="text-[11px] font-semibold text-muted-foreground block">
+                          Khoảng ngày tạo
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <input
+                            type="date"
+                            value={filters.createdFrom || ''}
+                            onChange={(e) => setFilters((f) => ({ ...f, createdFrom: e.target.value }))}
+                            className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
+                          />
+                          <input
+                            type="date"
+                            value={filters.createdTo || ''}
+                            onChange={(e) => setFilters((f) => ({ ...f, createdTo: e.target.value }))}
+                            className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
 
                   {/* Column 3: Người tạo */}
                   <HeaderFilterCell
                     title={t('tracking.columns.createdBy') || 'NGƯỜI TẠO'}
+                    field="nguoi_tao"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.nguoi_tao}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'nguoi_tao')}
                     onResetWidth={() => handleResetWidth('nguoi_tao')}
                   />
@@ -2081,15 +2262,45 @@ function Tracking() {
                   {/* Column 6: Đối tượng hàng */}
                   <HeaderFilterCell
                     title={t('tracking.columns.targetItem') || 'ĐỐI TƯỢNG HÀNG'}
+                    field="doi_tuong_hang"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={Boolean(filters.targetItemSearch)}
                     width={colWidths.doi_tuong_hang}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'doi_tuong_hang')}
                     onResetWidth={() => handleResetWidth('doi_tuong_hang')}
-                  />
+                  >
+                    <div className="space-y-2">
+                      <HeaderSortControls
+                        field="doi_tuong_hang"
+                        currentField={sortCol}
+                        currentDir={sortDir}
+                        onSort={handleSort}
+                      />
+                      <div className="border-t border-border/60 pt-2 space-y-1">
+                        <label className="text-[11px] font-semibold text-muted-foreground block">
+                          Tìm theo đối tượng
+                        </label>
+                        <input
+                          type="text"
+                          value={filters.targetItemSearch || ''}
+                          onChange={(e) => setFilters((f) => ({ ...f, targetItemSearch: e.target.value }))}
+                          placeholder="VD: Pin, Insert, Cổng..."
+                          className="w-full h-7 px-2 text-xs rounded-xs border border-border bg-background font-mono"
+                        />
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
 
                   {/* Column 7: Mã bản vẽ */}
                   <HeaderFilterCell
                     title={t('tracking.columns.drawingCode') || 'MÃ BẢN VẼ'}
+                    field="id_ma_hang"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.id_ma_hang}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'id_ma_hang')}
                     onResetWidth={() => handleResetWidth('id_ma_hang')}
                   />
@@ -2134,7 +2345,11 @@ function Tracking() {
                   {/* Column 11: Quy cách KT */}
                   <HeaderFilterCell
                     title={t('tracking.columns.productDimension') || 'QUY CÁCH KT'}
+                    field="kich_thuoc_sp"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.kich_thuoc_sp}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'kich_thuoc_sp')}
                     onResetWidth={() => handleResetWidth('kich_thuoc_sp')}
                   />
@@ -2155,7 +2370,11 @@ function Tracking() {
                   {/* Column 13: Đơn vị tính */}
                   <HeaderFilterCell
                     title={t('tracking.columns.uom') || 'ĐVT'}
+                    field="don_vi_tinh"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.don_vi_tinh}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'don_vi_tinh')}
                     onResetWidth={() => handleResetWidth('don_vi_tinh')}
                   />
@@ -2163,8 +2382,12 @@ function Tracking() {
                   {/* Column 14: Số lượng tính tiền */}
                   <HeaderFilterCell
                     title={t('tracking.columns.calcQuantity') || 'SL TÍNH'}
+                    field="so_luong_tinh"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     align="end"
                     width={colWidths.so_luong_tinh}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'so_luong_tinh')}
                     onResetWidth={() => handleResetWidth('so_luong_tinh')}
                   />
@@ -2172,8 +2395,12 @@ function Tracking() {
                   {/* Column 15: Đơn giá */}
                   <HeaderFilterCell
                     title={t('tracking.columns.unitPrice') || 'ĐƠN GIÁ'}
+                    field="don_gia"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     align="end"
                     width={colWidths.don_gia}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'don_gia')}
                     onResetWidth={() => handleResetWidth('don_gia')}
                   />
@@ -2181,8 +2408,12 @@ function Tracking() {
                   {/* Column 16: Thành tiền */}
                   <HeaderFilterCell
                     title={t('tracking.columns.totalAmount') || 'THÀNH TIỀN'}
+                    field="thanh_tien"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     align="end"
                     width={colWidths.thanh_tien}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'thanh_tien')}
                     onResetWidth={() => handleResetWidth('thanh_tien')}
                   />
@@ -2223,10 +2454,36 @@ function Tracking() {
                   {/* Column 20: Trạng thái gốc */}
                   <HeaderFilterCell
                     title={t('tracking.columns.sheetStatus') || 'TRẠNG THÁI GỐC'}
+                    field="trang_thai"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={Boolean(filters.sheetStatusSearch)}
                     width={colWidths.trang_thai}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'trang_thai')}
                     onResetWidth={() => handleResetWidth('trang_thai')}
-                  />
+                  >
+                    <div className="space-y-2">
+                      <HeaderSortControls
+                        field="trang_thai"
+                        currentField={sortCol}
+                        currentDir={sortDir}
+                        onSort={handleSort}
+                      />
+                      <div className="border-t border-border/60 pt-2 space-y-1">
+                        <label className="text-[11px] font-semibold text-muted-foreground block">
+                          Lọc trạng thái gốc
+                        </label>
+                        <input
+                          type="text"
+                          value={filters.sheetStatusSearch || ''}
+                          onChange={(e) => setFilters((f) => ({ ...f, sheetStatusSearch: e.target.value }))}
+                          placeholder="VD: Đã tạo, Print PDF..."
+                          className="w-full h-7 px-2 text-xs rounded-xs border border-border bg-background font-mono"
+                        />
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
 
                   {/* Column 21: Số đơn hàng */}
                   <HeaderFilterCell
@@ -2243,7 +2500,11 @@ function Tracking() {
                   {/* Column 22: File đơn hàng */}
                   <HeaderFilterCell
                     title={t('tracking.columns.orderPdf') || 'FILE PO'}
+                    field="ten_file_dat_hang"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ten_file_dat_hang}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ten_file_dat_hang')}
                     onResetWidth={() => handleResetWidth('ten_file_dat_hang')}
                   />
@@ -2263,7 +2524,11 @@ function Tracking() {
                   {/* Column 24: NCC Ngày vào lò */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorOvenDate') || 'NCC VÀO LÒ'}
+                    field="ncc_ngay_qt"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_ngay_qt}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_ngay_qt')}
                     onResetWidth={() => handleResetWidth('ncc_ngay_qt')}
                   />
@@ -2271,7 +2536,11 @@ function Tracking() {
                   {/* Column 25: NCC Hạn trả cam kết */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorDueDate') || 'NCC HẠN TRẢ'}
+                    field="ncc_ngay_tra_qt"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_ngay_tra_qt}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_ngay_tra_qt')}
                     onResetWidth={() => handleResetWidth('ncc_ngay_tra_qt')}
                   />
@@ -2279,7 +2548,11 @@ function Tracking() {
                   {/* Column 26: NCC Mã mẻ nhiệt */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorLotId') || 'NCC MÃ MẺ'}
+                    field="ncc_id_lot_qt"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_id_lot_qt}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_id_lot_qt')}
                     onResetWidth={() => handleResetWidth('ncc_id_lot_qt')}
                   />
@@ -2287,7 +2560,11 @@ function Tracking() {
                   {/* Column 27: NCC Kỹ thuật viên */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorTech') || 'NCC KỸ THUẬT'}
+                    field="ncc_name_qt"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_name_qt}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_name_qt')}
                     onResetWidth={() => handleResetWidth('ncc_name_qt')}
                   />
@@ -2295,7 +2572,11 @@ function Tracking() {
                   {/* Column 28: NCC Giản đồ nhiệt */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorHeatDiagram') || 'GIẢN ĐỒ NHIỆT'}
+                    field="ncc_giando"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_giando}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_giando')}
                     onResetWidth={() => handleResetWidth('ncc_giando')}
                   />
@@ -2303,7 +2584,11 @@ function Tracking() {
                   {/* Column 29: NCC Độ cứng đo */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorHrcMeasured') || 'NCC ĐỘ CỨNG'}
+                    field="ncc_ket_qua_hrc"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_ket_qua_hrc}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_hrc')}
                     onResetWidth={() => handleResetWidth('ncc_ket_qua_hrc')}
                   />
@@ -2311,16 +2596,67 @@ function Tracking() {
                   {/* Column 30: NCC Nghiệm thu QC */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorQcVerdict') || 'NCC NGHIỆM THU'}
+                    field="ncc_ket_qua_qc"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={Boolean((filters.vendorQcVerdicts?.length ?? 0) > 0)}
                     width={colWidths.ncc_ket_qua_qc}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_qc')}
                     onResetWidth={() => handleResetWidth('ncc_ket_qua_qc')}
-                  />
+                  >
+                    <div className="space-y-2">
+                      <HeaderSortControls
+                        field="ncc_ket_qua_qc"
+                        currentField={sortCol}
+                        currentDir={sortDir}
+                        onSort={handleSort}
+                      />
+                      <div className="border-t border-border/60 pt-2 space-y-1">
+                        <label className="text-[11px] font-semibold text-muted-foreground block">
+                          Kết quả nghiệm thu
+                        </label>
+                        <div className="flex gap-2">
+                          {['PASS', 'FAIL'].map((verdict) => {
+                            const active = filters.vendorQcVerdicts?.includes(verdict);
+                            return (
+                              <button
+                                key={verdict}
+                                type="button"
+                                onClick={() =>
+                                  setFilters((f) => ({
+                                    ...f,
+                                    vendorQcVerdicts: active
+                                      ? (f.vendorQcVerdicts || []).filter((v) => v !== verdict)
+                                      : [...(f.vendorQcVerdicts || []), verdict],
+                                  }))
+                                }
+                                className={`px-2 py-1 text-xs font-mono font-bold rounded-xs border transition-colors ${
+                                  active
+                                    ? verdict === 'PASS'
+                                      ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/50'
+                                      : 'bg-destructive/20 text-destructive border-destructive/50'
+                                    : 'bg-secondary text-muted-foreground border-border/60'
+                                }`}
+                              >
+                                {verdict}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </HeaderFilterCell>
 
                   {/* Column 31: NCC Đơn giá báo */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorQuotedPrice') || 'NCC BÁO GIÁ'}
+                    field="ncc_don_gia"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     align="end"
                     width={colWidths.ncc_don_gia}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_don_gia')}
                     onResetWidth={() => handleResetWidth('ncc_don_gia')}
                   />
@@ -2328,7 +2664,11 @@ function Tracking() {
                   {/* Column 32: NCC Trạng thái tiến độ */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorStatus') || 'NCC TIẾN ĐỘ'}
+                    field="ncc_tatus"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_tatus}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_tatus')}
                     onResetWidth={() => handleResetWidth('ncc_tatus')}
                   />
@@ -2336,7 +2676,11 @@ function Tracking() {
                   {/* Column 33: NCC Mở rộng 1 */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorExtra1') || 'NCC MỞ RỘNG 1'}
+                    field="ncc_thongtinkhac1"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_thongtinkhac1}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_thongtinkhac1')}
                     onResetWidth={() => handleResetWidth('ncc_thongtinkhac1')}
                   />
@@ -2344,7 +2688,11 @@ function Tracking() {
                   {/* Column 34: NCC Mở rộng 2 */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorExtra2') || 'NCC MỞ RỘNG 2'}
+                    field="ncc_thongtinkhac2"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_thongtinkhac2}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_thongtinkhac2')}
                     onResetWidth={() => handleResetWidth('ncc_thongtinkhac2')}
                   />
@@ -2352,7 +2700,11 @@ function Tracking() {
                   {/* Column 35: NCC Chứng nhận QC */}
                   <HeaderFilterCell
                     title={t('tracking.columns.vendorQcCert') || 'CHỨNG NHẬN QC'}
+                    field="ncc_file1"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     width={colWidths.ncc_file1}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_file1')}
                     onResetWidth={() => handleResetWidth('ncc_file1')}
                   />
@@ -2413,7 +2765,7 @@ function Tracking() {
 
                         {/* 1. Mã hàng (Sticky left-[checkbox], click -> opens drawer) */}
                         <td
-                          className={`sticky z-20 whitespace-nowrap px-3.5 ${padY} transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative ${isSelected
+                          className={`sticky z-20 whitespace-nowrap px-3.5 ${padY} transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative overflow-hidden ${isSelected
                             ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}
@@ -2429,16 +2781,16 @@ function Tracking() {
                           <button
                             type="button"
                             onClick={() => setDetailLot(r)}
-                            className="relative z-10 font-mono font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
-                            title={t('tracking.table.viewLotDetail') || 'Bấm để xem chi tiết & lịch sử lô'}
+                            className="relative z-10 font-mono font-bold text-primary hover:underline cursor-pointer truncate max-w-full block text-left"
+                            title={r.ma_hang}
                           >
-                            {r.ma_hang}
+                            <span className="truncate">{r.ma_hang}</span>
                           </button>
                         </td>
 
                         {/* 2. Ngày tạo */}
-                        <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ngay_tao}px` }}>
-                          {r.ngay_tao ? date(r.ngay_tao) : '—'}
+                        <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ngay_tao}px` }} title={r.ngay_tao ?? ''}>
+                          {r.ngay_tao ? dateTime(r.ngay_tao) : '—'}
                         </td>
 
                         {/* 3. Người tạo */}
@@ -2470,17 +2822,111 @@ function Tracking() {
 
                         {/* 8. Số lượng */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums font-bold text-foreground`} style={{ maxWidth: `${colWidths.so_luong}px` }}>
-                          {number(r.so_luong)}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
+                            <input
+                              type="number"
+                              min={1}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.quantity') || 'Click đúp để sửa số lượng') : undefined}
+                            >
+                              <span>{number(r.so_luong)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong));
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title={t('tracking.inlineEdit.touch.quantity') || 'Chạm để sửa số lượng'}
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 9. Vật liệu */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono font-bold text-foreground truncate`} style={{ maxWidth: `${colWidths.vat_lieu}px` }}>
-                          {r.vat_lieu || 'Chưa rõ'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.material') || 'Click đúp để sửa mác thép') : undefined}
+                            >
+                              <span className="truncate">{r.vat_lieu || 'Chưa rõ'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title={t('tracking.inlineEdit.touch.material') || 'Chạm để sửa mác thép'}
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 10. Độ cứng HRC */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-destructive font-black truncate`} style={{ maxWidth: `${colWidths.do_cung}px` }}>
-                          {r.do_cung || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-destructive outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.hardness') || 'Click đúp để sửa độ cứng') : undefined}
+                            >
+                              <span className="truncate">{r.do_cung || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'do_cung', r.do_cung || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title={t('tracking.inlineEdit.touch.hardness') || 'Chạm để sửa độ cứng'}
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 11. Quy cách kích thước */}
@@ -2553,7 +2999,37 @@ function Tracking() {
 
                         {/* 23. Ghi chú khi gửi */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ghi_chu_khi_gui}px` }} title={r.ghi_chu_khi_gui || r.ghi_chu}>
-                          {r.ghi_chu_khi_gui || r.ghi_chu || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
+                            <textarea
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="min-h-[30px] w-full rounded-xs border-2 border-primary bg-background px-1.5 py-0.5 font-mono text-xs text-foreground outline-none shadow-xs leading-tight"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu_khi_gui || r.ghi_chu || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title={t('tracking.inlineEdit.doubleClick.note') || 'Click đúp để sửa ghi chú'}
+                            >
+                              <span className="truncate">{r.ghi_chu_khi_gui || r.ghi_chu || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu_khi_gui || r.ghi_chu || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title={t('tracking.inlineEdit.touch.note') || 'Chạm để sửa ghi chú'}
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 24. NCC Ngày vào lò */}
@@ -2708,7 +3184,7 @@ function Tracking() {
                 >
                   {PAGE_SIZES.map((n) => (
                     <option key={n} value={n}>
-                      {n} {t('common.units.items') || 'dòng/trang'}
+                      {n} {t('common.units.items') || 'chi tiết'}
                     </option>
                   ))}
                 </select>
@@ -2733,9 +3209,21 @@ function Tracking() {
                 </kbd>
               </button>
 
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-xs bg-background border border-border/70 font-mono text-[11px] shadow-2xs">
                 <span className="text-muted-foreground font-sans">{t('common.pagination.page') || 'Trang'}</span>
-                <span className="font-bold text-foreground text-xs">{tablePage + 1}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.max(1, totalPages)}
+                  value={jumpPageInput}
+                  onChange={(e) => setJumpPageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleJumpPage();
+                  }}
+                  onBlur={handleJumpPage}
+                  className="w-12 h-6 px-1 text-center font-bold font-mono text-xs rounded-xs border border-border bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  aria-label={t('common.pagination.page') || 'Nhập số trang'}
+                />
                 <span className="text-muted-foreground/60">/</span>
                 <span className="font-semibold text-muted-foreground">{number(totalPages)}</span>
               </span>
