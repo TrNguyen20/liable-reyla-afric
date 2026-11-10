@@ -13,7 +13,7 @@
 > [!IMPORTANT]
 > ### 📐 DYNAMO MES UI/UX SINGLE SOURCE OF TRUTH
 > All frontend code, components, styling, and UI layouts in this repository MUST strictly comply with:
-> 👉 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) — **Graphite Wireframe UI Specification (v2.2.0)**.
+> 👉 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) — **Graphite Wireframe UI Specification (v2.5.0)**.
 >
 > **Mandatory Directives for AI Agents:**
 > 1. **Minimal 2px Corners**: Use `rounded-xs` (`rounded-[2px]`) or `rounded-sm` (max 4px). NEVER introduce `rounded-lg`, `rounded-xl`, `rounded-2xl`, or consumer-style pill buttons (`rounded-full` is restricted only to micro LED status dots).
@@ -28,6 +28,8 @@
 >    - `/`: Chuyển hướng tự động vào `/tracking`.
 >    - *Đã dọn dẹp*: `/materials` và `/audit-costs` đã bị loại bỏ hoàn toàn.
 > 5. **Automated Enforcement**: All UI modifications must pass `src/test/design-system-compliance.test.ts` and `src/test/app-routing.test.tsx` on `npm test`.
+> 6. **36-Column Google Sheets Schema & Timestamp Sorting**: All date columns (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) MUST sort chronologically using Epoch numeric timestamps (`parseFlexibleDate(val)?.getTime() ?? 0`). Default grid sort is `ngay_tao` descending (`desc`).
+> 7. **7 Immutable Master Columns (Strictly Read-Only)**: The following 7 columns are master identifiers and MUST NEVER be editable from the webapp table: `ma_hang`, `ngay_tao`, `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `id_ma_hang`, and `cty_qt`. All other columns, including 12 vendor columns (`ncc_*`), support hover `PenLine` inline edit.
 <!-- MES_DESIGN_SYSTEM:END -->
 
 <!-- SUBAGENT_PROTOCOL:BEGIN -->

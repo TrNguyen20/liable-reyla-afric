@@ -1,10 +1,10 @@
 ---
 title: DYNAMO QT-MES Design System Specification
 standard: Graphite Wireframe UI
-version: 2.2.0
-last_updated: 2026-11-05
+version: 2.5.0
+last_updated: 2026-11-10
 status: Active (Single Source of Truth)
-tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, modern-glass]
+tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.5]
 ---
 
 # DYNAMO QT-MES DESIGN SYSTEM
@@ -16,6 +16,7 @@ tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, na
 
 | Phiên bản | Ngày | Tác giả / Đội ngũ | Loại thay đổi | Nội dung tóm tắt |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.5.0** | 2026-11-10 | Dynamo MES Architecture Team | **CORE GRID & FILTER OVERHAUL** | **Nâng cấp bảng điều độ Tracking 36 cột, Tối ưu sắp xếp Timestamp & Bộ lọc Popover Distinct:**<br>• Tái cấu trúc bộ so sánh sắp xếp toàn bộ cột ngày tháng (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) sang Epoch timestamp (`parseFlexibleDate()`), khắc phục triệt để lỗi phân loại chuỗi ký tự ASCII.<br>• Mặc định khi tải trang: Sắp xếp theo Ngày tạo giảm dần (`ngay_tao desc`) hiển thị ngay lô mới nhất.<br>• Bổ sung kích hoạt sắp xếp trực tiếp tiêu đề A-Z / Z-A cho cột **Quốc Gia** (`quoc_gia`) và **Xưởng** (`phong_sx`).<br>• Hiện đại hóa Popover Filter: Loại bỏ hoàn toàn khối sort dư thừa, chuẩn hóa danh sách Distinct Checklist tối đa 10 dòng có thanh cuộn, tích hợp tìm kiếm nội bộ, nút Chọn tất cả/Bỏ chọn và badge đếm số lượng `(n)`.<br>• Thiết lập quy tắc 7 cột cố định bất biến (Read-only): `ma_hang`, `ngay_tao`, `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `id_ma_hang`, `cty_qt` cấm sửa nhanh từ webapp.<br>• Mở rộng Inline Quick-Edit và icon PenLine hover cho toàn bộ các cột điều độ và 12 cột Vendor (`ncc_*`), hỗ trợ tải tệp ảnh/PDF < 1MB qua Base64 và đánh giá QC độc lập (`PASS` / `FAIL` / `PENDING`).<br>• Mở rộng bộ chọn phân trang thêm 500 & 1000 dòng/trang, bổ sung ô `<input type="number">` nhảy trực tiếp đến số trang bất kỳ. |
 | **v2.2.0** | 2026-11-05 | Dynamo MES Architecture Team | **UX & DESIGN SYSTEM UPGRADE** | **Hiện đại hóa hệ thống Popover/Dialog và Tối ưu trải nghiệm điều độ Tracking:**<br>• Nâng cấp toàn bộ Radix Popover sang chuẩn Modern Industrial Glass: bo góc 12px (`rounded-xl`), viền sáng nhẹ `border-border/40`, hiệu ứng kính mờ `bg-popover/85 backdrop-blur-md`, đổ bóng nhiều lớp `shadow-2xl`.<br>• Tái cấu trúc chuyển động Popover: thời lượng 300ms với đường cong gia tốc `cubic-bezier(0.16, 1, 0.3, 1)`, scale-up 0.98 -> 1 và trượt 10px.<br>• Bổ sung hiệu ứng `backdrop-blur-sm` cho màn phủ nền (Dialog Overlay).<br>• Tách bộ lọc Phân xưởng (PIN / INSERT / MOLD) thành nút chuyên dụng trên Cụm Trái của Toolbar.<br>• Khắc phục triệt để tràn viền input Date picker ở cột Ngày gửi & Hạn trả, loại bỏ tag (+7d) dư thừa.<br>• Chuyển đổi cột Đối tác sang dropdown tương tự Logistics & QC.<br>• Ẩn biểu tượng bút chỉnh sửa (`opacity-0`) và chỉ hiển thị khi rê chuột (`group-hover/edit:opacity-100`).<br>• Tối ưu Header 16 cột: giảm padding `px-2 py-2`, khoảng cách `gap-1`, tăng diện tích nút phễu lọc 30% (`size-7`). |
 | **v2.1.0** | 2026-11-04 | Dynamo MES Architecture Team | **ROUTING & ENHANCEMENT** | **Tái kích hoạt Dashboard & Orders và tinh gọn hệ thống:**<br>• Mở lại `/dashboard` (Tổng quan & Biên bản giao ca A4) và `/orders` (Chi tiết đơn hàng).<br>• Đồng bộ hóa toàn bộ góc bo 2px (`rounded-xs`) và lưới số liệu `font-mono tabular-nums` cho 2 trang mới mở.<br>• Dọn dẹp hoàn toàn 2 trang vệ tinh dư thừa `/materials` và `/audit-costs`.<br>• Mở rộng thanh điều hướng Header và Command Palette lên 4 trang chính thức: `[1] /tracking`, `[2] /dashboard`, `[3] /orders`, `[4] /sync`.<br>• Cập nhật bài kiểm tra tự động `TC-DS-05` và `app-routing.test.tsx`. |
 | **v2.0.0** | 2026-11-04 | Dynamo MES Architecture Team | **BREAKING / MAJOR** | **Chuyển đổi toàn diện sang chuẩn Graphite Wireframe UI:**<br>• Cố định bo góc tối thiểu 2px (`rounded-xs`) trên toàn hệ thống.<br>• Bảng biểu và số liệu định lượng bắt buộc sử dụng `font-mono tabular-nums`.<br>• Chuẩn hóa mã chỉ báo trạng thái công nghiệp `WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `[FAIL]`.<br>• Loại bỏ toàn bộ `rounded-xl`, `rounded-2xl`, bóng mờ nặng `shadow-2xl` và gradient AI.<br>• Tích hợp bộ kiểm thử tự động `src/test/design-system-compliance.test.ts`. |
