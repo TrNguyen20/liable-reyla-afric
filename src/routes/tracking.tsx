@@ -33,6 +33,7 @@ import {
   Undo2,
   X,
   PenLine,
+  Upload,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -99,7 +100,7 @@ const PAGE_SIZES = [30, 50, 100, 200, 500, 1000];
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const DAY = 86400000;
 
-type SortField =
+export type SortField =
   | 'ID_Key'
   | 'So_DatHang'
   | 'so_dat_hang'
@@ -107,6 +108,7 @@ type SortField =
   | 'ma_hang'
   | 'ngay_tao'
   | 'nguoi_tao'
+  | 'quoc_gia'
   | 'doi_tuong_hang'
   | 'id_ma_hang'
   | 'vat_lieu'
@@ -327,6 +329,10 @@ interface TableFilterState {
   targetItemSearch?: string;
   sheetStatusSearch?: string;
   vendorQcVerdicts?: string[];
+  countries?: string[];
+  targetItems?: string[];
+  sheetStatuses?: string[];
+  vendorStatuses?: string[];
 }
 
 const defaultFilters: TableFilterState = {
@@ -362,69 +368,123 @@ const defaultFilters: TableFilterState = {
   targetItemSearch: '',
   sheetStatusSearch: '',
   vendorQcVerdicts: [],
+  countries: [],
+  targetItems: [],
+  sheetStatuses: [],
+  vendorStatuses: [],
 };
 
-function HeaderSortControls({
-  field,
-  currentField,
-  currentDir,
-  onSort,
-  ascLabel = 'A → Z (Tăng dần)',
-  descLabel = 'Z → A (Giảm dần)',
+function DistinctValueFilterPopover({
+  title,
+  values,
+  selected = [],
+  onChange,
+  counts,
 }: {
-  field: SortField;
-  currentField: SortField;
-  currentDir: SortDirection;
-  onSort: (field: SortField, dir: SortDirection) => void;
-  ascLabel?: string;
-  descLabel?: string;
+  title: string;
+  values: string[];
+  selected?: string[] | undefined;
+  onChange: (newSelected: string[]) => void;
+  counts?: Record<string, number> | undefined;
 }) {
-  const { t } = useTranslation();
-  const isAsc = currentField === field && currentDir === 'asc';
-  const isDesc = currentField === field && currentDir === 'desc';
+  const [search, setSearch] = useState('');
+  const safeSelected = selected ?? [];
+  const filtered = useMemo(() => {
+    if (!search.trim()) return values;
+    const q = search.trim().toLowerCase();
+    return values.filter((v) => v.toLowerCase().includes(q));
+  }, [values, search]);
+
+  const allSelected = values.length > 0 && values.every((v) => safeSelected.includes(v));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      onChange([]);
+    } else {
+      onChange([...values]);
+    }
+  };
+
+  const toggleItem = (val: string) => {
+    if (safeSelected.includes(val)) {
+      onChange(safeSelected.filter((s) => s !== val));
+    } else {
+      onChange([...safeSelected, val]);
+    }
+  };
 
   return (
-    <div className="border-b border-border/70 pb-2.5 mb-2.5">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
-          {t('tracking.sort.sortThisCol') || 'Sắp xếp cột này:'}
+    <div className="space-y-2 p-1 text-xs">
+      <div className="flex items-center justify-between pb-1.5 border-b border-border/60">
+        <span className="font-mono font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+          {title}
         </span>
-        {currentField === field && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-primary font-mono font-bold">
-            <Check size={11} className="stroke-[3]" /> {t('common.selected') || 'Đang chọn'}
-          </span>
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="text-[10px] font-mono font-semibold text-primary hover:underline cursor-pointer"
+        >
+          {allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
+        </button>
+      </div>
+
+      <div className="relative">
+        <Search size={11} className="absolute left-2 top-2 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Tìm kiếm..."
+          className="w-full h-7 pl-6 pr-2 text-xs rounded-xs border border-border bg-background font-mono focus:border-primary outline-none"
+        />
+      </div>
+
+      <div className="max-h-52 overflow-y-auto space-y-1 pr-1 font-mono text-[11px]">
+        {filtered.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground italic py-2 text-center">Không tìm thấy</p>
+        ) : (
+          filtered.map((val) => {
+            const isChecked = safeSelected.includes(val);
+            const count = counts ? counts[val] : undefined;
+            return (
+              <label
+                key={val}
+                className={`flex items-center justify-between gap-2 px-1.5 py-1 rounded-xs cursor-pointer select-none transition-colors ${
+                  isChecked ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-secondary text-foreground'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 truncate">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleItem(val)}
+                    className="size-3.5 rounded-xs border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                  />
+                  <span className="truncate">{val || '(Trống)'}</span>
+                </div>
+                {count !== undefined && (
+                  <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                    ({count})
+                  </span>
+                )}
+              </label>
+            );
+          })
         )}
       </div>
-      <div className="flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={() => onSort(field, 'asc')}
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-xs text-xs font-medium transition-all cursor-pointer ${isAsc
-            ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
-            : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
-            }`}
-        >
-          <span className="flex items-center gap-2 whitespace-nowrap">
-            <ArrowUp size={13} className={isAsc ? 'text-primary stroke-[2.5]' : 'text-muted-foreground'} />
-            <span className="truncate">{ascLabel}</span>
-          </span>
-          {isAsc && <Check size={13} className="text-primary stroke-[2.5] shrink-0" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => onSort(field, 'desc')}
-          className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-xs text-xs font-medium transition-all cursor-pointer ${isDesc
-            ? 'border border-primary/50 bg-primary/15 text-primary font-bold shadow-2xs ring-1 ring-primary/20'
-            : 'border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-border'
-            }`}
-        >
-          <span className="flex items-center gap-2 whitespace-nowrap">
-            <ArrowDown size={13} className={isDesc ? 'text-primary stroke-[2.5]' : 'text-muted-foreground'} />
-            <span className="truncate">{descLabel}</span>
-          </span>
-          {isDesc && <Check size={13} className="text-primary stroke-[2.5] shrink-0" />}
-        </button>
-      </div>
+
+      {safeSelected.length > 0 && (
+        <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>Đã chọn: {safeSelected.length}/{values.length}</span>
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="text-destructive hover:underline cursor-pointer font-semibold"
+          >
+            Xóa lọc
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -694,8 +754,8 @@ function Tracking() {
     syncFailedOnly: searchParams.focus === 'sync_failed',
   }));
 
-  // Sorting state - default to newest sent date
-  const [sortCol, setSortCol] = useState<SortField>('ngay_gui_QT');
+  // Sorting state - default to newest created date
+  const [sortCol, setSortCol] = useState<SortField>('ngay_tao');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
   // Search inside material popover
@@ -776,19 +836,32 @@ function Tracking() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleTableFullscreen]);
 
-  // Inline Quick-Edit State
+  // Inline Quick-Edit State (Strictly excludes 7 fixed columns: ma_hang, ngay_tao, quoc_gia, phong_sx, doi_tuong_hang, id_ma_hang, cty_qt)
   type EditableField =
-    | 'ma_hang'
     | 'vat_lieu'
     | 'do_cung'
+    | 'kich_thuoc_sp'
     | 'so_luong'
     | 'kg_Lot'
-    | 'cty_QT'
+    | 'don_gia'
+    | 'ty_gia'
     | 'ngay_gui_QT'
     | 'han_tra'
     | 'logistics'
     | 'qc'
-    | 'ghi_chu';
+    | 'ghi_chu'
+    | 'ncc_ngay_qt'
+    | 'ncc_ngay_tra_qt'
+    | 'ncc_id_lot_qt'
+    | 'ncc_name_qt'
+    | 'ncc_giando'
+    | 'ncc_ket_qua_hrc'
+    | 'ncc_ket_qua_qc'
+    | 'ncc_don_gia'
+    | 'ncc_tatus'
+    | 'ncc_thongtinkhac1'
+    | 'ncc_thongtinkhac2'
+    | 'ncc_file1';
   const [editingCell, setEditingCell] = useState<{ id: string; field: EditableField } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [savedCellKey, setSavedCellKey] = useState<string | null>(null);
@@ -877,6 +950,11 @@ function Tracking() {
   }, [all]);
 
   const workshops = useMemo(() => [...new Set(all.map((i) => i.phong_sx))].sort(), [all]);
+  const countriesList = useMemo(() => [...new Set(all.map((i) => i.quoc_gia || 'Vietnam'))].sort(), [all]);
+  const targetItemsList = useMemo(() => [...new Set(all.map((i) => i.doi_tuong_hang || '—'))].sort(), [all]);
+  const sheetStatusesList = useMemo(() => [...new Set(all.map((i) => i.trang_thai || i.TrangThai))].sort(), [all]);
+  const vendorStatusesList = useMemo(() => ['WAIT', 'HEAT', 'DONE'], []);
+  const vendorQcVerdictsList = useMemo(() => ['PASS', 'FAIL', 'PENDING'], []);
 
   // Single-pass O(N) aggregation: computes all badge counts across 25,638 items in ~3ms
   const counts = useMemo(() => {
@@ -885,6 +963,11 @@ function Tracking() {
     const ven: Record<string, number> = {};
     const log: Record<string, number> = {};
     const qc: Record<string, number> = {};
+    const country: Record<string, number> = {};
+    const targetItem: Record<string, number> = {};
+    const sheetStatus: Record<string, number> = {};
+    const vendorQc: Record<string, number> = {};
+    const vendorStatus: Record<string, number> = {};
 
     for (let i = 0; i < all.length; i++) {
       const it = all[i];
@@ -898,8 +981,23 @@ function Tracking() {
       log[l] = (log[l] || 0) + 1;
       const q = qcOf(it);
       qc[q] = (qc[q] || 0) + 1;
+
+      const c = it.quoc_gia || 'Vietnam';
+      country[c] = (country[c] || 0) + 1;
+
+      const tg = it.doi_tuong_hang || '—';
+      targetItem[tg] = (targetItem[tg] || 0) + 1;
+
+      const st = it.trang_thai || it.TrangThai;
+      sheetStatus[st] = (sheetStatus[st] || 0) + 1;
+
+      const vqc = it.ncc_ket_qua_qc || 'PENDING';
+      vendorQc[vqc] = (vendorQc[vqc] || 0) + 1;
+
+      const vst = it.ncc_tatus || 'WAIT';
+      vendorStatus[vst] = (vendorStatus[vst] || 0) + 1;
     }
-    return { ws, mat, ven, log, qc };
+    return { ws, mat, ven, log, qc, country, targetItem, sheetStatus, vendorQc, vendorStatus };
   }, [all]);
 
   // Comprehensive table filtering and sorting
@@ -986,16 +1084,30 @@ function Tracking() {
           const d = parseFlexibleDate(row.ngay_tao);
           if (d && d > new Date(filters.createdTo + 'T23:59:59')) return false;
         }
+        // Filter: Quốc gia
+        if (filters.countries && filters.countries.length > 0 && !filters.countries.includes(row.quoc_gia || 'Vietnam')) {
+          return false;
+        }
         // Filter: Đối tượng hàng
+        if (filters.targetItems && filters.targetItems.length > 0 && !filters.targetItems.includes(row.doi_tuong_hang || '—')) {
+          return false;
+        }
         if (filters.targetItemSearch && !(row.doi_tuong_hang ?? '').toLowerCase().includes(filters.targetItemSearch.toLowerCase())) {
           return false;
         }
         // Filter: Trạng thái gốc
+        if (filters.sheetStatuses && filters.sheetStatuses.length > 0 && !filters.sheetStatuses.includes(row.trang_thai || row.TrangThai)) {
+          return false;
+        }
         if (filters.sheetStatusSearch && !(row.trang_thai ?? '').toLowerCase().includes(filters.sheetStatusSearch.toLowerCase())) {
           return false;
         }
         // Filter: NCC Nghiệm thu QC
-        if (filters.vendorQcVerdicts && filters.vendorQcVerdicts.length > 0 && !filters.vendorQcVerdicts.includes(String(row.ncc_ket_qua_qc ?? ''))) {
+        if (filters.vendorQcVerdicts && filters.vendorQcVerdicts.length > 0 && !filters.vendorQcVerdicts.includes(String(row.ncc_ket_qua_qc ?? 'PENDING'))) {
+          return false;
+        }
+        // Filter: NCC Tiến độ
+        if (filters.vendorStatuses && filters.vendorStatuses.length > 0 && !filters.vendorStatuses.includes(row.ncc_tatus || 'WAIT')) {
           return false;
         }
 
@@ -1025,15 +1137,21 @@ function Tracking() {
           case 'so_dat_hang':
             cmp = a.So_DatHang.localeCompare(b.So_DatHang);
             break;
+          case 'quoc_gia':
+            cmp = (a.quoc_gia ?? 'Vietnam').localeCompare(b.quoc_gia ?? 'Vietnam');
+            break;
           case 'phong_sx':
             cmp = a.phong_sx.localeCompare(b.phong_sx);
             break;
           case 'ma_hang':
             cmp = a.ma_hang.localeCompare(b.ma_hang);
             break;
-          case 'ngay_tao':
-            cmp = (a.ngay_tao ?? '').localeCompare(b.ngay_tao ?? '');
+          case 'ngay_tao': {
+            const timeA = a.ngay_tao ? parseFlexibleDate(a.ngay_tao)?.getTime() ?? 0 : 0;
+            const timeB = b.ngay_tao ? parseFlexibleDate(b.ngay_tao)?.getTime() ?? 0 : 0;
+            cmp = timeA - timeB;
             break;
+          }
           case 'nguoi_tao':
             cmp = (a.nguoi_tao ?? 0) - (b.nguoi_tao ?? 0);
             break;
@@ -1090,12 +1208,18 @@ function Tracking() {
           case 'qc':
             cmp = qcOf(a).localeCompare(qcOf(b));
             break;
-          case 'ncc_ngay_qt':
-            cmp = (a.ncc_ngay_qt ?? '').localeCompare(b.ncc_ngay_qt ?? '');
+          case 'ncc_ngay_qt': {
+            const timeA = a.ncc_ngay_qt ? parseFlexibleDate(a.ncc_ngay_qt)?.getTime() ?? 0 : 0;
+            const timeB = b.ncc_ngay_qt ? parseFlexibleDate(b.ncc_ngay_qt)?.getTime() ?? 0 : 0;
+            cmp = timeA - timeB;
             break;
-          case 'ncc_ngay_tra_qt':
-            cmp = (a.ncc_ngay_tra_qt ?? '').localeCompare(b.ncc_ngay_tra_qt ?? '');
+          }
+          case 'ncc_ngay_tra_qt': {
+            const timeA = a.ncc_ngay_tra_qt ? parseFlexibleDate(a.ncc_ngay_tra_qt)?.getTime() ?? 0 : 0;
+            const timeB = b.ncc_ngay_tra_qt ? parseFlexibleDate(b.ncc_ngay_tra_qt)?.getTime() ?? 0 : 0;
+            cmp = timeA - timeB;
             break;
+          }
           case 'ncc_id_lot_qt':
             cmp = (a.ncc_id_lot_qt ?? '').localeCompare(b.ncc_id_lot_qt ?? '');
             break;
@@ -1129,11 +1253,23 @@ function Tracking() {
           case 'ghi_chu':
             cmp = (a.ghi_chu ?? '').localeCompare(b.ghi_chu ?? '');
             break;
-          case 'ngay_gui_QT':
-          default: {
+          case 'han_tra': {
             const dueA = a.ncc_ngay_tra_qt || a.han_tra || '';
             const dueB = b.ncc_ngay_tra_qt || b.han_tra || '';
-            cmp = a.ngay_gui_QT.localeCompare(b.ngay_gui_QT) || dueA.localeCompare(dueB);
+            const timeA = dueA ? parseFlexibleDate(dueA)?.getTime() ?? 0 : 0;
+            const timeB = dueB ? parseFlexibleDate(dueB)?.getTime() ?? 0 : 0;
+            cmp = timeA - timeB;
+            break;
+          }
+          case 'ngay_gui_QT':
+          default: {
+            const timeA = a.ngay_gui_QT ? parseFlexibleDate(a.ngay_gui_QT)?.getTime() ?? 0 : 0;
+            const timeB = b.ngay_gui_QT ? parseFlexibleDate(b.ngay_gui_QT)?.getTime() ?? 0 : 0;
+            const dueA = a.ncc_ngay_tra_qt || a.han_tra || '';
+            const dueB = b.ncc_ngay_tra_qt || b.han_tra || '';
+            const timeDueA = dueA ? parseFlexibleDate(dueA)?.getTime() ?? 0 : 0;
+            const timeDueB = dueB ? parseFlexibleDate(dueB)?.getTime() ?? 0 : 0;
+            cmp = (timeA - timeB) || (timeDueA - timeDueB);
             break;
           }
         }
@@ -1504,28 +1640,54 @@ function Tracking() {
 
   const getInitialValue = (item: QTItem, field: EditableField): string => {
     switch (field) {
-      case 'ma_hang':
-        return item.ma_hang;
       case 'vat_lieu':
         return item.vat_lieu;
       case 'do_cung':
         return item.do_cung;
+      case 'kich_thuoc_sp':
+        return item.kich_thuoc_sp || item.Kich_Thuoc_SP || '';
       case 'so_luong':
         return String(item.so_luong);
       case 'kg_Lot':
-        return String(item.kg_Lot);
-      case 'cty_QT':
-        return item.cty_QT;
+        return String(item.kg_lot || item.kg_Lot);
+      case 'don_gia':
+        return item.don_gia !== undefined ? String(item.don_gia) : '';
+      case 'ty_gia':
+        return item.ty_gia !== undefined ? String(item.ty_gia) : '1';
       case 'ngay_gui_QT':
-        return item.ngay_gui_QT;
+        return item.ngay_gui_qt || item.ngay_gui_QT;
       case 'han_tra':
         return item.ncc_ngay_tra_qt || item.han_tra || '';
       case 'ghi_chu':
-        return item.ghi_chu ?? '';
+        return item.ghi_chu_khi_gui || item.ghi_chu || '';
       case 'logistics':
-        return item.TrangThai;
+        return item.trang_thai || item.TrangThai;
       case 'qc':
         return qcOf(item);
+      case 'ncc_ngay_qt':
+        return item.ncc_ngay_qt || '';
+      case 'ncc_ngay_tra_qt':
+        return item.ncc_ngay_tra_qt || '';
+      case 'ncc_id_lot_qt':
+        return item.ncc_id_lot_qt || '';
+      case 'ncc_name_qt':
+        return item.ncc_name_qt || '';
+      case 'ncc_giando':
+        return item.ncc_giando || '';
+      case 'ncc_ket_qua_hrc':
+        return item.ncc_ket_qua_hrc || '';
+      case 'ncc_ket_qua_qc':
+        return item.ncc_ket_qua_qc || '';
+      case 'ncc_don_gia':
+        return item.ncc_don_gia !== undefined ? String(item.ncc_don_gia) : '';
+      case 'ncc_tatus':
+        return item.ncc_tatus || '';
+      case 'ncc_thongtinkhac1':
+        return item.ncc_thongtinkhac1 || '';
+      case 'ncc_thongtinkhac2':
+        return item.ncc_thongtinkhac2 || '';
+      case 'ncc_file1':
+        return item.ncc_file1 || '';
       default:
         return '';
     }
@@ -1533,7 +1695,6 @@ function Tracking() {
 
   const startInlineEdit = (id: string, field: EditableField, initialVal: string) => {
     if (!canEdit) return;
-    if (field === 'cty_QT' && !isAdmin) return;
     isSavingRef.current = false;
     setEditingCell({ id, field });
     setEditValue(initialVal);
@@ -1545,15 +1706,27 @@ function Tracking() {
     direction: 'next-row' | 'prev-row' | 'next-col' | 'prev-col',
   ) => {
     const EDITABLE_FIELDS: EditableField[] = [
-      'ma_hang',
+      'so_luong',
       'vat_lieu',
       'do_cung',
-      'so_luong',
+      'kich_thuoc_sp',
       'kg_Lot',
-      ...(isAdmin ? (['cty_QT'] as EditableField[]) : []),
+      'don_gia',
+      'ty_gia',
       'ngay_gui_QT',
-      'han_tra',
       'ghi_chu',
+      'ncc_ngay_qt',
+      'ncc_ngay_tra_qt',
+      'ncc_id_lot_qt',
+      'ncc_name_qt',
+      'ncc_giando',
+      'ncc_ket_qua_hrc',
+      'ncc_ket_qua_qc',
+      'ncc_don_gia',
+      'ncc_tatus',
+      'ncc_thongtinkhac1',
+      'ncc_thongtinkhac2',
+      'ncc_file1',
     ];
 
     const currentRowIdx = tableRows.findIndex((r) => r.ID_Key === currentId);
@@ -1656,16 +1829,12 @@ function Tracking() {
     }
 
     const patch: Partial<QTItem> = {};
-    if (field === 'ma_hang') {
-      if (!editValue.trim()) {
-        toast.error('Mã hàng không được để trống.');
-        return;
-      }
-      patch.ma_hang = editValue.trim();
-    } else if (field === 'vat_lieu') {
+    if (field === 'vat_lieu') {
       patch.vat_lieu = editValue.trim() || '—';
     } else if (field === 'do_cung') {
       patch.do_cung = editValue.trim() || '—';
+    } else if (field === 'kich_thuoc_sp') {
+      patch.kich_thuoc_sp = editValue.trim() || '—';
     } else if (field === 'so_luong') {
       const num = Number(editValue);
       if (isNaN(num) || num <= 0) {
@@ -1680,17 +1849,48 @@ function Tracking() {
         return;
       }
       patch.kg_Lot = kg;
-    } else if (field === 'cty_QT') {
-      patch.cty_QT = editValue as any;
+      patch.kg_lot = kg;
+    } else if (field === 'don_gia') {
+      patch.don_gia = Number(editValue) || 0;
+    } else if (field === 'ty_gia') {
+      patch.ty_gia = Number(editValue) || 1;
     } else if (field === 'ngay_gui_QT') {
       patch.ngay_gui_QT = editValue.trim();
+      patch.ngay_gui_qt = editValue.trim();
     } else if (field === 'han_tra') {
       patch.han_tra = editValue.trim();
       patch.han_tra_est = false;
     } else if (field === 'logistics') {
       patch.TrangThai = editValue as Status;
+      patch.trang_thai = editValue;
     } else if (field === 'ghi_chu') {
       patch.ghi_chu = editValue.trim() || undefined;
+      patch.ghi_chu_khi_gui = editValue.trim() || undefined;
+    } else if (field === 'ncc_ngay_qt') {
+      patch.ncc_ngay_qt = editValue.trim() || undefined;
+    } else if (field === 'ncc_ngay_tra_qt') {
+      patch.ncc_ngay_tra_qt = editValue.trim() || undefined;
+      if (editValue.trim()) patch.han_tra = editValue.trim();
+    } else if (field === 'ncc_id_lot_qt') {
+      patch.ncc_id_lot_qt = editValue.trim() || undefined;
+    } else if (field === 'ncc_name_qt') {
+      patch.ncc_name_qt = editValue.trim() || undefined;
+    } else if (field === 'ncc_giando') {
+      patch.ncc_giando = editValue.trim() || undefined;
+    } else if (field === 'ncc_ket_qua_hrc') {
+      patch.ncc_ket_qua_hrc = editValue.trim() || undefined;
+    } else if (field === 'ncc_ket_qua_qc') {
+      patch.ncc_ket_qua_qc = editValue.trim() || undefined;
+    } else if (field === 'ncc_don_gia') {
+      patch.ncc_don_gia = Number(editValue) || undefined;
+    } else if (field === 'ncc_tatus') {
+      patch.ncc_tatus = editValue.trim() || undefined;
+    } else if (field === 'ncc_thongtinkhac1') {
+      patch.ncc_thongtinkhac1 = editValue.trim() || undefined;
+    } else if (field === 'ncc_thongtinkhac2') {
+      patch.ncc_thongtinkhac2 = editValue.trim() || undefined;
+    } else if (field === 'ncc_file1') {
+      patch.ncc_file1 = editValue.trim() || undefined;
     }
 
     isSavingRef.current = true;
@@ -2165,13 +2365,7 @@ function Tracking() {
                     isStickyLast={true}
                     onDirectSort={handleToggleSort}
                   >
-                    <HeaderSortControls
-                      field="ma_hang"
-                      currentField={sortCol}
-                      currentDir={sortDir}
-                      onSort={handleSort}
-                    />
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 p-1">
                       <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
                         <Search size={11} />
                         {t('tracking.columns.itemCode') || 'Tìm theo mã hàng:'}
@@ -2186,6 +2380,15 @@ function Tracking() {
                         className="w-full h-8 px-2 text-xs rounded-xs border border-border bg-background focus:outline-none focus:border-primary font-mono"
                         autoFocus
                       />
+                      {filters.itemSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setFilters((f) => ({ ...f, itemSearch: '' }))}
+                          className="text-[10px] text-destructive hover:underline cursor-pointer"
+                        >
+                          Xóa tìm kiếm
+                        </button>
+                      )}
                     </div>
                   </HeaderFilterCell>
 
@@ -2201,24 +2404,33 @@ function Tracking() {
                     onResize={(e) => handleResizeStart(e, 'ngay_tao')}
                     onResetWidth={() => handleResetWidth('ngay_tao')}
                   >
-                    <div className="space-y-2">
-                      <HeaderSortControls
-                        field="ngay_tao"
-                        currentField={sortCol}
-                        currentDir={sortDir}
-                        onSort={handleSort}
-                      />
-                      <div className="border-t border-border/60 pt-2 space-y-1.5">
-                        <label className="text-[11px] font-semibold text-muted-foreground block">
+                    <div className="space-y-2 p-1">
+                      <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                        <span className="font-mono font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
                           Khoảng ngày tạo
-                        </label>
-                        <div className="grid grid-cols-2 gap-1.5">
+                        </span>
+                        {(filters.createdFrom || filters.createdTo) && (
+                          <button
+                            type="button"
+                            onClick={() => setFilters((f) => ({ ...f, createdFrom: '', createdTo: '' }))}
+                            className="text-[10px] text-destructive hover:underline cursor-pointer font-semibold"
+                          >
+                            Xóa lọc
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div>
+                          <span className="text-[9px] text-muted-foreground block mb-0.5">Từ ngày</span>
                           <input
                             type="date"
                             value={filters.createdFrom || ''}
                             onChange={(e) => setFilters((f) => ({ ...f, createdFrom: e.target.value }))}
                             className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
                           />
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-muted-foreground block mb-0.5">Đến ngày</span>
                           <input
                             type="date"
                             value={filters.createdTo || ''}
@@ -2245,19 +2457,44 @@ function Tracking() {
                   {/* Column 4: Quốc gia */}
                   <HeaderFilterCell
                     title={t('tracking.columns.country') || 'QUỐC GIA'}
+                    field="quoc_gia"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
+                    isFiltered={Boolean(filters.countries && filters.countries.length > 0)}
                     width={colWidths.quoc_gia}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'quoc_gia')}
                     onResetWidth={() => handleResetWidth('quoc_gia')}
-                  />
+                  >
+                    <DistinctValueFilterPopover
+                      title="Lọc Quốc gia"
+                      values={countriesList}
+                      selected={filters.countries}
+                      onChange={(selected) => setFilters((f) => ({ ...f, countries: selected }))}
+                      counts={counts.country}
+                    />
+                  </HeaderFilterCell>
 
                   {/* Column 5: Phân xưởng */}
                   <HeaderFilterCell
                     title={t('tracking.columns.workshop') || 'XƯỞNG'}
-                    width={colWidths.phong_sx}
+                    field="phong_sx"
+                    sortCol={sortCol}
+                    sortDir={sortDir}
                     isFiltered={filters.workshops.length > 0}
+                    width={colWidths.phong_sx}
+                    onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'phong_sx')}
                     onResetWidth={() => handleResetWidth('phong_sx')}
-                  />
+                  >
+                    <DistinctValueFilterPopover
+                      title="Lọc Phân xưởng"
+                      values={workshops}
+                      selected={filters.workshops}
+                      onChange={(selected) => setFilters((f) => ({ ...f, workshops: selected as Workshop[] }))}
+                      counts={counts.ws}
+                    />
+                  </HeaderFilterCell>
 
                   {/* Column 6: Đối tượng hàng */}
                   <HeaderFilterCell
@@ -2265,32 +2502,19 @@ function Tracking() {
                     field="doi_tuong_hang"
                     sortCol={sortCol}
                     sortDir={sortDir}
-                    isFiltered={Boolean(filters.targetItemSearch)}
+                    isFiltered={Boolean((filters.targetItems && filters.targetItems.length > 0) || filters.targetItemSearch)}
                     width={colWidths.doi_tuong_hang}
                     onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'doi_tuong_hang')}
                     onResetWidth={() => handleResetWidth('doi_tuong_hang')}
                   >
-                    <div className="space-y-2">
-                      <HeaderSortControls
-                        field="doi_tuong_hang"
-                        currentField={sortCol}
-                        currentDir={sortDir}
-                        onSort={handleSort}
-                      />
-                      <div className="border-t border-border/60 pt-2 space-y-1">
-                        <label className="text-[11px] font-semibold text-muted-foreground block">
-                          Tìm theo đối tượng
-                        </label>
-                        <input
-                          type="text"
-                          value={filters.targetItemSearch || ''}
-                          onChange={(e) => setFilters((f) => ({ ...f, targetItemSearch: e.target.value }))}
-                          placeholder="VD: Pin, Insert, Cổng..."
-                          className="w-full h-7 px-2 text-xs rounded-xs border border-border bg-background font-mono"
-                        />
-                      </div>
-                    </div>
+                    <DistinctValueFilterPopover
+                      title="Lọc Đối tượng hàng"
+                      values={targetItemsList}
+                      selected={filters.targetItems}
+                      onChange={(selected) => setFilters((f) => ({ ...f, targetItems: selected }))}
+                      counts={counts.targetItem}
+                    />
                   </HeaderFilterCell>
 
                   {/* Column 7: Mã bản vẽ */}
@@ -2457,32 +2681,19 @@ function Tracking() {
                     field="trang_thai"
                     sortCol={sortCol}
                     sortDir={sortDir}
-                    isFiltered={Boolean(filters.sheetStatusSearch)}
+                    isFiltered={Boolean((filters.sheetStatuses && filters.sheetStatuses.length > 0) || filters.sheetStatusSearch)}
                     width={colWidths.trang_thai}
                     onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'trang_thai')}
                     onResetWidth={() => handleResetWidth('trang_thai')}
                   >
-                    <div className="space-y-2">
-                      <HeaderSortControls
-                        field="trang_thai"
-                        currentField={sortCol}
-                        currentDir={sortDir}
-                        onSort={handleSort}
-                      />
-                      <div className="border-t border-border/60 pt-2 space-y-1">
-                        <label className="text-[11px] font-semibold text-muted-foreground block">
-                          Lọc trạng thái gốc
-                        </label>
-                        <input
-                          type="text"
-                          value={filters.sheetStatusSearch || ''}
-                          onChange={(e) => setFilters((f) => ({ ...f, sheetStatusSearch: e.target.value }))}
-                          placeholder="VD: Đã tạo, Print PDF..."
-                          className="w-full h-7 px-2 text-xs rounded-xs border border-border bg-background font-mono"
-                        />
-                      </div>
-                    </div>
+                    <DistinctValueFilterPopover
+                      title="Lọc Trạng thái gốc"
+                      values={sheetStatusesList}
+                      selected={filters.sheetStatuses}
+                      onChange={(selected) => setFilters((f) => ({ ...f, sheetStatuses: selected }))}
+                      counts={counts.sheetStatus}
+                    />
                   </HeaderFilterCell>
 
                   {/* Column 21: Số đơn hàng */}
@@ -2605,47 +2816,13 @@ function Tracking() {
                     onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_qc')}
                     onResetWidth={() => handleResetWidth('ncc_ket_qua_qc')}
                   >
-                    <div className="space-y-2">
-                      <HeaderSortControls
-                        field="ncc_ket_qua_qc"
-                        currentField={sortCol}
-                        currentDir={sortDir}
-                        onSort={handleSort}
-                      />
-                      <div className="border-t border-border/60 pt-2 space-y-1">
-                        <label className="text-[11px] font-semibold text-muted-foreground block">
-                          Kết quả nghiệm thu
-                        </label>
-                        <div className="flex gap-2">
-                          {['PASS', 'FAIL'].map((verdict) => {
-                            const active = filters.vendorQcVerdicts?.includes(verdict);
-                            return (
-                              <button
-                                key={verdict}
-                                type="button"
-                                onClick={() =>
-                                  setFilters((f) => ({
-                                    ...f,
-                                    vendorQcVerdicts: active
-                                      ? (f.vendorQcVerdicts || []).filter((v) => v !== verdict)
-                                      : [...(f.vendorQcVerdicts || []), verdict],
-                                  }))
-                                }
-                                className={`px-2 py-1 text-xs font-mono font-bold rounded-xs border transition-colors ${
-                                  active
-                                    ? verdict === 'PASS'
-                                      ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/50'
-                                      : 'bg-destructive/20 text-destructive border-destructive/50'
-                                    : 'bg-secondary text-muted-foreground border-border/60'
-                                }`}
-                              >
-                                {verdict}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
+                    <DistinctValueFilterPopover
+                      title="Nghiệm thu NCC"
+                      values={vendorQcVerdictsList}
+                      selected={filters.vendorQcVerdicts}
+                      onChange={(selected) => setFilters((f) => ({ ...f, vendorQcVerdicts: selected }))}
+                      counts={counts.vendorQc}
+                    />
                   </HeaderFilterCell>
 
                   {/* Column 31: NCC Đơn giá báo */}
@@ -2667,11 +2844,20 @@ function Tracking() {
                     field="ncc_tatus"
                     sortCol={sortCol}
                     sortDir={sortDir}
+                    isFiltered={Boolean((filters.vendorStatuses?.length ?? 0) > 0)}
                     width={colWidths.ncc_tatus}
                     onDirectSort={handleToggleSort}
                     onResize={(e) => handleResizeStart(e, 'ncc_tatus')}
                     onResetWidth={() => handleResetWidth('ncc_tatus')}
-                  />
+                  >
+                    <DistinctValueFilterPopover
+                      title="Lọc Tiến độ NCC"
+                      values={vendorStatusesList}
+                      selected={filters.vendorStatuses}
+                      onChange={(selected) => setFilters((f) => ({ ...f, vendorStatuses: selected }))}
+                      counts={counts.vendorStatus}
+                    />
+                  </HeaderFilterCell>
 
                   {/* Column 33: NCC Mở rộng 1 */}
                   <HeaderFilterCell
@@ -2931,12 +3117,76 @@ function Tracking() {
 
                         {/* 11. Quy cách kích thước */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.kich_thuoc_sp}px` }}>
-                          {r.kich_thuoc_sp || r.Kich_Thuoc_SP || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'kich_thuoc_sp' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'kich_thuoc_sp', r.kich_thuoc_sp || r.Kich_Thuoc_SP || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa quy cách kích thước"
+                            >
+                              <span className="truncate">{r.kich_thuoc_sp || r.Kich_Thuoc_SP || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'kich_thuoc_sp', r.kich_thuoc_sp || r.Kich_Thuoc_SP || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa quy cách kích thước"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 12. Trọng lượng KG */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.kg_lot}px` }}>
-                          {number(r.kg_lot || r.kg_Lot, 2)}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              min={0}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_lot || r.kg_Lot || ''))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa trọng lượng"
+                            >
+                              <span>{number(r.kg_lot || r.kg_Lot, 2)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_lot || r.kg_Lot || ''));
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa trọng lượng"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 13. Đơn vị tính */}
@@ -2951,7 +3201,39 @@ function Tracking() {
 
                         {/* 15. Đơn giá */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.don_gia}px` }}>
-                          {canViewPricing(role as any) ? money(r.don_gia) : '*** ₫'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'don_gia' ? (
+                            <input
+                              type="number"
+                              min={0}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => canViewPricing(role as any) && startInlineEdit(r.ID_Key, 'don_gia', String(r.don_gia ?? ''))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title={canViewPricing(role as any) ? 'Click đúp để sửa đơn giá' : undefined}
+                            >
+                              <span>{canViewPricing(role as any) ? money(r.don_gia) : '*** ₫'}</span>
+                              {canEdit && canViewPricing(role as any) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'don_gia', String(r.don_gia ?? ''));
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa đơn giá"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 16. Thành tiền */}
@@ -2961,12 +3243,76 @@ function Tracking() {
 
                         {/* 17. Tỷ giá */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-muted-foreground`} style={{ maxWidth: `${colWidths.ty_gia}px` }}>
-                          {number(r.ty_gia || 1)}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ty_gia' ? (
+                            <input
+                              type="number"
+                              step="0.001"
+                              min={0}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ty_gia', String(r.ty_gia || 1))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa tỷ giá"
+                            >
+                              <span>{number(r.ty_gia || 1)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ty_gia', String(r.ty_gia || 1));
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa tỷ giá"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 18. Ngày gửi */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground`} style={{ maxWidth: `${colWidths.ngay_gui_qt}px` }}>
-                          {date(r.ngay_gui_qt || r.ngay_gui_QT)}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ngay_gui_QT' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_qt || r.ngay_gui_QT || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.sentDate') || 'Sửa ngày gửi') : undefined}
+                            >
+                              <span>{date(r.ngay_gui_qt || r.ngay_gui_QT)}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ngay_gui_QT', r.ngay_gui_qt || r.ngay_gui_QT || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa ngày gửi"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 19. Đối tác */}
@@ -3034,91 +3380,525 @@ function Tracking() {
 
                         {/* 24. NCC Ngày vào lò */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-xs text-muted-foreground`} style={{ maxWidth: `${colWidths.ncc_ngay_qt}px` }}>
-                          {r.ncc_ngay_qt ? date(r.ncc_ngay_qt) : '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ngay_qt' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ngay_qt', r.ncc_ngay_qt || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa ngày vào lò"
+                            >
+                              <span>{r.ncc_ngay_qt ? date(r.ncc_ngay_qt) : '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_ngay_qt', r.ncc_ngay_qt || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa ngày vào lò"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 25. NCC Hạn trả */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-xs font-bold text-foreground`} style={{ maxWidth: `${colWidths.ncc_ngay_tra_qt}px` }}>
-                          {r.ncc_ngay_tra_qt ? date(r.ncc_ngay_tra_qt) : '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ngay_tra_qt' ? (
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ngay_tra_qt', r.ncc_ngay_tra_qt || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa hạn trả NCC"
+                            >
+                              <span>{r.ncc_ngay_tra_qt ? date(r.ncc_ngay_tra_qt) : '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_ngay_tra_qt', r.ncc_ngay_tra_qt || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa hạn trả NCC"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 26. NCC Mã mẻ */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_id_lot_qt}px` }}>
-                          {r.ncc_id_lot_qt || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_id_lot_qt' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_id_lot_qt', r.ncc_id_lot_qt || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa mã mẻ NCC"
+                            >
+                              <span className="truncate">{r.ncc_id_lot_qt || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_id_lot_qt', r.ncc_id_lot_qt || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa mã mẻ"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 27. NCC Kỹ thuật viên */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_name_qt}px` }}>
-                          {r.ncc_name_qt || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_name_qt' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_name_qt', r.ncc_name_qt || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa kỹ thuật viên NCC"
+                            >
+                              <span className="truncate">{r.ncc_name_qt || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_name_qt', r.ncc_name_qt || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa kỹ thuật viên"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 28. NCC Giản đồ nhiệt */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs`} style={{ maxWidth: `${colWidths.ncc_giando}px` }}>
-                          {r.ncc_giando ? (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewFile({ url: r.ncc_giando!, title: `Giản đồ nhiệt - ${r.ma_hang}`, type: 'image' })}
-                              className="font-mono text-[11px] text-primary hover:underline cursor-pointer"
-                            >
-                              [Xem ảnh]
-                            </button>
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_giando' ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder="Link URL..."
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-[10px] text-foreground outline-none shadow-xs"
+                                autoFocus
+                              />
+                              <label className="cursor-pointer px-1.5 py-0.5 rounded-xs bg-secondary hover:bg-secondary/80 border border-border text-[10px] font-mono shrink-0" title="Tải ảnh tệp (<1MB)">
+                                <Upload size={11} className="inline mr-0.5" />
+                                <input
+                                  type="file"
+                                  accept="image/png,image/jpeg,.jpg,.png"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (file.size > 1048576) {
+                                      toast.error('Dung lượng tệp vượt quá 1MB. Vui lòng chọn tệp < 1MB.');
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onload = () => {
+                                      if (typeof reader.result === 'string') {
+                                        setEditValue(reader.result);
+                                        toast.success(`Đã nạp tệp: ${file.name}`);
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }}
+                                />
+                              </label>
+                            </div>
                           ) : (
-                            <span className="text-muted-foreground/50">—</span>
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_giando', r.ncc_giando || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa giản đồ nhiệt"
+                            >
+                              {r.ncc_giando ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewFile({ url: r.ncc_giando!, title: `Giản đồ nhiệt - ${r.ma_hang}`, type: 'image' })}
+                                  className="font-mono text-[11px] text-primary hover:underline cursor-pointer truncate"
+                                >
+                                  [Xem ảnh]
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground/50">—</span>
+                              )}
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_giando', r.ncc_giando || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa giản đồ"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
 
                         {/* 29. NCC Độ cứng đo */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} font-mono font-bold text-xs text-run`} style={{ maxWidth: `${colWidths.ncc_ket_qua_hrc}px` }}>
-                          {r.ncc_ket_qua_hrc || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_hrc' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_hrc', r.ncc_ket_qua_hrc || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa độ cứng đo thực tế"
+                            >
+                              <span className="truncate">{r.ncc_ket_qua_hrc || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_ket_qua_hrc', r.ncc_ket_qua_hrc || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa độ cứng đo"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 30. NCC Nghiệm thu QC */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs`} style={{ maxWidth: `${colWidths.ncc_ket_qua_qc}px` }}>
-                          {r.ncc_ket_qua_qc === 'PASS' ? (
-                            <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
-                              PASS
-                            </span>
-                          ) : r.ncc_ket_qua_qc === 'FAIL' ? (
-                            <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-destructive/10 text-destructive border border-destructive/30">
-                              FAIL
-                            </span>
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_qc' ? (
+                            <select
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            >
+                              <option value="">Chưa QC</option>
+                              <option value="PASS">PASS (Đạt)</option>
+                              <option value="FAIL">FAIL (Không đạt)</option>
+                            </select>
                           ) : (
-                            <span className="text-muted-foreground/60 text-[10px] font-mono">PENDING</span>
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa nghiệm thu QC của NCC"
+                            >
+                              <span>
+                                {r.ncc_ket_qua_qc === 'PASS' ? (
+                                  <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                                    PASS
+                                  </span>
+                                ) : r.ncc_ket_qua_qc === 'FAIL' ? (
+                                  <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-destructive/10 text-destructive border border-destructive/30">
+                                    FAIL
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground/60 text-[10px] font-mono">PENDING</span>
+                                )}
+                              </span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa nghiệm thu NCC"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
 
                         {/* 31. NCC Đơn giá báo */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono text-xs`} style={{ maxWidth: `${colWidths.ncc_don_gia}px` }}>
-                          {r.ncc_don_gia ? (canViewPricing(role as any) ? money(r.ncc_don_gia) : '*** ₫') : '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_don_gia' ? (
+                            <input
+                              type="number"
+                              min={0}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => canViewPricing(role as any) && startInlineEdit(r.ID_Key, 'ncc_don_gia', String(r.ncc_don_gia ?? ''))}
+                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                              title={canViewPricing(role as any) ? 'Click đúp để sửa đơn giá báo NCC' : undefined}
+                            >
+                              <span>{r.ncc_don_gia ? (canViewPricing(role as any) ? money(r.ncc_don_gia) : '*** ₫') : '—'}</span>
+                              {canEdit && canViewPricing(role as any) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_don_gia', String(r.ncc_don_gia ?? ''));
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa đơn giá NCC"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 32. NCC Tiến độ */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_tatus}px` }}>
-                          {r.ncc_tatus || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_tatus' ? (
+                            <select
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            >
+                              <option value="">Chưa chọn</option>
+                              <option value="WAIT">WAIT (Chờ xử lý)</option>
+                              <option value="HEAT">HEAT (Đang nhiệt)</option>
+                              <option value="DONE">DONE (Hoàn thành)</option>
+                            </select>
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa tiến độ xử lý của NCC"
+                            >
+                              <span className="truncate">{r.ncc_tatus || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa tiến độ NCC"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 33. NCC Mở rộng 1 */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_thongtinkhac1}px` }}>
-                          {r.ncc_thongtinkhac1 || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_thongtinkhac1' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_thongtinkhac1', r.ncc_thongtinkhac1 || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa thông tin mở rộng 1"
+                            >
+                              <span className="truncate">{r.ncc_thongtinkhac1 || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_thongtinkhac1', r.ncc_thongtinkhac1 || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa thông tin 1"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 34. NCC Mở rộng 2 */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_thongtinkhac2}px` }}>
-                          {r.ncc_thongtinkhac2 || '—'}
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_thongtinkhac2' ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => saveInlineEdit(r)}
+                              onKeyDown={(e) => handleCellKeyDown(e, r)}
+                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_thongtinkhac2', r.ncc_thongtinkhac2 || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa thông tin mở rộng 2"
+                            >
+                              <span className="truncate">{r.ncc_thongtinkhac2 || '—'}</span>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_thongtinkhac2', r.ncc_thongtinkhac2 || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa thông tin 2"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* 35. NCC Chứng nhận QC */}
                         <td className={`whitespace-nowrap px-3.5 ${padY} text-xs`} style={{ maxWidth: `${colWidths.ncc_file1}px` }}>
-                          {r.ncc_file1 ? (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewFile({ url: r.ncc_file1!, title: `Chứng nhận QC - ${r.ma_hang}`, type: 'pdf' })}
-                              className="font-mono text-[11px] text-primary hover:underline cursor-pointer"
-                            >
-                              [Xem QC]
-                            </button>
+                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_file1' ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                placeholder="Link URL..."
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-[10px] text-foreground outline-none shadow-xs"
+                                autoFocus
+                              />
+                              <label className="cursor-pointer px-1.5 py-0.5 rounded-xs bg-secondary hover:bg-secondary/80 border border-border text-[10px] font-mono shrink-0" title="Tải file chứng nhận (<1MB)">
+                                <Upload size={11} className="inline mr-0.5" />
+                                <input
+                                  type="file"
+                                  accept="image/png,image/jpeg,.jpg,.png,application/pdf"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (file.size > 1048576) {
+                                      toast.error('Dung lượng tệp vượt quá 1MB. Vui lòng chọn tệp < 1MB.');
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onload = () => {
+                                      if (typeof reader.result === 'string') {
+                                        setEditValue(reader.result);
+                                        toast.success(`Đã nạp tệp: ${file.name}`);
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }}
+                                />
+                              </label>
+                            </div>
                           ) : (
-                            <span className="text-muted-foreground/50">—</span>
+                            <div
+                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_file1', r.ncc_file1 || '')}
+                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                              title="Click đúp để sửa file chứng nhận QC"
+                            >
+                              {r.ncc_file1 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewFile({ url: r.ncc_file1!, title: `Chứng nhận QC - ${r.ma_hang}`, type: 'pdf' })}
+                                  className="font-mono text-[11px] text-primary hover:underline cursor-pointer truncate"
+                                >
+                                  [Xem QC]
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground/50">—</span>
+                              )}
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startInlineEdit(r.ID_Key, 'ncc_file1', r.ncc_file1 || '');
+                                  }}
+                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                  title="Sửa file QC"
+                                >
+                                  <PenLine size={10} />
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
 
