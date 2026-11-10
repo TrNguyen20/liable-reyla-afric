@@ -19,7 +19,6 @@ import {
   Download,
   Edit2,
   Filter,
-  Layers,
   Maximize2,
   Minimize2,
   PackageOpen,
@@ -1452,6 +1451,81 @@ function Tracking() {
         onClear: () => setFilters((f) => ({ ...f, syncFailedOnly: false })),
       });
     }
+
+    // Helper định dạng nhãn công nghiệp rút gọn cho danh sách chọn nhiều
+    const formatMultiLabel = (title: string, items: string[]) => {
+      if (items.length === 1) return `${title}: ${items[0]}`;
+      const preview = items.slice(0, 2).join(', ');
+      return `${title} (${items.length}): ${preview}${items.length > 2 ? '…' : ''}`;
+    };
+
+    // 1. Khoảng Ngày tạo (createdDate)
+    if (filters.createdFrom || filters.createdTo) {
+      let dateLabel = `${t('tracking.columns.createdDate') || 'Ngày tạo'}: `;
+      if (filters.createdFrom && filters.createdTo) {
+        dateLabel += `${filters.createdFrom} → ${filters.createdTo}`;
+      } else if (filters.createdFrom) {
+        dateLabel += `≥ ${filters.createdFrom}`;
+      } else {
+        dateLabel += `≤ ${filters.createdTo}`;
+      }
+      list.push({
+        key: 'createdDate',
+        label: dateLabel,
+        onClear: () => setFilters((f) => ({ ...f, createdFrom: '', createdTo: '' })),
+      });
+    }
+
+    // 2. Quốc gia (countries)
+    if (filters.countries && filters.countries.length > 0) {
+      list.push({
+        key: 'countries',
+        label: formatMultiLabel(t('tracking.columns.country') || 'Quốc gia', filters.countries),
+        onClear: () => setFilters((f) => ({ ...f, countries: [] })),
+      });
+    }
+
+    // 3. Đối tượng hàng (targetItems)
+    if ((filters.targetItems && filters.targetItems.length > 0) || filters.targetItemSearch) {
+      const items = filters.targetItems?.length
+        ? filters.targetItems
+        : [filters.targetItemSearch!];
+      list.push({
+        key: 'targetItems',
+        label: formatMultiLabel(t('tracking.columns.targetItem') || 'Đối tượng', items),
+        onClear: () => setFilters((f) => ({ ...f, targetItems: [], targetItemSearch: '' })),
+      });
+    }
+
+    // 4. Trạng thái gốc (sheetStatuses)
+    if ((filters.sheetStatuses && filters.sheetStatuses.length > 0) || filters.sheetStatusSearch) {
+      const items = filters.sheetStatuses?.length
+        ? filters.sheetStatuses
+        : [filters.sheetStatusSearch!];
+      list.push({
+        key: 'sheetStatuses',
+        label: formatMultiLabel(t('tracking.columns.sheetStatus') || 'Trạng thái', items),
+        onClear: () => setFilters((f) => ({ ...f, sheetStatuses: [], sheetStatusSearch: '' })),
+      });
+    }
+
+    // 5. Nghiệm thu QC NCC (vendorQcVerdicts)
+    if (filters.vendorQcVerdicts && filters.vendorQcVerdicts.length > 0) {
+      list.push({
+        key: 'vendorQcVerdicts',
+        label: formatMultiLabel(t('tracking.columns.vendorQcVerdict') || 'QC NCC', filters.vendorQcVerdicts),
+        onClear: () => setFilters((f) => ({ ...f, vendorQcVerdicts: [] })),
+      });
+    }
+
+    // 6. Trạng thái tiến độ NCC (vendorStatuses)
+    if (filters.vendorStatuses && filters.vendorStatuses.length > 0) {
+      list.push({
+        key: 'vendorStatuses',
+        label: formatMultiLabel(t('tracking.columns.vendorStatus') || 'Tiến độ NCC', filters.vendorStatuses),
+        onClear: () => setFilters((f) => ({ ...f, vendorStatuses: [] })),
+      });
+    }
     return list;
   }, [filters, role, globalSearch, t]);
 
@@ -1966,45 +2040,6 @@ function Tracking() {
           : 'flex-1 min-h-0 w-full overflow-hidden'
           }`}
       >
-        {/* Đề xuất 3: Thanh Pill Nhận diện Bộ Lọc Đang Hoạt Động & 1-Chạm Xóa Lọc */}
-        {activeFilters.length > 0 && (
-          <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-xs border border-primary/25 bg-primary/5 p-1.5 text-xs shadow-2xs animate-in fade-in shrink-0">
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary mr-1">
-              <Filter size={13} />
-              {t('tracking.actions.filtering', { count: activeFilters.length }) || `Đang lọc (${activeFilters.length}):`}
-            </span>
-            {activeFilters.map((af) => (
-              <span
-                key={af.key}
-                className="inline-flex items-center gap-1.5 rounded-xs border border-primary/30 bg-card px-2.5 py-0.5 text-[11px] font-medium text-foreground shadow-2xs"
-              >
-                <span>{af.label}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    af.onClear();
-                    setTablePage(0);
-                    playAudioCue('beep');
-                  }}
-                  className="text-muted-foreground hover:text-destructive cursor-pointer rounded-xs"
-                  title={t('tracking.actions.clearFilterItem') || 'Bỏ tiêu chí này'}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-            <button
-              type="button"
-              onClick={resetAllFilters}
-              className="ml-auto inline-flex items-center gap-1 rounded-xs border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-              title={t('tracking.actions.clearFilterTooltip') || 'Xóa toàn bộ các bộ lọc trên bảng'}
-            >
-              <Trash2 size={12} />
-              {t('tracking.actions.clearFilter') || 'Xóa tất cả lọc'}
-            </button>
-          </div>
-        )}
-
         {/* Unified Operational Action Bar - Master Craftsmanship Layout (Chiến lược 2) */}
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xs border border-border bg-card/90 px-3 py-1.5 shadow-2xs text-xs shrink-0">
           {/* Cụm Trái: Route Identity, Local / View Actions & Search */}
@@ -2052,95 +2087,7 @@ function Tracking() {
               )}
             </div>
 
-            {/* 2. Badge đếm lọc động (chỉ hiện khi có lọc/tìm kiếm để triệt tiêu redundancy) */}
-            {(activeFilters.length > 0 || globalSearch.trim()) && (
-              <div className="inline-flex items-center gap-1.5 rounded-xs border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs shadow-2xs animate-in fade-in">
-                <span className="size-1.5 rounded-full bg-primary fx-run-dot" />
-                <span className="text-[11px] text-primary font-bold font-mono tabular-nums">
-                  {t('tracking.toolbars.matched') || 'Khớp'}: {number(rows.length)} <span className="font-normal opacity-70">/ {number(all.length)} {t('common.units.lots') || 'lô'}</span>
-                </span>
-              </div>
-            )}
-
-            {/* 3. Bộ lọc Phân xưởng độc lập (Cụm Trái Toolbar) */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation ${filters.workshops.length > 0
-                    ? 'border-primary/60 bg-primary/10 text-primary font-bold'
-                    : 'border-border/80 bg-card text-foreground hover:bg-secondary'
-                    }`}
-                  title={t('tracking.workshops.filterTooltip') || 'Lọc nhanh theo phân xưởng gia công'}
-                >
-                  <Layers size={12} className={filters.workshops.length > 0 ? 'text-primary' : 'text-primary/80'} />
-                  <span>
-                    {t('tracking.workshops.title') || 'Xưởng'}: {filters.workshops.length === 0 ? (t('tracking.workshops.all') || 'Tất cả') : filters.workshops.join(', ')}
-                  </span>
-                  <ChevronDown size={11} className="text-muted-foreground" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-56 p-2.5 font-sans">
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-border/40 px-1 font-semibold text-xs text-foreground">
-                    <span>{t('tracking.workshops.title') || 'Chọn Phân Xưởng'}</span>
-                    {filters.workshops.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilters((f) => ({ ...f, workshops: [] }));
-                          setTablePage(0);
-                        }}
-                        className="text-[10px] text-primary hover:underline cursor-pointer"
-                      >
-                        {t('common.filters.deselect') || 'Bỏ chọn'}
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilters((f) => ({ ...f, workshops: [] }));
-                      setTablePage(0);
-                    }}
-                    className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${filters.workshops.length === 0 ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
-                      }`}
-                  >
-                    <span>{t('tracking.workshops.all') || 'Tất cả phân xưởng'}</span>
-                    <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{all.length}</span>
-                  </button>
-                  {(['PIN', 'INSERT', 'MOLD'] as Workshop[]).map((ws) => {
-                    const isWsSelected = filters.workshops.includes(ws);
-                    const wsCount = counts.ws[ws] || 0;
-                    return (
-                      <button
-                        key={ws}
-                        type="button"
-                        onClick={() => {
-                          setFilters((f) => ({
-                            ...f,
-                            workshops: isWsSelected
-                              ? f.workshops.filter((x) => x !== ws)
-                              : [...f.workshops, ws],
-                          }));
-                          setTablePage(0);
-                        }}
-                        className={`flex w-full items-center justify-between px-2 py-1.5 rounded-sm text-left text-[11px] cursor-pointer transition-colors ${isWsSelected ? 'bg-primary/15 font-bold text-primary' : 'hover:bg-secondary text-foreground'
-                          }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`size-2 rounded-full ${ws === 'PIN' ? 'bg-info' : ws === 'INSERT' ? 'bg-primary' : 'bg-warning'}`} />
-                          <span>{t('tracking.workshops.title') || 'Xưởng'} {ws}</span>
-                        </div>
-                        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{wsCount}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* 3. Density toggle button (Row Density Switcher - Tuân thủ TC-DS-09) */}
+            {/* 2. Density toggle button (Row Density Switcher - Tuân thủ TC-DS-09) */}
             <div className="flex rounded-xs border border-border bg-secondary/50 p-0.5 text-xs">
               <button
                 type="button"
@@ -2166,7 +2113,7 @@ function Tracking() {
               </button>
             </div>
 
-            {/* 4. Khôi phục cỡ cột */}
+            {/* 3. Khôi phục cỡ cột */}
             <button
               type="button"
               onClick={handleResetAllColWidths}
@@ -2176,6 +2123,22 @@ function Tracking() {
               <RotateCcw size={11} className="text-primary/80" />
               <span className="hidden sm:inline">{t('tracking.toolbars.resetColWidths') || 'Khôi phục cỡ cột'}</span>
             </button>
+
+            {/* 4. Nút Xóa tất cả lọc (hiển thị ngay bên phải nút Khôi phục cỡ cột khi có bộ lọc hoặc tìm kiếm đang kích hoạt) */}
+            {(activeFilters.length > 0 || globalSearch.trim()) && (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="inline-flex items-center gap-1.5 rounded-xs border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation animate-in fade-in"
+                title={t('tracking.actions.clearFilterTooltip') || 'Xóa toàn bộ các bộ lọc trên bảng'}
+              >
+                <Trash2 size={11} />
+                <span>
+                  {t('tracking.actions.clearFilter') || 'Xóa tất cả lọc'}
+                  {activeFilters.length > 0 ? ` (${activeFilters.length})` : ''}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Cụm Phải: Global / Primary Actions (Refresh, Zen Fullscreen, Export CSV Dropdown) */}

@@ -103,5 +103,58 @@ describe('Tracking Grid Enhancements & Bug Fixes Suite', () => {
       expect(trackingTsx).toContain("'thanh_tien'");
       expect(trackingTsx).toContain("'ncc_ngay_qt'");
     });
+
+    it('TC-TOOLBAR-CLEANUP: eliminates redundant filter elements and positions clear filter next to reset col widths', () => {
+      // 1. Redundant active filter pill banner must not exist
+      expect(trackingTsx).not.toContain("tracking.actions.filtering");
+      expect(trackingTsx).not.toMatch(/Đang lọc \(\$\{activeFilters\.length\}\):/);
+
+      // 2. Redundant workshop toolbar button must not exist
+      expect(trackingTsx).not.toContain("<Layers");
+      expect(trackingTsx).not.toContain("tracking.workshops.filterTooltip");
+
+      // 3. Redundant matched count badge on toolbar must not exist
+      expect(trackingTsx).not.toContain("tracking.toolbars.matched");
+
+      // 4. Conditional Xoa tat ca loc button must be placed next to handleResetAllColWidths
+      const resetColIdx = trackingTsx.indexOf('onClick={handleResetAllColWidths}');
+      const resetFiltersIdx = trackingTsx.indexOf('onClick={resetAllFilters}');
+      expect(resetColIdx).toBeGreaterThan(0);
+      expect(resetFiltersIdx).toBeGreaterThan(resetColIdx);
+      // Ensure resetAllFilters is in close proximity after handleResetAllColWidths (within 1200 chars)
+      expect(resetFiltersIdx - resetColIdx).toBeLessThan(1200);
+    });
+
+    it('TC-ACTIVE-FILTERS-SYNC: registers all 6 dynamic column filters into activeFilters with smart formatting and i18n', () => {
+      // 1. Khoảng Ngày tạo
+      expect(trackingTsx).toContain("key: 'createdDate'");
+      expect(trackingTsx).toContain("t('tracking.columns.createdDate')");
+      expect(trackingTsx).toContain("→");
+      expect(trackingTsx).toContain("≥");
+      expect(trackingTsx).toContain("≤");
+
+      // 2. Quốc gia
+      expect(trackingTsx).toContain("key: 'countries'");
+      expect(trackingTsx).toContain("t('tracking.columns.country')");
+
+      // 3. Đối tượng hàng
+      expect(trackingTsx).toContain("key: 'targetItems'");
+      expect(trackingTsx).toContain("t('tracking.columns.targetItem')");
+
+      // 4. Trạng thái gốc
+      expect(trackingTsx).toContain("key: 'sheetStatuses'");
+      expect(trackingTsx).toContain("t('tracking.columns.sheetStatus')");
+
+      // 5. Nghiệm thu QC NCC
+      expect(trackingTsx).toContain("key: 'vendorQcVerdicts'");
+      expect(trackingTsx).toContain("t('tracking.columns.vendorQcVerdict')");
+
+      // 6. Trạng thái tiến độ NCC
+      expect(trackingTsx).toContain("key: 'vendorStatuses'");
+      expect(trackingTsx).toContain("t('tracking.columns.vendorStatus')");
+
+      // Helper formatMultiLabel
+      expect(trackingTsx).toContain('formatMultiLabel');
+    });
   });
 });

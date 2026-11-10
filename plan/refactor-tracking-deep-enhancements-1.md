@@ -3,13 +3,13 @@ goal: 'Tracking Grid Deep Enhancements: Chronological Date Sorting, Distinct Val
 version: '1.0'
 date_created: '2026-11-10'
 owner: 'DYNAMO MES Team'
-status: 'Planned'
+status: 'Completed'
 tags: ['refactor', 'tracking', 'sorting', 'popover-filter', 'inline-edit', 'vendor-fields']
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-green)
 
 Kế hoạch kỹ thuật chuyên sâu nhằm giải quyết triệt để 5 vấn đề cốt lõi trên bảng điều độ nhiệt luyện QT (`/tracking`):
 1. Khắc phục triệt để lỗi logic sắp xếp cột ngày (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) từ so sánh chuỗi ký tự (`localeCompare`) sang so sánh tem thời gian Epoch (`parseFlexibleDate()?.getTime()`).
@@ -50,10 +50,10 @@ Kế hoạch kỹ thuật chuyên sâu nhằm giải quyết triệt để 5 v�
 
 | Task | Description | Completed | Date |
 |---|---|---|---|
-| TASK-001 | Viết test kiểm thử lỗi sắp xếp ngày tháng (`ngay_tao`, `ncc_ngay_tra_qt`) và sắp xếp `quoc_gia`, `phong_sx` trong `src/test/tracking-sorting-and-filters.test.ts` | | |
-| TASK-002 | Cập nhật kiểu `SortField` bao gồm `'quoc_gia'` trong `src/routes/tracking.tsx` | | |
-| TASK-003 | Chuyển đổi toàn bộ `switch (sortCol)` cho các cột ngày (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) sang Epoch timestamp `parseFlexibleDate(val)?.getTime() ?? 0` | | |
-| TASK-004 | Thêm `case 'quoc_gia'` vào bộ sắp xếp và gắn props `field="quoc_gia"` & `field="phong_sx"` cùng `onDirectSort={handleToggleSort}` vào `<HeaderFilterCell>` | | |
+| TASK-001 | Viết test kiểm thử lỗi sắp xếp ngày tháng (`ngay_tao`, `ncc_ngay_tra_qt`) và sắp xếp `quoc_gia`, `phong_sx` trong `src/test/tracking-sorting-and-filters.test.ts` | Yes | 2026-11-10 |
+| TASK-002 | Cập nhật kiểu `SortField` bao gồm `'quoc_gia'` trong `src/routes/tracking.tsx` | Yes | 2026-11-10 |
+| TASK-003 | Chuyển đổi toàn bộ `switch (sortCol)` cho các cột ngày (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) sang Epoch timestamp `parseFlexibleDate(val)?.getTime() ?? 0` | Yes | 2026-11-10 |
+| TASK-004 | Thêm `case 'quoc_gia'` vào bộ sắp xếp và gắn props `field="quoc_gia"` & `field="phong_sx"` cùng `onDirectSort={handleToggleSort}` vào `<HeaderFilterCell>` | Yes | 2026-11-10 |
 
 ### Implementation Phase 2: Tái cấu trúc UI Bộ Lọc Cột (Distinct Values Popover Filter)
 
@@ -61,10 +61,10 @@ Kế hoạch kỹ thuật chuyên sâu nhằm giải quyết triệt để 5 v�
 
 | Task | Description | Completed | Date |
 |---|---|---|---|
-| TASK-005 | Viết component `DistinctValueFilterPopover` tái sử dụng: thanh tìm kiếm, chọn/bỏ chọn tất cả, danh sách checkbox tối đa 10 dòng (`max-h-52 overflow-y-auto`), số lượng đếm mẫu cho từng giá trị | | |
-| TASK-006 | Loại bỏ `HeaderSortControls` khỏi các ô tiêu đề cột trong `src/routes/tracking.tsx` | | |
-| TASK-007 | Tích hợp `DistinctValueFilterPopover` cho các cột danh mục: `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `vat_lieu`, `cty_qt`, `trang_thai`, `ncc_ket_qua_qc`, `ncc_tatus` | | |
-| TASK-008 | Duy trì bộ lọc dải ngày (Date Range Filter: Từ ngày - Đến ngày) chuyên biệt cho `ngay_tao` và `ngay_gui_qt` | | |
+| TASK-005 | Viết component `DistinctValueFilterPopover` tái sử dụng: thanh tìm kiếm, chọn/bỏ chọn tất cả, danh sách checkbox tối đa 10 dòng (`max-h-52 overflow-y-auto`), số lượng đếm mẫu cho từng giá trị | Yes | 2026-11-10 |
+| TASK-006 | Loại bỏ `HeaderSortControls` khỏi các ô tiêu đề cột trong `src/routes/tracking.tsx` | Yes | 2026-11-10 |
+| TASK-007 | Tích hợp `DistinctValueFilterPopover` cho các cột danh mục: `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `vat_lieu`, `cty_qt`, `trang_thai`, `ncc_ket_qua_qc`, `ncc_tatus` | Yes | 2026-11-10 |
+| TASK-008 | Duy trì bộ lọc dải ngày (Date Range Filter: Từ ngày - Đến ngày) chuyên biệt cho `ngay_tao` và `ngay_gui_qt` | Yes | 2026-11-10 |
 
 ### Implementation Phase 3: Mở rộng Chỉnh sửa Nhanh & Icon PenLine cho Toàn Bộ Cột Hợp Lệ
 
@@ -72,10 +72,10 @@ Kế hoạch kỹ thuật chuyên sâu nhằm giải quyết triệt để 5 v�
 
 | Task | Description | Completed | Date |
 |---|---|---|---|
-| TASK-009 | Cập nhật danh sách `EDITABLE_FIELDS` và hàm kiểm tra `isFieldEditable(col)` loại trừ nghiêm ngặt 7 trường cố định (`ma_hang`, `ngay_tao`, `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `id_ma_hang`, `cty_qt`) | | |
-| TASK-010 | Mở rộng component cell render: Thêm hiệu ứng hover hiển thị icon bút chì nhỏ `PenLine` cho các ô được phép sửa | | |
-| TASK-011 | Xây dựng trình chỉnh sửa chuyên biệt theo kiểu dữ liệu: Date picker cho ngày tháng, Select dropdown cho `ncc_tatus` (`WAIT`/`HEAT`/`DONE`) và `ncc_ket_qua_qc` (`PASS`/`FAIL`), Number input cho đơn giá/số lượng, File/URL uploader cho `ncc_giando` và `ncc_file1` | | |
-| TASK-012 | Cập nhật hàm đồng bộ hai chiều `syncWriteBack` truyền đúng payload của 12 trường NCC lên Google Apps Script Webhook | | |
+| TASK-009 | Cập nhật danh sách `EDITABLE_FIELDS` và hàm kiểm tra `isFieldEditable(col)` loại trừ nghiêm ngặt 7 trường cố định (`ma_hang`, `ngay_tao`, `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `id_ma_hang`, `cty_qt`) | Yes | 2026-11-10 |
+| TASK-010 | Mở rộng component cell render: Thêm hiệu ứng hover hiển thị icon bút chì nhỏ `PenLine` cho các ô được phép sửa | Yes | 2026-11-10 |
+| TASK-011 | Xây dựng trình chỉnh sửa chuyên biệt theo kiểu dữ liệu: Date picker cho ngày tháng, Select dropdown cho `ncc_tatus` (`WAIT`/`HEAT`/`DONE`) và `ncc_ket_qua_qc` (`PASS`/`FAIL`), Number input cho đơn giá/số lượng, File/URL uploader cho `ncc_giando` và `ncc_file1` | Yes | 2026-11-10 |
+| TASK-012 | Cập nhật hàm đồng bộ hai chiều `syncWriteBack` truyền đúng payload của 12 trường NCC lên Google Apps Script Webhook | Yes | 2026-11-10 |
 
 ### Implementation Phase 4: Kiểm thử Tự động, Hồi quy & Nghiệm thu Toàn diện
 
@@ -83,9 +83,9 @@ Kế hoạch kỹ thuật chuyên sâu nhằm giải quyết triệt để 5 v�
 
 | Task | Description | Completed | Date |
 |---|---|---|---|
-| TASK-013 | Chạy toàn bộ test suite `npm test` bao gồm design-system compliance và tracking tests | | |
-| TASK-014 | Kiểm tra build TypeScript `npx tsc --noEmit` không phát sinh cảnh báo kiểu | | |
-| TASK-015 | Đóng gói nghiệm thu và xuất báo cáo walkthrough cho người dùng | | |
+| TASK-013 | Chạy toàn bộ test suite `npm test` bao gồm design-system compliance và tracking tests | Yes | 2026-11-10 |
+| TASK-014 | Kiểm tra build TypeScript `npx tsc --noEmit` không phát sinh cảnh báo kiểu | Yes | 2026-11-10 |
+| TASK-015 | Đóng gói nghiệm thu và xuất báo cáo walkthrough cho người dùng | Yes | 2026-11-10 |
 
 ---
 
