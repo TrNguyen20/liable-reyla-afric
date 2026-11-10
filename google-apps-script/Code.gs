@@ -1,39 +1,56 @@
 /**
  * ============================================================================
  * DYNAMO VIETNAM QT - MES (MANUFACTURING EXECUTION SYSTEM)
- * GOOGLE APPS SCRIPT WEBHOOK ĐỒNG BỘ HAI CHIỀU & REALTIME DELTA HUB
+ * GOOGLE APPS SCRIPT WEBHOOK ĐỒNG BỘ HAI CHIỀU & REALTIME DELTA HUB (v2.5.0)
  * ============================================================================
  * 
  * Mục đích:
- * 1. Tiếp nhận payload JSON từ ứng dụng web DYNAMO MES khi kỹ sư cập nhật
- *    tiến độ lô gia công nhiệt luyện (so_luong, ma_hang, TrangThai, ngay_nhan_QT, do_cung, ghi_chu, v.v.).
- * 2. Tìm kiếm dòng dữ liệu tương ứng theo mã khóa duy nhất [ID_Key] và ghi ngược
- *    trực tiếp vào bảng tính Google Sheets điều độ luân chuyển.
- * 3. Tự động ghi chép nhật ký kiểm toán (Audit Trail) vào sheet [AUDIT_LOG].
- * 4. [NÂNG CẤP REALTIME HUB]: Duy trì bộ nhớ đệm CacheService & ScriptProperties toàn cục
- *    để cung cấp cơ chế Delta Sync tức thì (< 100ms) cho mọi trình duyệt (Chrome, Ẩn danh,
- *    mobile, v.v.) mà không bị ảnh hưởng bởi độ trễ CDN 30s-120s của Google CSV export.
+ * 1. Tiếp nhận payload JSON từ ứng dụng web DYNAMO MES khi người dùng cập nhật
+ *    tiến độ lô gia công nhiệt luyện (so_luong, do_cung, ghi_chu, 12 cột phản hồi NCC, v.v.).
+ * 2. Tìm kiếm dòng dữ liệu tương ứng theo mã khóa [id_nhiet_qt] hoặc [ID_Key]
+ *    trong bảng tính 36 cột thực tế (hơn 27.000 dòng dữ liệu).
+ * 3. Bảo vệ 7 cột Master cố định không bị ghi đè từ bảng điều độ:
+ *    [id_nhiet_qt, ma_hang, ngay_tao, quoc_gia, phong_sx, doi_tuong_hang, cty_qt].
+ * 4. Tự động ghi chép nhật ký kiểm toán toàn diện vào tab [AUDIT_LOG].
+ * 5. Duy trì bộ nhớ đệm CacheService & ScriptProperties toàn cục để cung cấp
+ *    cơ chế Delta Sync tức thì (< 100ms) cho mọi client mà không phụ thuộc vào CDN.
  *
- * Cài đặt nhanh:
- * - Mở Google Sheets > Tiện ích mở rộng (Extensions) > Apps Script.
- * - Dán toàn bộ mã này vào tệp Code.gs.
- * - Nhấn "Triển khai" (Deploy) > "Quản lý tùy chọn triển khai" (Manage deployments) hoặc "Tùy chọn triển khai mới" (New deployment) > "Ứng dụng web" (Web App).
- *   + Thực thi với tư cách (Execute as): "Tôi" (Me).
- *   + Ai có quyền truy cập (Who has access): "Bất kỳ ai" (Anyone).
- * - Sao chép Web App URL (dạng https://script.google.com/macros/s/.../exec) và dán vào trang /sync hoặc cấu hình hệ thống.
+ * Hướng dẫn triển khai (Deployment Guide):
+ * 1. Mở Google Sheets (link mới chứa tab gid=1963478526).
+ * 2. Chọn menu Tiện ích mở rộng (Extensions) > Apps Script.
+ * 3. Dán toàn bộ mã này vào tệp Code.gs.
+ * 4. Nhấn "Triển khai" (Deploy) > "Quản lý tùy chọn triển khai" (Manage deployments)
+ *    hoặc "Tùy chọn triển khai mới" (New deployment) > chọn "Ứng dụng web" (Web App).
+ *    + Mô tả: DYNAMO QT-MES Webhook v2.5.0 (36 Columns Schema)
+ *    + Thực thi với tư cách (Execute as): "Tôi" (Me)
+ *    + Ai có quyền truy cập (Who has access): "Bất kỳ ai" (Anyone)
+ * 5. Sao chép Web App URL (dạng https://script.google.com/macros/s/.../exec)
+ *    và dán vào mục cấu hình tại trang /sync của DYNAMO MES.
  */
 
-// Cấu hình tùy chọn (để trống nếu script gắn trực tiếp vào Google Sheets)
+// Cấu hình tùy chọn
 var CONFIG = {
-  // GID của tab chứa dữ liệu sản xuất chính (mặc định tab 1963478526 hoặc tìm tự động)
+  // GID của tab chứa dữ liệu sản xuất chính (tab mới: 1963478526)
   TARGET_GID: '1963478526',
-  // Tên tab dữ liệu (nếu không dùng GID, vd: 'DATA', 'THEO DOI', 'Sheet1')
+  // Tên tab dữ liệu dự phòng (nếu không dùng GID)
   TARGET_SHEET_NAME: '',
-  // Tên tab lưu nhật ký thay đổi
+  // Tên tab lưu nhật ký kiểm toán
   AUDIT_SHEET_NAME: 'AUDIT_LOG',
-  // Tên cột khóa chính
-  PRIMARY_KEY_COL: 'ID_Key'
+  // Cột khóa chính nhận diện lô (hỗ trợ cả schema 36 cột mới và cũ)
+  PRIMARY_KEY_COLS: ['id_nhiet_qt', 'id_key', 'id']
 };
+
+// 7 Cột Master bất biến (Strictly Read-Only - Không cho phép chỉnh sửa từ Webapp)
+var IMMUTABLE_COLUMNS = [
+  'id_nhiet_qt',
+  'ma_hang',
+  'ngay_tao',
+  'quoc_gia',
+  'phong_sx',
+  'doi_tuong_hang',
+  'id_ma_hang',
+  'cty_qt'
+];
 
 var DELTAS_KEY = 'DYNAMO_RECENT_DELTAS';
 var VERSION_KEY = 'DYNAMO_VERSION';
@@ -131,34 +148,10 @@ function getRecentDeltas(sinceVersion) {
 }
 
 /**
- * Đọc trực tiếp các hàng từ Sheet (bỏ qua độ trễ CDN CSV của Google)
- */
-function getLiveRowsFromSheet(sheet) {
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) return [];
-  var data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-  var headers = data[0].map(function(h) { return String(h || '').trim(); });
-  var rows = [];
-  for (var i = 1; i < data.length; i++) {
-    var rowObj = {};
-    for (var j = 0; j < headers.length; j++) {
-      var h = headers[j];
-      if (h) {
-        rowObj[h] = data[i][j];
-      }
-    }
-    rows.push(rowObj);
-  }
-  return rows;
-}
-
-/**
  * Xử lý yêu cầu HTTP GET
  * - action=checkVersion / version: Kiểm tra nhanh phiên bản (< 50ms)
  * - action=getDeltas / deltas: Lấy các thay đổi từ sau sinceVersion
- * - action=getLive / live: Lấy dữ liệu bảng tính trực tiếp không độ trễ
- * - Mặc định: Trả về trạng thái chẩn đoán Gateway
+ * - Mặc định: Trả về trạng thái Gateway chẩn đoán kết nối
  */
 function doGet(e) {
   try {
@@ -185,19 +178,6 @@ function doGet(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    if (action === 'getLive' || action === 'live') {
-      var ss = getSpreadsheet();
-      var sheet = findTargetSheet(ss);
-      var rows = getLiveRowsFromSheet(sheet);
-      return ContentService.createTextOutput(JSON.stringify({
-        ok: true,
-        version: version,
-        total: rows.length,
-        items: rows,
-        timestamp: new Date().toISOString()
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
     var ss = getSpreadsheet();
     var sheet = findTargetSheet(ss);
     var colMap = getColumnMap(sheet);
@@ -205,13 +185,14 @@ function doGet(e) {
     var response = {
       ok: true,
       service: 'DYNAMO VIETNAM QT - MES Webhook Gateway & Realtime Hub',
-      status: 'ONLINE',
       version: version,
+      schema: '36-column Google Sheets Schema (v2.5.0)',
       timestamp: new Date().toISOString(),
       spreadsheetName: ss.getName(),
       targetSheetName: sheet.getName(),
       targetSheetId: sheet.getSheetId(),
       totalRows: sheet.getLastRow(),
+      detectedColumnsCount: Object.keys(colMap).length,
       detectedColumns: Object.keys(colMap),
       instructions: 'Gửi HTTP POST payload JSON để cập nhật lô, hoặc GET ?action=checkVersion / ?action=getDeltas để đồng bộ thời gian thực.'
     };
@@ -282,87 +263,133 @@ function doPost(e) {
 }
 
 /**
- * Cập nhật một lô hàng duy nhất theo ID_Key
+ * Cập nhật một lô hàng duy nhất theo id_nhiet_qt / ID_Key
  */
 function handleUpdateLot(payload) {
-  var idKey = (payload.ID_Key || '').trim();
+  var idKey = (payload.id_nhiet_qt || payload.ID_Key || '').trim();
   if (!idKey) {
-    return { ok: false, message: 'Thiếu mã khóa [ID_Key] cần cập nhật.' };
+    return { ok: false, message: 'Thiếu mã định danh lô [id_nhiet_qt / ID_Key] cần cập nhật.' };
   }
 
   var updates = payload.updates || {};
   var user = payload.user || 'Hệ thống MES';
-  var vendor = payload.cty_QT || '';
+  var vendor = payload.cty_QT || payload.cty_qt || '';
 
   var ss = getSpreadsheet();
   var sheet = findTargetSheet(ss);
   var colMap = getColumnMap(sheet);
 
-  if (!colMap[CONFIG.PRIMARY_KEY_COL.toLowerCase()]) {
-    return { ok: false, message: 'Không tìm thấy cột khóa chính [' + CONFIG.PRIMARY_KEY_COL + '] trong bảng tính.' };
+  // Tìm vị trí cột khóa chính (hỗ trợ cả id_nhiet_qt và ID_Key)
+  var keyColIndex = null;
+  for (var k = 0; k < CONFIG.PRIMARY_KEY_COLS.length; k++) {
+    var cand = CONFIG.PRIMARY_KEY_COLS[k].toLowerCase();
+    if (colMap[cand]) {
+      keyColIndex = colMap[cand];
+      break;
+    }
   }
 
-  var keyColIndex = colMap[CONFIG.PRIMARY_KEY_COL.toLowerCase()];
+  if (!keyColIndex) {
+    return { ok: false, message: 'Không tìm thấy cột khóa chính [id_nhiet_qt / ID_Key] trong bảng tính.' };
+  }
+
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) {
     return { ok: false, message: 'Bảng tính không có dữ liệu hàng.' };
   }
 
-  // Quét tìm dòng có ID_Key tương ứng
+  // Quét tìm dòng có id_nhiet_qt / ID_Key tương ứng
   var keyRange = sheet.getRange(2, keyColIndex, lastRow - 1, 1).getValues();
   var targetRow = -1;
+  var normalizedId = idKey.toLowerCase();
   for (var i = 0; i < keyRange.length; i++) {
-    if (String(keyRange[i][0]).trim() === idKey) {
+    if (String(keyRange[i][0]).trim().toLowerCase() === normalizedId) {
       targetRow = i + 2;
       break;
     }
   }
 
   if (targetRow === -1) {
-    return { ok: false, message: 'Không tìm thấy lô có ID_Key = "' + idKey + '" trong bảng tính.' };
+    return { ok: false, message: 'Không tìm thấy lô có mã = "' + idKey + '" trong bảng tính.' };
   }
 
   var updatedFields = [];
+  var skippedImmutableFields = [];
   var oldValues = {};
   var newValues = {};
 
-  // Bản đồ alias tên cột linh hoạt cho tiếng Việt và tiếng Anh
+  // Bản đồ Alias nhận diện tên cột chuẩn xác cho Schema 36 cột
   var fieldAliases = {
-    'trangthai': ['trangthai', 'trạng thái', 'status', 'tình trạng'],
-    'ngay_nhan_qt': ['ngay_nhan_qt', 'ngày nhận', 'ngay_nhan', 'ngày nhận qt', 'received_date'],
-    'do_cung': ['do_cung', 'độ cứng', 'hardness', 'hrc'],
-    'ghi_chu': ['ghi_chu', 'ghi chú', 'note', 'ghi chú gia công', 'ghi chú qc'],
-    'ma_hang': ['ma_hang', 'mã hàng', 'item_code', 'part_no', 'mã sản phẩm'],
+    // Nhóm trạng thái
+    'trang_thai': ['trang_thai', 'trangthai', 'trạng thái', 'status', 'tình trạng'],
+    'trangthai': ['trang_thai', 'trangthai', 'trạng thái', 'status'],
+    // Nhóm kỹ thuật & vật tư
     'vat_lieu': ['vat_lieu', 'vật liệu', 'mác thép', 'material', 'chất liệu'],
+    'do_cung': ['do_cung', 'độ cứng', 'hardness', 'hrc'],
+    'kich_thuoc_sp': ['kich_thuoc_sp', 'quy cách kt', 'quy cach kt', 'kích thước sp', 'dimension'],
     'so_luong': ['so_luong', 'số lượng', 'quantity', 'qty'],
     'kg_lot': ['kg_lot', 'khối lượng', 'trọng lượng', 'kg', 'weight'],
+    'don_vi_tinh': ['don_vi_tinh', 'dvt', 'uom', 'đơn vị tính'],
+    'so_luong_tinh': ['so_luong_tinh', 'sl tinh', 'số lượng tính'],
+    'don_gia': ['don_gia', 'đơn giá', 'unit_price', 'price'],
+    'thanh_tien': ['thanh_tien', 'thành tiền', 'total_amount'],
+    'ty_gia': ['ty_gia', 'tỷ giá', 'exchange_rate'],
+    'ngay_gui_qt': ['ngay_gui_qt', 'ngày gửi', 'ngay_gui', 'ngày gửi qt', 'sent_date'],
     'han_tra': ['han_tra', 'hạn trả', 'due_date', 'ngày hẹn trả'],
-    'ngay_gui_qt': ['ngay_gui_qt', 'ngày gửi', 'ngay_gui', 'ngày gửi qt', 'ngay_tao'],
-    'cty_qt': ['cty_qt', 'công ty qt', 'đơn vị qt', 'vendor', 'đơn vị gia công']
+    'ghi_chu_khi_gui': ['ghi_chu_khi_gui', 'ghi_chu', 'ghi chú', 'note', 'ghi chú xuất'],
+    'ghi_chu': ['ghi_chu_khi_gui', 'ghi_chu', 'ghi chú', 'note'],
+    // Nhóm 12 trường NCC (ncc_*)
+    'ncc_ngay_qt': ['ncc_ngay_qt', 'ncc vào lò', 'ncc vao lo', 'ngày ncc vào lò', 'oven_date'],
+    'ncc_ngay_tra_qt': ['ncc_ngay_tra_qt', 'ncc hạn trả', 'ncc han tra', 'ngày trả ncc'],
+    'ncc_id_lot_qt': ['ncc_id_lot_qt', 'ncc mã mẻ', 'ncc ma me', 'mã mẻ ncc', 'mã lô ncc'],
+    'ncc_name_qt': ['ncc_name_qt', 'ncc kỹ thuật', 'kỹ thuật viên ncc', 'kỹ thuật ncc'],
+    'ncc_giando': ['ncc_giando', 'giản đồ nhiệt', 'biểu đồ nhiệt', 'heat_diagram'],
+    'ncc_ket_qua_hrc': ['ncc_ket_qua_hrc', 'hrc thực tế', 'độ cứng đo', 'actual_hrc'],
+    'ncc_ket_qua_qc': ['ncc_ket_qua_qc', 'ncc nghiệm thu', 'nghiệm thu ncc', 'qc_result'],
+    'ncc_don_gia': ['ncc_don_gia', 'ncc báo giá', 'đơn giá ncc', 'vendor_price'],
+    'ncc_tatus': ['ncc_tatus', 'ncc tiến độ', 'trạng thái ncc', 'vendor_status'],
+    'ncc_thongtinkhac1': ['ncc_thongtinkhac1', 'thông tin mở rộng 1', 'ncc_info1'],
+    'ncc_thongtinkhac2': ['ncc_thongtinkhac2', 'thông tin mở rộng 2', 'ncc_info2'],
+    'ncc_file1': ['ncc_file1', 'chứng nhận qc', 'file chứng nhận', 'qc_file']
   };
 
   function findColumnForField(fieldKey) {
     var k = String(fieldKey).trim().toLowerCase();
+    
+    // 1. Khớp chính xác tên cột trong colMap (Ưu tiên số 1)
     if (colMap[k]) return colMap[k];
+    
+    // 2. Tra bảng bí danh (Aliases Match)
     var aliases = fieldAliases[k];
     if (aliases) {
       for (var a = 0; a < aliases.length; a++) {
-        if (colMap[aliases[a]]) return colMap[aliases[a]];
+        var alias = aliases[a].toLowerCase();
+        if (colMap[alias]) return colMap[alias];
       }
     }
+    
+    // 3. Fallback an toàn: Khớp hoàn toàn không phân biệt hoa thường
     for (var colName in colMap) {
-      if (colName.indexOf(k) !== -1 || k.indexOf(colName) !== -1) {
+      if (colName === k) {
         return colMap[colName];
       }
     }
     return null;
   }
 
-  // Cập nhật động tất cả các trường được gửi lên trong updates
+  // Cập nhật các trường được gửi lên trong updates
   for (var fieldKey in updates) {
     if (updates.hasOwnProperty(fieldKey)) {
       var val = updates[fieldKey];
       if (val === undefined || val === null) continue;
+
+      var normKey = String(fieldKey).trim().toLowerCase();
+
+      // Bảo vệ 7 cột Master không bị ghi đè trái phép từ màn hình webapp
+      if (IMMUTABLE_COLUMNS.indexOf(normKey) !== -1 && !payload.forceMasterUpdate) {
+        skippedImmutableFields.push(fieldKey);
+        continue;
+      }
 
       var colIdx = findColumnForField(fieldKey);
       if (colIdx) {
@@ -381,10 +408,9 @@ function handleUpdateLot(payload) {
     ID_Key: idKey,
     user: user,
     vendor: vendor,
-    fromStatus: oldValues['TrangThai'] || '',
-    toStatus: newValues['TrangThai'] || '',
-    do_cung: newValues['do_cung'] || '',
-    ngay_nhan: newValues['ngay_nhan_QT'] || '',
+    fromStatus: oldValues['trang_thai'] || oldValues['TrangThai'] || '',
+    toStatus: newValues['trang_thai'] || newValues['TrangThai'] || '',
+    ncc_ket_qua_qc: newValues['ncc_ket_qua_qc'] || '',
     details: JSON.stringify(newValues)
   });
 
@@ -398,12 +424,19 @@ function handleUpdateLot(payload) {
     user: user
   });
 
+  var msg = 'Đã cập nhật thành công lô ' + idKey + ' (' + updatedFields.join(', ') + ') tại dòng ' + targetRow;
+  if (skippedImmutableFields.length > 0) {
+    msg += ' [Đã bỏ qua các trường Master chỉ-đọc: ' + skippedImmutableFields.join(', ') + ']';
+  }
+
   return {
     ok: true,
-    message: 'Đã cập nhật thành công lô ' + idKey + ' (' + updatedFields.join(', ') + ') tại dòng ' + targetRow,
+    message: msg,
+    id_nhiet_qt: idKey,
     ID_Key: idKey,
     row: targetRow,
     updatedFields: updatedFields,
+    skippedFields: skippedImmutableFields,
     version: newVersion,
     delta: {
       id: idKey,
@@ -430,8 +463,9 @@ function handleBulkUpdateLots(payload) {
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
     var res = handleUpdateLot({
-      ID_Key: item.ID_Key,
-      cty_QT: item.cty_QT || payload.cty_QT,
+      id_nhiet_qt: item.id_nhiet_qt || item.ID_Key,
+      ID_Key: item.ID_Key || item.id_nhiet_qt,
+      cty_QT: item.cty_QT || item.cty_qt || payload.cty_QT,
       user: payload.user,
       updates: item.updates || item
     });
@@ -439,7 +473,7 @@ function handleBulkUpdateLots(payload) {
       successCount++;
       if (res.version) lastVersion = res.version;
     } else {
-      errors.push(item.ID_Key + ': ' + res.message);
+      errors.push((item.id_nhiet_qt || item.ID_Key) + ': ' + res.message);
     }
   }
 
@@ -462,13 +496,12 @@ function logAuditTrail(ss, record) {
       auditSheet = ss.insertSheet(CONFIG.AUDIT_SHEET_NAME);
       var headers = [
         'Thời Gian (Timestamp)',
-        'Mã Lô (ID_Key)',
+        'Mã Lô (id_nhiet_qt)',
         'Người Thực Hiện (User/Role)',
         'Đơn Vị QT (Vendor)',
         'Trạng Thái Cũ',
         'Trạng Thái Mới',
-        'Độ Cứng Thực Tế',
-        'Ngày Nhận QT',
+        'Nghiệm Thu QC NCC',
         'Chi Tiết Thay Đổi'
       ];
       auditSheet.appendRow(headers);
@@ -486,8 +519,7 @@ function logAuditTrail(ss, record) {
       record.vendor,
       record.fromStatus,
       record.toStatus,
-      record.do_cung,
-      record.ngay_nhan,
+      record.ncc_ket_qua_qc,
       record.details
     ]);
   } catch (e) {
@@ -503,12 +535,12 @@ function getSpreadsheet() {
 }
 
 /**
- * Tìm sheet dữ liệu sản xuất chính xác (theo GID, tên, hoặc quét cột ID_Key)
+ * Tìm sheet dữ liệu sản xuất chính xác (theo GID, tên, hoặc quét cột id_nhiet_qt)
  */
 function findTargetSheet(ss) {
   var sheets = ss.getSheets();
 
-  // 1. Tìm theo TARGET_GID nếu có
+  // 1. Tìm theo TARGET_GID nếu có (tab 1963478526)
   if (CONFIG.TARGET_GID) {
     for (var i = 0; i < sheets.length; i++) {
       if (String(sheets[i].getSheetId()) === String(CONFIG.TARGET_GID)) {
@@ -523,7 +555,7 @@ function findTargetSheet(ss) {
     if (s) return s;
   }
 
-  // 3. Quét tự động sheet nào có chứa cột ID_Key ở dòng 1
+  // 3. Quét tự động sheet nào có chứa cột id_nhiet_qt hoặc ID_Key ở dòng 1
   for (var j = 0; j < sheets.length; j++) {
     var cur = sheets[j];
     if (cur.getName() === CONFIG.AUDIT_SHEET_NAME) continue;
@@ -531,8 +563,11 @@ function findTargetSheet(ss) {
     if (lastCol > 0) {
       var row1 = cur.getRange(1, 1, 1, lastCol).getValues()[0];
       for (var k = 0; k < row1.length; k++) {
-        if (String(row1[k]).trim().toLowerCase() === CONFIG.PRIMARY_KEY_COL.toLowerCase()) {
-          return cur;
+        var colHeader = String(row1[k]).trim().toLowerCase();
+        for (var p = 0; p < CONFIG.PRIMARY_KEY_COLS.length; p++) {
+          if (colHeader === CONFIG.PRIMARY_KEY_COLS[p].toLowerCase()) {
+            return cur;
+          }
         }
       }
     }
