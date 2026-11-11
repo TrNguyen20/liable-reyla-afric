@@ -119,19 +119,18 @@ Giai đoạn này do **Người dùng chủ động thực hiện trên GitHub U
    - Đảm bảo các automated tests, Vite build, hoặc Vercel deployment preview đạt trạng thái ✅ **All checks have passed**.
 5. Chọn **Merge pull request** (hoặc *Rebase and merge* tùy quy ước dự án) -> **Confirm merge**.
 
-#### Điểm kiểm tra (Checkpoint):
-- Người dùng gửi thông báo trong chat (ví dụ: *"Đã merge xong PR"* hoặc *"OK xong"*).
-- **Hoặc** người dùng yêu cầu Agent kiểm tra thời gian thực (realtime) qua GitHub CLI / git:
+#### Bỏ qua Điểm kiểm tra (Checkpoint) này:
+- Agent tự động kiểm tra thời gian thực (realtime) qua GitHub CLI / git:
   ```powershell
   git fetch origin main
   git log origin/main -n 3 --oneline
   ```
-
+- Và thông báo lại cho người dùng nếu an toàn và tiếp tục sang Giai đoạn 3
 ---
 
 ### GIAI ĐOẠN 3: Cập Nhật main Tại Local & Đánh Dấu Tag Phiên Bản Quốc Tế (SemVer)
 
-Sau khi Giai đoạn 2 đã được xác nhận hoàn tất, Agent tiếp tục sinh khối lệnh Terminal để người dùng copy-paste thực thi:
+Thông báo người dùng thực thi Giai đoạn 2 đã được hoàn tất giai đoạn, song song đó, Agent sinh luôn khối lệnh Terminal để người dùng copy-paste thực thi như Giai đoạn 1 trên cùng 1 phản hồi:
 
 #### Bước 3.1: Xác định phiên bản theo chuẩn SemVer 2.0.0
 - Quy ước: `v<MAJOR>.<MINOR>.<PATCH>`

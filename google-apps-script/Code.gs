@@ -100,12 +100,12 @@ function recordDelta(delta) {
     var listRaw = cache.get(DELTAS_KEY);
     var list = [];
     if (listRaw) {
-      try { list = JSON.parse(listRaw); } catch(e) {}
+      try { list = JSON.parse(listRaw); } catch (e) { }
     } else {
       var props = PropertiesService.getScriptProperties();
       var pRaw = props.getProperty(DELTAS_KEY);
       if (pRaw) {
-        try { list = JSON.parse(pRaw); } catch(e) {}
+        try { list = JSON.parse(pRaw); } catch (e) { }
       }
     }
     list.push(delta);
@@ -129,16 +129,16 @@ function getRecentDeltas(sinceVersion) {
     var listRaw = cache.get(DELTAS_KEY);
     var list = [];
     if (listRaw) {
-      try { list = JSON.parse(listRaw); } catch(e) {}
+      try { list = JSON.parse(listRaw); } catch (e) { }
     } else {
       var props = PropertiesService.getScriptProperties();
       var pRaw = props.getProperty(DELTAS_KEY);
       if (pRaw) {
-        try { list = JSON.parse(pRaw); } catch(e) {}
+        try { list = JSON.parse(pRaw); } catch (e) { }
       }
     }
     var threshold = Number(sinceVersion) || 0;
-    return list.filter(function(d) {
+    return list.filter(function (d) {
       return (Number(d.version) || 0) > threshold;
     });
   } catch (err) {
@@ -336,29 +336,29 @@ function handleUpdateLot(payload) {
     'ty_gia': ['ty_gia', 'tỷ giá', 'exchange_rate'],
     'ngay_gui_qt': ['ngay_gui_qt', 'ngày gửi', 'ngay_gui', 'ngày gửi qt', 'sent_date'],
     'han_tra': ['han_tra', 'hạn trả', 'due_date', 'ngày hẹn trả'],
-    'ghi_chu_khi_gui': ['ghi_chu_khi_gui', 'ghi_chu', 'ghi chú', 'note', 'ghi chú xuất'],
+    'ghi_chu_khi_gui': ['ghi_chu_khi_gui', 'ghi_chu', 'ghi chú', 'note', 'GHI CHÚ'],
     'ghi_chu': ['ghi_chu_khi_gui', 'ghi_chu', 'ghi chú', 'note'],
     // Nhóm 12 trường NCC (ncc_*)
-    'ncc_ngay_qt': ['ncc_ngay_qt', 'ncc vào lò', 'ncc vao lo', 'ngày ncc vào lò', 'oven_date'],
+    'ncc_ngay_qt': ['ncc_ngay_qt', 'NCC NGÀY QT', 'ncc vao lo', 'ngày NCC NGÀY QT', 'oven_date'],
     'ncc_ngay_tra_qt': ['ncc_ngay_tra_qt', 'ncc hạn trả', 'ncc han tra', 'ngày trả ncc'],
-    'ncc_id_lot_qt': ['ncc_id_lot_qt', 'ncc mã mẻ', 'ncc ma me', 'mã mẻ ncc', 'mã lô ncc'],
-    'ncc_name_qt': ['ncc_name_qt', 'ncc kỹ thuật', 'kỹ thuật viên ncc', 'kỹ thuật ncc'],
+    'ncc_id_lot_qt': ['ncc_id_lot_qt', 'NCC LÔ QT', 'ncc ma me', 'mã mẻ ncc', 'mã lô ncc'],
+    'ncc_name_qt': ['ncc_name_qt', 'NCC TÊN QT', 'kỹ thuật viên ncc', 'kỹ thuật ncc'],
     'ncc_giando': ['ncc_giando', 'giản đồ nhiệt', 'biểu đồ nhiệt', 'heat_diagram'],
     'ncc_ket_qua_hrc': ['ncc_ket_qua_hrc', 'hrc thực tế', 'độ cứng đo', 'actual_hrc'],
     'ncc_ket_qua_qc': ['ncc_ket_qua_qc', 'ncc nghiệm thu', 'nghiệm thu ncc', 'qc_result'],
     'ncc_don_gia': ['ncc_don_gia', 'ncc báo giá', 'đơn giá ncc', 'vendor_price'],
     'ncc_tatus': ['ncc_tatus', 'ncc tiến độ', 'trạng thái ncc', 'vendor_status'],
-    'ncc_thongtinkhac1': ['ncc_thongtinkhac1', 'thông tin mở rộng 1', 'ncc_info1'],
+    'ncc_thongtinkhac1': ['ncc_thongtinkhac1', 'thông tin ghi chú 1', 'ncc_info1'],
     'ncc_thongtinkhac2': ['ncc_thongtinkhac2', 'thông tin mở rộng 2', 'ncc_info2'],
-    'ncc_file1': ['ncc_file1', 'chứng nhận qc', 'file chứng nhận', 'qc_file']
+    'ncc_file1': ['ncc_file1', 'CHỨNG CHỈ QT', 'file chứng nhận', 'qc_file']
   };
 
   function findColumnForField(fieldKey) {
     var k = String(fieldKey).trim().toLowerCase();
-    
+
     // 1. Khớp chính xác tên cột trong colMap (Ưu tiên số 1)
     if (colMap[k]) return colMap[k];
-    
+
     // 2. Tra bảng bí danh (Aliases Match)
     var aliases = fieldAliases[k];
     if (aliases) {
@@ -367,7 +367,7 @@ function handleUpdateLot(payload) {
         if (colMap[alias]) return colMap[alias];
       }
     }
-    
+
     // 3. Fallback an toàn: Khớp hoàn toàn không phân biệt hoa thường
     for (var colName in colMap) {
       if (colName === k) {

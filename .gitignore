@@ -23,6 +23,14 @@ dist-ssr
 # Vercel Runtime & Output
 .vercel/
 
+# Git Worktrees
+.worktrees/
+worktrees/
+
+# Python cache
+__pycache__/
+*.pyc
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

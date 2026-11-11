@@ -141,7 +141,7 @@ describe('Tracking Grid Enhancements & Bug Fixes Suite', () => {
       expect(trackingTsx).toContain("key: 'targetItems'");
       expect(trackingTsx).toContain("t('tracking.columns.targetItem')");
 
-      // 4. Trạng thái gốc
+      // 4. TRẠNG THÁI
       expect(trackingTsx).toContain("key: 'sheetStatuses'");
       expect(trackingTsx).toContain("t('tracking.columns.sheetStatus')");
 

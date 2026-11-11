@@ -39,7 +39,7 @@ export type QTItem = {
   ghi_chu?: string | undefined; // Alias tương thích ngược
   cty_qt: Vendor;               // Đối tác nhiệt luyện ('YAMAICHI' | 'PROVISION')
   cty_QT: Vendor;               // Alias tương thích ngược
-  trang_thai?: string | undefined; // Trạng thái gốc từ Google Sheets ('Đã tạo', 'Print PDF')
+  trang_thai?: string | undefined; // TRẠNG THÁI từ Google Sheets ('Đã tạo', 'Print PDF')
   TrangThai: Status;            // Trạng thái chuẩn hóa DYNAMO MES
   cong_doan?: string | undefined; // Công đoạn gia công
   han_tra?: string | undefined; // Hạn trả cam kết (ncc_ngay_tra_qt hoặc fallback)
@@ -56,12 +56,12 @@ export type QTItem = {
   ncc_ket_qua_qc?: 'PASS' | 'FAIL' | string | undefined; // Kết luận nghiệm thu chất lượng ban đầu NCC
   ncc_don_gia?: number | undefined;         // Đơn giá báo lại từ phía NCC
   ncc_tatus?: string | undefined;           // Trạng thái tiến độ thực tế bên phía xưởng Vendor
-  ncc_thongtinkhac1?: string | undefined;   // Trường thông tin dự phòng mở rộng 1
-  ncc_thongtinkhac2?: string | undefined;   // Trường thông tin dự phòng mở rộng 2
-  ncc_file1?: string | undefined;           // Link file scan biên bản xuất xưởng / Chứng nhận QC
+  ncc_thongtinkhac1?: string | undefined;   // Trường thông tin dự phòng ghi chú 1
+  ncc_thongtinkhac2?: string | undefined;   // Trường thông tin dự phòng GHI CHÚ 2
+  ncc_file1?: string | undefined;           // Link file scan biên bản xuất xưởng / CHỨNG CHỈ QT
 };
 
-export const statuses: Status[] = ['Chờ xuất xưởng','Đang tại Vendor','Kiểm tra QC','Đã nhập kho'];
+export const statuses: Status[] = ['Chờ xuất xưởng', 'Đang tại Vendor', 'Kiểm tra QC', 'Đã nhập kho'];
 export const money = (value: number) => isPricingVisible() ? new Intl.NumberFormat('vi-VN').format(value) + ' ₫' : '*** ₫';
 export const number = (value: number, decimals = 0) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: decimals }).format(value);
 
@@ -125,7 +125,7 @@ export const dateTime = (value: string) => {
 export const daysLate = (value: string) => {
   const d = parseFlexibleDate(value);
   if (!d) return 0;
-  return Math.max(0, Math.floor((new Date().setHours(0,0,0,0) - d.getTime()) / 86400000));
+  return Math.max(0, Math.floor((new Date().setHours(0, 0, 0, 0) - d.getTime()) / 86400000));
 };
 
 /** Overdue only when the due date is official (not estimated). Kept in sync with dynamo-rules.isOverdue. */
