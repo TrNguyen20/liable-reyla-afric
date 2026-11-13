@@ -10,6 +10,8 @@ import {
   parseMultiUrls,
   smartMatchFileToLot,
   getAttachmentBadgeLabel,
+  transformToPreviewUrl,
+  extractFileName,
   type AttachmentItem,
   type CloudSource,
 } from '@/components/tracking/attachment-field';
@@ -101,6 +103,26 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
       expect(items.length).toBe(2);
       expect(items[0]!.name).toBe('Chung_nhan.pdf');
       expect(items[1]!.name).toBe('Gian_do.png');
+    });
+
+    it('TC-CLOUD-PREVIEW: transforms Google Drive view links to embeddable preview links', () => {
+      const driveViewUrl = 'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing';
+      expect(transformToPreviewUrl(driveViewUrl)).toBe(
+        'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/preview'
+      );
+
+      const docsEditUrl = 'https://docs.google.com/document/d/12345/edit?usp=sharing';
+      expect(transformToPreviewUrl(docsEditUrl)).toBe('https://docs.google.com/document/d/12345/preview');
+
+      const regularUrl = 'https://mycloud.com/files/document.pdf';
+      expect(transformToPreviewUrl(regularUrl)).toBe(regularUrl);
+    });
+
+    it('TC-CLOUD-FILENAME: avoids truncated "view" name for Google Drive links', () => {
+      const driveUrl = 'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view';
+      const extracted = extractFileName(driveUrl);
+      expect(extracted).not.toBe('view');
+      expect(extracted).toContain('GoogleDrive_');
     });
   });
 

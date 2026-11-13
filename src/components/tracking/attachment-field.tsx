@@ -14,6 +14,10 @@ import {
   Check,
   ExternalLink,
   Cloud,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  RefreshCw,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -67,6 +71,23 @@ export function inferFileType(url: string, name?: string): AttachmentType {
   return 'link';
 }
 
+/** Transforms external Cloud URLs (like Google Drive) into embeddable preview URLs */
+export function transformToPreviewUrl(url: string): string {
+  if (!url || typeof url !== 'string') return url;
+  // Google Drive: https://drive.google.com/file/d/FILE_ID/view... -> /preview
+  if (url.includes('drive.google.com/file/d/')) {
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/file/d/${match[1]}/preview`;
+    }
+  }
+  // Google Docs/Sheets/Slides view -> preview
+  if (url.includes('docs.google.com') && url.includes('/edit')) {
+    return url.replace(/\/edit.*$/, '/preview');
+  }
+  return url;
+}
+
 /** Extracts a clean display name from URL or Data URI */
 export function extractFileName(url: string, defaultPrefix = 'tệp_đính_kèm'): string {
   if (url.startsWith('data:')) {
@@ -76,15 +97,34 @@ export function extractFileName(url: string, defaultPrefix = 'tệp_đính_kèm'
   }
   try {
     const parsed = new URL(url);
+    const lower = parsed.hostname.toLowerCase();
+
+    // Thông minh: Nếu là link Google Drive, không lấy tên cụt là 'view' hay 'edit'
+    if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) {
+      const match = parsed.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `GoogleDrive_${match[1].slice(0, 8)}.pdf`;
+      }
+      return 'Tài liệu Google Drive';
+    }
+
+    // Nếu là OneDrive/SharePoint
+    if (lower.includes('1drv.ms') || lower.includes('onedrive') || lower.includes('sharepoint.com')) {
+      return 'Tài liệu Cloud OneDrive';
+    }
+
     const segments = parsed.pathname.split('/').filter(Boolean);
     const last = segments[segments.length - 1];
-    if (last && last.length > 2) {
+    if (last && last.length > 2 && last !== 'view' && last !== 'preview' && last !== 'edit') {
       return decodeURIComponent(last);
     }
     return parsed.hostname + (parsed.pathname !== '/' ? parsed.pathname : '');
   } catch {
     const rawName = url.split('/').pop()?.split('?')[0];
-    return rawName || `${defaultPrefix}.link`;
+    if (rawName && rawName !== 'view' && rawName !== 'edit') {
+      return rawName;
+    }
+    return `${defaultPrefix}.link`;
   }
 }
 
@@ -526,6 +566,8 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
   const [pastedUrl, setPastedUrl] = useState('');
   const [urlNote, setUrlNote] = useState('');
   const [previewFile, setPreviewFile] = useState<AttachmentItem | null>(null);
+  const [imgZoom, setImgZoom] = useState(1);
+  const [imgRotation, setImgRotation] = useState(0);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const confirmTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -910,31 +952,130 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
       </div>
     )}
 
-      {/* Lightbox / Preview Sub-dialog */}
+      {/* Lightbox / Preview Sub-dialog với Toolbar và Hỗ trợ Cloud Preview */}
       {previewFile && (
-        <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-          <DialogContent className="max-w-2xl w-full rounded-xl border border-slate-200 bg-white p-4 shadow-2xl font-sans">
-            <DialogTitle className="flex items-center justify-between border-b border-slate-200 pb-2 text-xs font-bold text-slate-900">
-              <span className="truncate pr-2">{previewFile.name}</span>
-              <a
-                href={previewFile.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline font-mono text-xs shrink-0 flex items-center gap-1"
-              >
-                Mở tab mới <ExternalLink size={11} />
-              </a>
+        <Dialog
+          open={!!previewFile}
+          onOpenChange={() => {
+            setPreviewFile(null);
+            setImgZoom(1);
+            setImgRotation(0);
+          }}
+        >
+          <DialogContent className="max-w-3xl w-[95vw] rounded-xl border border-slate-200 bg-white p-4 shadow-2xl font-sans flex flex-col max-h-[90vh]">
+            <DialogTitle className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5 text-xs font-bold text-slate-900">
+              <div className="flex items-center gap-2 min-w-0">
+                {renderFileTypeBadge(previewFile.type, previewFile.source)}
+                <span className="truncate max-w-[280px] sm:max-w-md font-mono text-[11.5px]" title={previewFile.name}>
+                  {previewFile.name}
+                </span>
+                {previewFile.size && (
+                  <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">({previewFile.size})</span>
+                )}
+              </div>
+
+              {/* Action Toolbar */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {(previewFile.type === 'image' || previewFile.url.startsWith('data:image/')) && (
+                  <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => setImgZoom((z) => Math.min(3, Math.round((z + 0.25) * 100) / 100))}
+                      className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer"
+                      title="Phóng to (+)"
+                    >
+                      <ZoomIn size={13} />
+                    </button>
+                    <span className="text-[10px] font-mono text-slate-500 w-9 text-center">
+                      {Math.round(imgZoom * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setImgZoom((z) => Math.max(0.5, Math.round((z - 0.25) * 100) / 100))}
+                      className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer"
+                      title="Thu nhỏ (-)"
+                    >
+                      <ZoomOut size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImgZoom(1);
+                        setImgRotation(0);
+                      }}
+                      className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer text-[10px] font-mono"
+                      title="Đặt lại zoom ban đầu"
+                    >
+                      1:1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImgRotation((r) => (r + 90) % 360)}
+                      className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer"
+                      title="Xoay ảnh 90°"
+                    >
+                      <RotateCw size={13} />
+                    </button>
+                  </div>
+                )}
+
+                <a
+                  href={previewFile.url}
+                  download={previewFile.name}
+                  className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 font-mono text-[11px] shrink-0 flex items-center gap-1"
+                  title="Tải về máy tính"
+                >
+                  <Download size={11} /> <span className="hidden sm:inline">Tải về</span>
+                </a>
+                <a
+                  href={previewFile.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white font-mono text-[11px] shrink-0 flex items-center gap-1 shadow-2xs"
+                  title="Mở tab mới"
+                >
+                  Mở tab mới <ExternalLink size={11} />
+                </a>
+              </div>
             </DialogTitle>
-            <div className="mt-3 flex max-h-[70vh] items-center justify-center overflow-auto rounded-xs bg-muted/30 p-2">
+
+            {/* Container hiển thị nội dung */}
+            <div className="mt-3 flex-1 min-h-[50vh] max-h-[72vh] flex items-center justify-center overflow-auto rounded-lg bg-slate-950/95 dark:bg-slate-900 border border-slate-800 p-2 relative select-none">
               {previewFile.type === 'image' || previewFile.url.startsWith('data:image/') ? (
-                <img src={previewFile.url} alt={previewFile.name} className="max-h-[65vh] object-contain rounded-xs" />
-              ) : previewFile.type === 'pdf' || previewFile.url.endsWith('.pdf') ? (
-                <iframe src={previewFile.url} title={previewFile.name} className="h-[65vh] w-full border-none rounded-xs" />
+                <div className="flex items-center justify-center w-full h-full min-h-[48vh] overflow-auto">
+                  <img
+                    src={previewFile.url}
+                    alt={previewFile.name}
+                    style={{
+                      transform: `scale(${imgZoom}) rotate(${imgRotation}deg)`,
+                      transition: 'transform 0.15s ease-out',
+                    }}
+                    className="max-h-[66vh] max-w-full object-contain rounded-xs shadow-md"
+                  />
+                </div>
+              ) : previewFile.type === 'pdf' || previewFile.url.endsWith('.pdf') || previewFile.url.includes('drive.google.com') ? (
+                <iframe
+                  src={transformToPreviewUrl(previewFile.url)}
+                  title={previewFile.name}
+                  className="h-[68vh] w-full border-none rounded-xs bg-white"
+                />
               ) : (
-                <div className="py-12 text-center text-xs text-muted-foreground">
-                  <p className="font-bold text-foreground mb-1">Không hỗ trợ xem trực tiếp định dạng này</p>
-                  <a href={previewFile.url} target="_blank" rel="noreferrer" className="text-primary underline">
-                    Bấm vào đây để mở hoặc tải xuống
+                <div className="py-16 px-6 text-center text-xs flex flex-col items-center justify-center max-w-md mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 mb-3 shadow-inner">
+                    <Cloud size={22} className="text-sky-400" />
+                  </div>
+                  <p className="font-bold text-white text-sm mb-1 font-mono">{previewFile.name}</p>
+                  <p className="text-slate-400 text-xs mb-4 leading-relaxed">
+                    Tệp lưu trữ trên nền tảng đám mây ({previewFile.source === 'onedrive' ? 'OneDrive' : previewFile.source === 'sharepoint' ? 'SharePoint' : 'Liên kết ngoài'}). Để đảm bảo an toàn bảo mật chính sách nhúng CSP, vui lòng mở trực tiếp trên tab mới.
+                  </p>
+                  <a
+                    href={previewFile.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xs bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-xs font-semibold flex items-center gap-1.5 shadow-md cursor-pointer transition active:scale-95"
+                  >
+                    <span>Mở tài liệu ngay</span>
+                    <ExternalLink size={12} />
                   </a>
                 </div>
               )}
