@@ -329,7 +329,7 @@ describe("DYNAMO MES: Trilingual Standardization [VI] [EN] [JA] Test Suite", () 
       expect(trackingSrc).toContain("So_DatHang");
       expect(trackingSrc).toContain("ma_hang");
 
-      // 2. Quy chuẩn biên bản ca A4
+      // 2. Quy chuẩn vận hành SOP-MES-08
       const dashboardSrc = fs.readFileSync(dashboardPath, "utf-8");
       expect(dashboardSrc).toContain("SOP-MES-08");
 

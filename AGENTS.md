@@ -21,7 +21,7 @@
 > 3. **Industrial Wireframe Elements**: 1px sharp borders (`border-border`), high contrast cool graphite neutrals, industrial status tags (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`), and Andon/Run LED indicators (`fx-run-dot`).
 > 4. **Official Route Architecture**:
 >    - `[1] /tracking`: Luân chuyển nhiệt luyện QT (Trang điều độ chính).
->    - `[2] /dashboard`: Tổng quan hệ thống & Biên bản bàn giao ca A4.
+>    - `[2] /dashboard`: Tổng quan luân chuyển & phân tích tài chính kỹ thuật.
 >    - `[3] /orders`: Chi tiết đơn đặt hàng & linh kiện gia công.
 >    - `[4] /sync`: Đồng bộ Google Sheets (Phân quyền Admin).
 >    - `/login`: Xác thực mã bảo mật truy cập ID do Admin cấp.
