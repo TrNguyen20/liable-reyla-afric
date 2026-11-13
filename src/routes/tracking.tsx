@@ -2170,6 +2170,36 @@ function Tracking() {
     }
   };
 
+  // Cập nhật giá trị một ô trực tiếp (áp dụng cho Dropdown Select một chạm như NCC Nghiệm thu & NCC Tiến độ)
+  const updateSingleCellField = (item: QTItem, field: 'ncc_ket_qua_qc' | 'ncc_tatus', value: string) => {
+    if (!canEdit) return;
+    const patch: Partial<QTItem> = {
+      [field]: value.trim() || undefined,
+    };
+    const oldValue = String((item as any)[field] ?? '');
+    const newValue = value.trim();
+    if (oldValue === newValue) return;
+
+    try {
+      updateItem(item.ID_Key, patch);
+      syncWriteBack(item.ID_Key, item.cty_QT, patch);
+      appendAudit({
+        ID_Key: item.ID_Key,
+        user: role,
+        role,
+        from: oldValue,
+        to: newValue,
+        changes: { [field]: [oldValue, newValue] },
+        result: 'ok',
+      });
+      playAudioCue('success');
+      toast.success(`Đã cập nhật ${field === 'ncc_ket_qua_qc' ? 'nghiệm thu QC' : 'tiến độ NCC'} cho lô ${item.ID_Key}`);
+    } catch (err) {
+      console.error('Lỗi khi cập nhật ô dropdown:', err);
+      toast.error('Không thể cập nhật giá trị');
+    }
+  };
+
   const applyQuickCellUpdate = (item: QTItem, fieldName: string, patch: Partial<QTItem>) => {
     updateItem(item.ID_Key, patch);
     syncWriteBack(item.ID_Key, item.cty_QT, patch);
@@ -3763,14 +3793,26 @@ function Tracking() {
                                   value={r.ncc_ket_qua_qc || ''}
                                   onChange={(e) => {
                                     const val = e.target.value;
-                                    handleInlineCellEdit(r, 'ncc_ket_qua_qc', val);
+                                    updateSingleCellField(r, 'ncc_ket_qua_qc', val);
                                   }}
-                                  className="h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer text-foreground focus:bg-background focus:border-primary shadow-2xs"
+                                  className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${
+                                    !r.ncc_ket_qua_qc
+                                      ? 'text-muted-foreground/50'
+                                      : r.ncc_ket_qua_qc === 'PASS'
+                                      ? 'font-bold text-emerald-600 dark:text-emerald-400'
+                                      : 'font-bold text-destructive'
+                                  }`}
                                   title="Chọn nghiệm thu QC của NCC"
                                 >
-                                  <option value="">Click để chọn</option>
-                                  <option value="PASS">PASS (Đạt)</option>
-                                  <option value="FAIL">FAIL (Không đạt)</option>
+                                  <option value="" disabled hidden>
+                                    Click để chọn
+                                  </option>
+                                  <option value="PASS" className="font-mono text-emerald-600 font-bold">
+                                    PASS (Đạt)
+                                  </option>
+                                  <option value="FAIL" className="font-mono text-destructive font-bold">
+                                    FAIL (Không đạt)
+                                  </option>
                                 </select>
                                 <div className="pointer-events-none absolute right-1 flex items-center text-muted-foreground/60">
                                   <ChevronDown size={11} />
@@ -3787,7 +3829,7 @@ function Tracking() {
                                     FAIL
                                   </span>
                                 ) : (
-                                  <span className="text-muted-foreground/60 text-[10.5px]">Click để chọn</span>
+                                  <span className="text-muted-foreground/50 text-[10.5px]">Click để chọn</span>
                                 )}
                               </div>
                             )}
@@ -3842,16 +3884,28 @@ function Tracking() {
                                   value={r.ncc_tatus || ''}
                                   onChange={(e) => {
                                     const val = e.target.value;
-                                    handleInlineCellEdit(r, 'ncc_tatus', val);
+                                    updateSingleCellField(r, 'ncc_tatus', val);
                                   }}
-                                  className="h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer text-foreground focus:bg-background focus:border-primary shadow-2xs"
+                                  className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${
+                                    !r.ncc_tatus ? 'text-muted-foreground/50' : 'font-semibold text-foreground'
+                                  }`}
                                   title="Chọn tiến độ xử lý của NCC"
                                 >
-                                  <option value="">Click để chọn</option>
-                                  <option value="WAIT">WAIT (Chờ xử lý)</option>
-                                  <option value="HEAT">HEAT (Đang nhiệt)</option>
-                                  <option value="TRANSIT">TRANSIT (Đang giao)</option>
-                                  <option value="DONE">DONE (Hoàn thành)</option>
+                                  <option value="" disabled hidden>
+                                    Click để chọn
+                                  </option>
+                                  <option value="WAIT" className="font-mono text-foreground">
+                                    WAIT (Chờ xử lý)
+                                  </option>
+                                  <option value="HEAT" className="font-mono text-amber-600 font-semibold">
+                                    HEAT (Đang nhiệt)
+                                  </option>
+                                  <option value="TRANSIT" className="font-mono text-sky-600 font-semibold">
+                                    TRANSIT (Đang giao)
+                                  </option>
+                                  <option value="DONE" className="font-mono text-emerald-600 font-semibold">
+                                    DONE (Hoàn thành)
+                                  </option>
                                 </select>
                                 <div className="pointer-events-none absolute right-1 flex items-center text-muted-foreground/60">
                                   <ChevronDown size={11} />
@@ -3862,7 +3916,7 @@ function Tracking() {
                                 {r.ncc_tatus ? (
                                   <span className="truncate">{r.ncc_tatus}</span>
                                 ) : (
-                                  <span className="text-muted-foreground/60 text-[10.5px]">Click để chọn</span>
+                                  <span className="text-muted-foreground/50 text-[10.5px]">Click để chọn</span>
                                 )}
                               </div>
                             )}
