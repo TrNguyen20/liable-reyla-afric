@@ -135,7 +135,21 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
     }
   }
 
-  // 2. Newline or comma/semicolon delimited URLs
+  // 2. Data URI guard: base64 Data URIs contain semicolons and commas (e.g. data:image/png;base64,...).
+  // Strictly avoid regex split(/[\n,;]+/) which chops a single Data URI into 3 broken fragments!
+  if (trimmed.startsWith('data:')) {
+    return [
+      {
+        id: 'att-data-1',
+        name: extractFileName(trimmed),
+        url: trimmed,
+        type: inferFileType(trimmed),
+        source: 'generic',
+      },
+    ];
+  }
+
+  // 3. Newline or comma/semicolon delimited URLs
   const lines = trimmed
     .split(/[\n,;]+/)
     .map((s) => s.trim())
@@ -151,7 +165,7 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
     }));
   }
 
-  // 3. Single URL or Data URI
+  // 4. Single URL
   return [
     {
       id: 'att-single-1',
@@ -288,7 +302,11 @@ export function serializeAttachments(items: AttachmentItem[]): string {
   if (!items || items.length === 0) return '';
   const first = items[0];
   if (items.length === 1 && first) {
-    // Single item: plain URL for maximum compatibility with Google Sheets formulas & AppSheet
+    // If it's a Data URI or contains commas/newlines, use JSON to preserve the file's original name and integrity
+    if (first.url.startsWith('data:') || first.url.includes(',') || first.url.includes('\n')) {
+      return JSON.stringify(items);
+    }
+    // Single plain URL for maximum compatibility with Google Sheets formulas & AppSheet
     return first.url;
   }
   return JSON.stringify(items);
@@ -499,6 +517,11 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
   canEdit = true,
 }) => {
   const [fileList, setFileList] = useState<AttachmentItem[]>(initialItems);
+
+  // Sync internal state when initialItems change or dialog re-opens
+  React.useEffect(() => {
+    setFileList(initialItems);
+  }, [initialItems, isOpen]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [pastedUrl, setPastedUrl] = useState('');
   const [urlNote, setUrlNote] = useState('');

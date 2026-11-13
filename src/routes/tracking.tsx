@@ -3757,49 +3757,37 @@ function Tracking() {
                         {/* 30. NCC Nghiệm thu QC */}
                         {isColVisible('ncc_ket_qua_qc') && (
                           <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px]`} style={{ maxWidth: `${colWidths.ncc_ket_qua_qc}px` }}>
-                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_qc' ? (
-                              <select
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => saveInlineEdit(r)}
-                                className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                                autoFocus
-                              >
-                                <option value="">Chưa QC</option>
-                                <option value="PASS">PASS (Đạt)</option>
-                                <option value="FAIL">FAIL (Không đạt)</option>
-                              </select>
+                            {canEdit ? (
+                              <div className="relative inline-flex items-center w-full">
+                                <select
+                                  value={r.ncc_ket_qua_qc || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    handleInlineCellEdit(r, 'ncc_ket_qua_qc', val);
+                                  }}
+                                  className="h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer text-foreground focus:bg-background focus:border-primary shadow-2xs"
+                                  title="Chọn nghiệm thu QC của NCC"
+                                >
+                                  <option value="">Click để chọn</option>
+                                  <option value="PASS">PASS (Đạt)</option>
+                                  <option value="FAIL">FAIL (Không đạt)</option>
+                                </select>
+                                <div className="pointer-events-none absolute right-1 flex items-center text-muted-foreground/60">
+                                  <ChevronDown size={11} />
+                                </div>
+                              </div>
                             ) : (
-                              <div
-                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '')}
-                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                                title="Click đúp để sửa nghiệm thu QC của NCC"
-                              >
-                                <span>
-                                  {r.ncc_ket_qua_qc === 'PASS' ? (
-                                    <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
-                                      PASS
-                                    </span>
-                                  ) : r.ncc_ket_qua_qc === 'FAIL' ? (
-                                    <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-destructive/10 text-destructive border border-destructive/30">
-                                      FAIL
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground/60 text-[10px] font-mono">PENDING</span>
-                                  )}
-                                </span>
-                                {canEdit && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '');
-                                    }}
-                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                    title="Sửa nghiệm thu NCC"
-                                  >
-                                    <PenLine size={10} />
-                                  </button>
+                              <div className="flex items-center gap-1 font-mono text-[11px]">
+                                {r.ncc_ket_qua_qc === 'PASS' ? (
+                                  <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                                    PASS
+                                  </span>
+                                ) : r.ncc_ket_qua_qc === 'FAIL' ? (
+                                  <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-destructive/10 text-destructive border border-destructive/30">
+                                    FAIL
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground/60 text-[10.5px]">Click để chọn</span>
                                 )}
                               </div>
                             )}
@@ -3848,38 +3836,33 @@ function Tracking() {
                         {/* 32. NCC Tiến độ */}
                         {isColVisible('ncc_tatus') && (
                           <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_tatus}px` }}>
-                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_tatus' ? (
-                              <select
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => saveInlineEdit(r)}
-                                className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                                autoFocus
-                              >
-                                <option value="">Chưa chọn</option>
-                                <option value="WAIT">WAIT (Chờ xử lý)</option>
-                                <option value="HEAT">HEAT (Đang nhiệt)</option>
-                                <option value="DONE">DONE (Hoàn thành)</option>
-                              </select>
+                            {canEdit ? (
+                              <div className="relative inline-flex items-center w-full">
+                                <select
+                                  value={r.ncc_tatus || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    handleInlineCellEdit(r, 'ncc_tatus', val);
+                                  }}
+                                  className="h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer text-foreground focus:bg-background focus:border-primary shadow-2xs"
+                                  title="Chọn tiến độ xử lý của NCC"
+                                >
+                                  <option value="">Click để chọn</option>
+                                  <option value="WAIT">WAIT (Chờ xử lý)</option>
+                                  <option value="HEAT">HEAT (Đang nhiệt)</option>
+                                  <option value="TRANSIT">TRANSIT (Đang giao)</option>
+                                  <option value="DONE">DONE (Hoàn thành)</option>
+                                </select>
+                                <div className="pointer-events-none absolute right-1 flex items-center text-muted-foreground/60">
+                                  <ChevronDown size={11} />
+                                </div>
+                              </div>
                             ) : (
-                              <div
-                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '')}
-                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                                title="Click đúp để sửa tiến độ xử lý của NCC"
-                              >
-                                <span className="truncate">{r.ncc_tatus || '—'}</span>
-                                {canEdit && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '');
-                                    }}
-                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                    title="Sửa tiến độ NCC"
-                                  >
-                                    <PenLine size={10} />
-                                  </button>
+                              <div className="flex items-center gap-1 font-mono text-[11px]">
+                                {r.ncc_tatus ? (
+                                  <span className="truncate">{r.ncc_tatus}</span>
+                                ) : (
+                                  <span className="text-muted-foreground/60 text-[10.5px]">Click để chọn</span>
                                 )}
                               </div>
                             )}
