@@ -45,7 +45,38 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
 
       const dataUriPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       const itemsPng = parseAttachments(dataUriPng);
+      expect(itemsPng.length).toBe(1);
       expect(itemsPng[0]!.type).toBe('image');
+    });
+
+    it('TC-BUGFIX-DATA-URI: strictly prevents single Data URI from splitting into 3 fragmented objects', () => {
+      // Simulating a real compressed image Data URI containing semicolons and commas
+      const realDataUri = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj;something,2Q==';
+      const items = parseAttachments(realDataUri);
+      
+      // Must NOT be split by regex split(/[\n,;]+/) into 3 items!
+      expect(items.length).toBe(1);
+      expect(items[0]!.url).toBe(realDataUri);
+      expect(items[0]!.name).not.toBe('base64');
+      expect(items[0]!.name).not.toBe('2Q==');
+      expect(items[0]!.type).toBe('image');
+    });
+
+    it('TC-BUGFIX-SERIALIZATION: preserves Data URI items cleanly without corruption', () => {
+      const item: AttachmentItem = {
+        id: 'local-123',
+        name: '1036-Z2,Z3.png',
+        url: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ;test,2Q==',
+        type: 'image',
+        size: '31 KB (Ảnh đã nén)',
+      };
+      const serialized = serializeAttachments([item]);
+      expect(serialized.startsWith('[')).toBe(true);
+      
+      const parsed = parseAttachments(serialized);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0]!.name).toBe('1036-Z2,Z3.png');
+      expect(parsed[0]!.size).toBe('31 KB (Ảnh đã nén)');
     });
 
     it('infers excel spreadsheet type from URL extension', () => {

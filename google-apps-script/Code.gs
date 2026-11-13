@@ -36,8 +36,11 @@ var CONFIG = {
   TARGET_SHEET_NAME: '',
   // Tên tab lưu nhật ký kiểm toán
   AUDIT_SHEET_NAME: 'AUDIT_LOG',
-  // Cột khóa chính nhận diện lô (hỗ trợ cả schema 36 cột mới và cũ)
-  PRIMARY_KEY_COLS: ['id_nhiet_qt', 'id_key', 'id']
+  // Cột khóa chính nhận diện lô (hỗ trợ cả schema 36 cột mới và cũ, tiếng Việt có dấu, không dấu)
+  PRIMARY_KEY_COLS: [
+    'id_nhiet_qt', 'id_key', 'id', 'mã lô', 'ma lo', 'ma_lo', 
+    'mã nhiệt', 'ma nhiet', 'ma_nhiet', 'mã hàng', 'ma_hang', 'stt'
+  ]
 };
 
 // 7 Cột Master bất biến (Strictly Read-Only - Không cho phép chỉnh sửa từ Webapp)
@@ -279,7 +282,7 @@ function handleUpdateLot(payload) {
   var sheet = findTargetSheet(ss);
   var colMap = getColumnMap(sheet);
 
-  // Tìm vị trí cột khóa chính (hỗ trợ cả id_nhiet_qt và ID_Key)
+  // Tìm vị trí cột khóa chính (hỗ trợ cả id_nhiet_qt, ID_Key, Mã Lô, v.v.)
   var keyColIndex = null;
   for (var k = 0; k < CONFIG.PRIMARY_KEY_COLS.length; k++) {
     var cand = CONFIG.PRIMARY_KEY_COLS[k].toLowerCase();
@@ -287,6 +290,19 @@ function handleUpdateLot(payload) {
       keyColIndex = colMap[cand];
       break;
     }
+  }
+
+  // Tự động fallback: Nếu không khớp tên cấu hình nhưng có cột chứa "id" hoặc "mã" hoặc lấy cột 1
+  if (!keyColIndex) {
+    for (var colKey in colMap) {
+      if (colKey.indexOf('id') !== -1 || colKey.indexOf('lô') !== -1 || colKey.indexOf('lo') !== -1) {
+        keyColIndex = colMap[colKey];
+        break;
+      }
+    }
+  }
+  if (!keyColIndex && sheet.getLastColumn() >= 1) {
+    keyColIndex = 1; // Fallback an toàn về cột A
   }
 
   if (!keyColIndex) {
