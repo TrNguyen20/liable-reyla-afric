@@ -1,10 +1,10 @@
 ---
 title: DYNAMO QT-MES Design System Specification
 standard: Graphite Wireframe UI
-version: 2.5.0
-last_updated: 2026-11-10
+version: 2.6.0
+last_updated: 2026-11-12
 status: Active (Single Source of Truth)
-tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.5]
+tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.6]
 ---
 
 # DYNAMO QT-MES DESIGN SYSTEM
@@ -16,6 +16,7 @@ tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, na
 
 | Phiên bản | Ngày | Tác giả / Đội ngũ | Loại thay đổi | Nội dung tóm tắt |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.6.0** | 2026-11-12 | Dynamo MES Architecture Team | **TYPOGRAPHY & HIGH-DENSITY GRID** | **Chuẩn hóa Typography và Micro-Spacing bảng điều độ Tracking v2.6.0:**<br>• Cố định chuẩn chiều cao dòng 34px (`h-[34px]`) và padding ô 4px x 8px (`py-1 px-2`), loại bỏ nút chuyển đổi mật độ dòng để chuẩn hóa duy nhất một trải nghiệm tối ưu nhất cho nhà máy.<br>• Font chữ: Sử dụng `"Be Vietnam Pro", sans-serif` kết hợp `tabular-nums` cho số liệu định lượng, mã hàng và ngày tháng.<br>• Kích thước chữ: Header tiêu đề 10.5px (`text-[10.5px]`), Body nội dung 11.5px (`text-[11.5px]`).<br>• Đường kẻ: `border-collapse: collapse` kết hợp viền xám nhạt `border-slate-200` (Light) và `dark:border-slate-800` (Dark).<br>• Mở rộng 5 Tab góc nhìn: `Tất cả (36)`, `📎 Tài liệu`, `Kỹ thuật`, `Đơn giá & PO`, `NCC Ghi` với `<colgroup>` động lọc theo cột visible. |
 | **v2.5.0** | 2026-11-10 | Dynamo MES Architecture Team | **CORE GRID & FILTER OVERHAUL** | **Nâng cấp bảng điều độ Tracking 36 cột, Tối ưu sắp xếp Timestamp & Bộ lọc Popover Distinct:**<br>• Tái cấu trúc bộ so sánh sắp xếp toàn bộ cột ngày tháng (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) sang Epoch timestamp (`parseFlexibleDate()`), khắc phục triệt để lỗi phân loại chuỗi ký tự ASCII.<br>• Mặc định khi tải trang: Sắp xếp theo Ngày tạo giảm dần (`ngay_tao desc`) hiển thị ngay lô mới nhất.<br>• Bổ sung kích hoạt sắp xếp trực tiếp tiêu đề A-Z / Z-A cho cột **Quốc Gia** (`quoc_gia`) và **Xưởng** (`phong_sx`).<br>• Hiện đại hóa Popover Filter: Loại bỏ hoàn toàn khối sort dư thừa, chuẩn hóa danh sách Distinct Checklist tối đa 10 dòng có thanh cuộn, tích hợp tìm kiếm nội bộ, nút Chọn tất cả/Bỏ chọn và badge đếm số lượng `(n)`.<br>• Thiết lập quy tắc 7 cột cố định bất biến (Read-only): `ma_hang`, `ngay_tao`, `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `id_ma_hang`, `cty_qt` cấm sửa nhanh từ webapp.<br>• Mở rộng Inline Quick-Edit và icon PenLine hover cho toàn bộ các cột điều độ và 12 cột Vendor (`ncc_*`), hỗ trợ tải tệp ảnh/PDF < 1MB qua Base64 và đánh giá QC độc lập (`PASS` / `FAIL` / `PENDING`).<br>• Mở rộng bộ chọn phân trang thêm 500 & 1000 dòng/trang, bổ sung ô `<input type="number">` nhảy trực tiếp đến số trang bất kỳ. |
 | **v2.2.0** | 2026-11-05 | Dynamo MES Architecture Team | **UX & DESIGN SYSTEM UPGRADE** | **Hiện đại hóa hệ thống Popover/Dialog và Tối ưu trải nghiệm điều độ Tracking:**<br>• Nâng cấp toàn bộ Radix Popover sang chuẩn Modern Industrial Glass: bo góc 12px (`rounded-xl`), viền sáng nhẹ `border-border/40`, hiệu ứng kính mờ `bg-popover/85 backdrop-blur-md`, đổ bóng nhiều lớp `shadow-2xl`.<br>• Tái cấu trúc chuyển động Popover: thời lượng 300ms với đường cong gia tốc `cubic-bezier(0.16, 1, 0.3, 1)`, scale-up 0.98 -> 1 và trượt 10px.<br>• Bổ sung hiệu ứng `backdrop-blur-sm` cho màn phủ nền (Dialog Overlay).<br>• Tách bộ lọc Phân xưởng (PIN / INSERT / MOLD) thành nút chuyên dụng trên Cụm Trái của Toolbar.<br>• Khắc phục triệt để tràn viền input Date picker ở cột Ngày gửi & Hạn trả, loại bỏ tag (+7d) dư thừa.<br>• Chuyển đổi cột Đối tác sang dropdown tương tự Logistics & QC.<br>• Ẩn biểu tượng bút chỉnh sửa (`opacity-0`) và chỉ hiển thị khi rê chuột (`group-hover/edit:opacity-100`).<br>• Tối ưu Header 16 cột: giảm padding `px-2 py-2`, khoảng cách `gap-1`, tăng diện tích nút phễu lọc 30% (`size-7`). |
 | **v2.1.0** | 2026-11-04 | Dynamo MES Architecture Team | **ROUTING & ENHANCEMENT** | **Tái kích hoạt Dashboard & Orders và tinh gọn hệ thống:**<br>• Mở lại `/dashboard` (Tổng quan & Biên bản giao ca A4) và `/orders` (Chi tiết đơn hàng).<br>• Đồng bộ hóa toàn bộ góc bo 2px (`rounded-xs`) và lưới số liệu `font-mono tabular-nums` cho 2 trang mới mở.<br>• Dọn dẹp hoàn toàn 2 trang vệ tinh dư thừa `/materials` và `/audit-costs`.<br>• Mở rộng thanh điều hướng Header và Command Palette lên 4 trang chính thức: `[1] /tracking`, `[2] /dashboard`, `[3] /orders`, `[4] /sync`.<br>• Cập nhật bài kiểm tra tự động `TC-DS-05` và `app-routing.test.tsx`. |
@@ -121,7 +122,8 @@ TẦNG 3: VIEWS & COMPOSITES   -> src/components/ & src/routes/ (dynamo-shell, t
 - Tinh gọn nút bấm: Nút Làm Mới được quy hoạch tập trung tại Toolbar bảng điều độ (Shift+R).
 
 #### 3. Main Tracking Dashboard (`src/routes/tracking.tsx`)
-- Cấu trúc bảng 15 cột tinh gọn (ẩn cột Xưởng do đã có bộ lọc trên Toolbar): Header cố định (`sticky top-0 z-40`), Ghim cố định 2 đầu: Checkbox (`sticky left-0`, 40px) và Mã lô (`sticky left-[40px]`, 130px) ở mép trái; Phiếu A4 (`sticky right-0`, 58px) ở mép phải. 4 cột cố định không co giãn (bao gồm Đơn hàng 120px), 11 cột cuộn giữa (Ghi chú tối ưu 165px) với bộ đệm an toàn 10-15px.
+- Cấu trúc bảng điều độ công nghiệp: Header cố định (`sticky top-0 z-40`), Ghim cố định 2 đầu: Checkbox (`sticky left-0`, 40px) và Mã lô (`sticky left-[40px]`, 110px) ở mép trái; Phiếu A4 (`sticky right-0`, 58px) ở mép phải.
+- Chuẩn hóa High-Density Industrial Grid (v2.6.0): Chiều cao dòng chuẩn 34px (`h-[34px]`), padding ô `py-1 px-2` (4px trên/dưới x 8px trái/phải), font chữ `"Be Vietnam Pro", sans-serif` kết hợp `tabular-nums` cho số liệu thẳng hàng dọc. Header tiêu đề cỡ chữ 10.5px (`text-[10.5px]`), Body nội dung 11.5px (`text-[11.5px]`). Đường kẻ `border-collapse: collapse` với viền xám nhạt `border-slate-200` (Light) và `dark:border-slate-800` (Dark).
 - Mã trạng thái Logistics & QC công nghiệp:
   - `Chờ xuất xưởng`: `border-warning/50 bg-warning/10 text-warning WAIT`
   - `Đang tại Vendor`: `border-info/50 bg-info/10 text-info TRANSIT`

@@ -197,7 +197,7 @@ export type ColumnKey =
   | 'han_tra'
   | 'ghi_chu';
 
-export type ColumnView = 'ALL' | 'TECH' | 'COMM' | 'VENDOR_QC';
+export type ColumnView = 'ALL' | 'DOCS' | 'TECH' | 'COMM' | 'VENDOR_QC';
 
 export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: string; description: string }> = {
   ALL: {
@@ -205,19 +205,24 @@ export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: 
     shortLabel: 'Tất cả (36)',
     description: 'Toàn bộ 36 cột từ Google Sheets mới',
   },
+  DOCS: {
+    label: 'Hình 0: 📎 Tài liệu & File đính kèm',
+    shortLabel: '📎 Tài liệu',
+    description: 'Hồ sơ bản vẽ, file đơn đặt hàng PO, giản đồ nhiệt, file đính kèm NCC và phiếu A4',
+  },
   TECH: {
     label: 'Hình 1: Kỹ thuật',
-    shortLabel: 'Kỹ thuật',
+    shortLabel: '⚙️ Kỹ thuật',
     description: 'Mã bản vẽ, vật liệu, độ cứng, quy cách, số lượng, khối lượng kg',
   },
   COMM: {
     label: 'Hình 2: Đơn giá & PO',
-    shortLabel: 'Đơn giá & PO',
+    shortLabel: '🏷️ Đơn giá & PO',
     description: 'Đơn giá, thành tiền, ngày gửi, hạn trả, đơn hàng PO, đối tác',
   },
   VENDOR_QC: {
-    label: 'Hình 3: NCC & QC',
-    shortLabel: 'NCC & QC',
+    label: 'Hình 3: NCC Ghi',
+    shortLabel: '🖋️ NCC Ghi',
     description: 'Hạn trả NCC, mã mẻ lò, giản đồ nhiệt, đo HRC, nghiệm thu QC, báo giá',
   },
 };
@@ -228,6 +233,21 @@ export function isColumnVisibleInView(colKey: string, view: ColumnView): boolean
   }
 
   if (view === 'ALL') return true;
+
+  if (view === 'DOCS') {
+    return [
+      'phong_sx',
+      'id_ma_hang',
+      'so_dat_hang',
+      'So_DatHang',
+      'ten_file_dat_hang',
+      'ncc_giando',
+      'ncc_file1',
+      'ncc_name_qt',
+      'ghi_chu_khi_gui',
+      'ghi_chu',
+    ].includes(colKey);
+  }
 
   if (view === 'TECH') {
     return [
@@ -335,41 +355,41 @@ export type TableDensity = 'compact' | 'normal';
 
 const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   checkbox: 40,
-  ma_hang: 110,
-  ngay_tao: 140,
-  nguoi_tao: 90,
-  quoc_gia: 90,
-  phong_sx: 90,
-  doi_tuong_hang: 110,
-  id_ma_hang: 140,
+  ma_hang: 130,
+  ngay_tao: 145,
+  nguoi_tao: 100,
+  quoc_gia: 105,
+  phong_sx: 110,
+  doi_tuong_hang: 105,
+  id_ma_hang: 165,
   so_luong: 70,
   vat_lieu: 100,
   do_cung: 100,
-  kich_thuoc_sp: 110,
+  kich_thuoc_sp: 125,
   kg_lot: 70,
   don_vi_tinh: 70,
   so_luong_tinh: 80,
   don_gia: 90,
-  thanh_tien: 100,
+  thanh_tien: 110,
   ty_gia: 60,
   ngay_gui_qt: 105,
   cty_qt: 110,
-  trang_thai: 110,
+  trang_thai: 130,
   so_dat_hang: 140,
   ten_file_dat_hang: 100,
   ghi_chu_khi_gui: 140,
-  ncc_ngay_qt: 105,
-  ncc_ngay_tra_qt: 105,
+  ncc_ngay_qt: 115,
+  ncc_ngay_tra_qt: 115,
   ncc_id_lot_qt: 110,
   ncc_name_qt: 110,
-  ncc_giando: 90,
-  ncc_ket_qua_hrc: 95,
-  ncc_ket_qua_qc: 85,
-  ncc_don_gia: 95,
-  ncc_tatus: 100,
-  ncc_thongtinkhac1: 110,
-  ncc_thongtinkhac2: 110,
-  ncc_file1: 90,
+  ncc_giando: 135,
+  ncc_ket_qua_hrc: 120,
+  ncc_ket_qua_qc: 175,
+  ncc_don_gia: 115,
+  ncc_tatus: 145,
+  ncc_thongtinkhac1: 125,
+  ncc_thongtinkhac2: 125,
+  ncc_file1: 125,
   ticket: 58,
   ID_Key: 130,
   So_DatHang: 120,
@@ -671,10 +691,10 @@ function HeaderFilterCell({
 
   return (
     <th
-      className={`whitespace-nowrap px-2 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none ${isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
+      className={`whitespace-nowrap px-2 py-1 font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground select-none border-b border-slate-200 dark:border-border ${isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
         } ${stickyClass} ${className} ${isStickyLast
-          ? 'border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
-          : ''
+          ? 'border-r border-slate-200 dark:border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
+          : 'border-r border-slate-200/60 dark:border-border/40'
         }`}
       style={{
         ...(width !== undefined ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : {}),
@@ -844,7 +864,7 @@ function Tracking() {
     if (typeof window !== 'undefined') {
       try {
         const saved = window.localStorage.getItem('dynamo-column-view');
-        if (saved && (saved === 'ALL' || saved === 'TECH' || saved === 'COMM' || saved === 'VENDOR_QC')) {
+        if (saved && (saved === 'ALL' || saved === 'DOCS' || saved === 'TECH' || saved === 'COMM' || saved === 'VENDOR_QC')) {
           return saved as ColumnView;
         }
       } catch { }
@@ -876,26 +896,6 @@ function Tracking() {
   const visibleColumnCount = useMemo(() => {
     return ACTIVE_GRID_COLUMNS.filter((key) => isColVisible(key)).length;
   }, [isColVisible]);
-
-  // Row Density State with localStorage persistence ('compact' | 'normal')
-  const [density, setDensity] = useState<TableDensity>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('dynamo-tracking-density');
-        if (saved === 'compact' || saved === 'normal') {
-          return saved;
-        }
-      } catch { }
-    }
-    return 'compact';
-  });
-
-  const handleSetDensity = (newDensity: TableDensity) => {
-    setDensity(newDensity);
-    try {
-      window.localStorage.setItem('dynamo-tracking-density', newDensity);
-    } catch { }
-  };
 
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -1252,7 +1252,7 @@ function Tracking() {
           const d = parseFlexibleDate(row.ngay_tao);
           if (d && d > new Date(filters.createdTo + 'T23:59:59')) return false;
         }
-        // Filter: Quốc gia
+        // Filter: NƯỚC
         if (filters.countries && filters.countries.length > 0 && !filters.countries.includes(row.quoc_gia || 'Vietnam')) {
           return false;
         }
@@ -1645,11 +1645,11 @@ function Tracking() {
       });
     }
 
-    // 2. Quốc gia (countries)
+    // 2. NƯỚC (countries)
     if (filters.countries && filters.countries.length > 0) {
       list.push({
         key: 'countries',
-        label: formatMultiLabel(t('tracking.columns.country') || 'Quốc gia', filters.countries),
+        label: formatMultiLabel(t('tracking.columns.country') || 'NƯỚC', filters.countries),
         onClear: () => setFilters((f) => ({ ...f, countries: [] })),
       });
     }
@@ -2271,9 +2271,9 @@ function Tracking() {
               )}
             </div>
 
-            {/* 1b. Column View Switcher (4 Tab Góc Nhìn Cột - DNA Gemini 4 Argon) */}
+            {/* 1b. Column View Switcher (5 Tab Góc Nhìn Cột - DNA Gemini 4 Argon) */}
             <div className="flex rounded-xs border border-border bg-secondary/50 p-0.5 text-xs">
-              {(['ALL', 'TECH', 'COMM', 'VENDOR_QC'] as ColumnView[]).map((viewKey) => {
+              {(['ALL', 'DOCS', 'TECH', 'COMM', 'VENDOR_QC'] as ColumnView[]).map((viewKey) => {
                 const spec = COLUMN_VIEW_SPECS[viewKey];
                 const isActive = colView === viewKey;
                 return (
@@ -2282,11 +2282,10 @@ function Tracking() {
                     type="button"
                     onClick={() => handleSetColView(viewKey)}
                     title={spec.description}
-                    className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'bg-card text-foreground shadow-2xs font-bold border border-border/60'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${isActive
+                      ? 'bg-card text-foreground shadow-2xs font-bold border border-border/60'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
                   >
                     <span>{spec.shortLabel}</span>
                   </button>
@@ -2294,33 +2293,7 @@ function Tracking() {
               })}
             </div>
 
-            {/* 2. Density toggle button (Row Density Switcher - Tuân thủ TC-DS-09) */}
-            <div className="flex rounded-xs border border-border bg-secondary/50 p-0.5 text-xs">
-              <button
-                type="button"
-                onClick={() => handleSetDensity('compact')}
-                title={t('tracking.density.compactTooltip') || 'Chế độ nén dòng cao độ (~32px)'}
-                className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${density === 'compact'
-                  ? 'bg-card text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-                  }`}
-              >
-                <span>{t('tracking.density.compact') || 'Nén'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetDensity('normal')}
-                title={t('tracking.density.normalTooltip') || 'Chế độ dòng tiêu chuẩn (~42px)'}
-                className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer ${density === 'normal'
-                  ? 'bg-card text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-                  }`}
-              >
-                <span>{t('tracking.density.normal') || 'Chuẩn'}</span>
-              </button>
-            </div>
-
-            {/* 3. Khôi phục cỡ cột */}
+            {/* 2. Khôi phục cỡ cột */}
             <button
               type="button"
               onClick={handleResetAllColWidths}
@@ -2443,10 +2416,10 @@ function Tracking() {
         </div>
 
         {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
-        <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-border bg-card shadow-2xs">
+        <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-slate-200 dark:border-border bg-card shadow-2xs">
           <div className="flex-1 min-h-0 overflow-auto">
             <table
-              className="text-left text-xs border-collapse"
+              className="text-left font-['Be_Vietnam_Pro',sans-serif] text-[11.5px] border-collapse"
               style={{
                 tableLayout: 'fixed',
                 width: '100%',
@@ -2454,52 +2427,24 @@ function Tracking() {
               }}
             >
               <colgroup>
-                <col style={{ width: `${colWidths.checkbox}px` }} />
-                <col style={{ width: `${colWidths.ma_hang}px` }} />
-                <col style={{ width: `${colWidths.ngay_tao}px` }} />
-                <col style={{ width: `${colWidths.nguoi_tao}px` }} />
-                <col style={{ width: `${colWidths.quoc_gia}px` }} />
-                <col style={{ width: `${colWidths.phong_sx}px` }} />
-                <col style={{ width: `${colWidths.doi_tuong_hang}px` }} />
-                <col style={{ width: `${colWidths.id_ma_hang}px` }} />
-                <col style={{ width: `${colWidths.so_luong}px` }} />
-                <col style={{ width: `${colWidths.vat_lieu}px` }} />
-                <col style={{ width: `${colWidths.do_cung}px` }} />
-                <col style={{ width: `${colWidths.kich_thuoc_sp}px` }} />
-                <col style={{ width: `${colWidths.kg_lot}px` }} />
-                <col style={{ width: `${colWidths.don_vi_tinh}px` }} />
-                <col style={{ width: `${colWidths.so_luong_tinh}px` }} />
-                <col style={{ width: `${colWidths.don_gia}px` }} />
-                <col style={{ width: `${colWidths.thanh_tien}px` }} />
-                <col style={{ width: `${colWidths.ty_gia}px` }} />
-                <col style={{ width: `${colWidths.ngay_gui_qt}px` }} />
-                <col style={{ width: `${colWidths.cty_qt}px` }} />
-                <col style={{ width: `${colWidths.trang_thai}px` }} />
-                <col style={{ width: `${colWidths.so_dat_hang}px` }} />
-                <col style={{ width: `${colWidths.ten_file_dat_hang}px` }} />
-                <col style={{ width: `${colWidths.ghi_chu_khi_gui}px` }} />
-                <col style={{ width: `${colWidths.ncc_ngay_qt}px` }} />
-                <col style={{ width: `${colWidths.ncc_ngay_tra_qt}px` }} />
-                <col style={{ width: `${colWidths.ncc_id_lot_qt}px` }} />
-                <col style={{ width: `${colWidths.ncc_name_qt}px` }} />
-                <col style={{ width: `${colWidths.ncc_giando}px` }} />
-                <col style={{ width: `${colWidths.ncc_ket_qua_hrc}px` }} />
-                <col style={{ width: `${colWidths.ncc_ket_qua_qc}px` }} />
-                <col style={{ width: `${colWidths.ncc_don_gia}px` }} />
-                <col style={{ width: `${colWidths.ncc_tatus}px` }} />
-                <col style={{ width: `${colWidths.ncc_thongtinkhac1}px` }} />
-                <col style={{ width: `${colWidths.ncc_thongtinkhac2}px` }} />
-                <col style={{ width: `${colWidths.ncc_file1}px` }} />
-                <col style={{ width: `${colWidths.ticket}px` }} />
+                {ACTIVE_GRID_COLUMNS.filter((key) => isColVisible(key)).map((key) => (
+                  <col
+                    key={key}
+                    style={{
+                      width: `${colWidths[key] ?? DEFAULT_COL_WIDTHS[key] ?? 100}px`,
+                      minWidth: `${MIN_COL_WIDTHS[key] ?? 60}px`,
+                    }}
+                  />
+                ))}
               </colgroup>
               <thead
-                className="sticky top-0 z-40 bg-secondary text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border shadow-xs"
+                className="sticky top-0 z-40 bg-secondary font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200 dark:border-border shadow-xs"
                 style={{ position: 'sticky', top: 0, zIndex: 40 }}
               >
                 <tr>
                   {/* Column 0: Checkbox (Sticky top-0 left-0) */}
                   <th
-                    className="sticky top-0 left-0 z-50 px-2 py-2 text-center bg-secondary border-r border-border/50 select-none"
+                    className="sticky top-0 left-0 z-50 px-2 py-1 text-center bg-secondary border-r border-slate-200 dark:border-border/50 border-b border-slate-200 dark:border-border select-none"
                     style={{
                       position: 'sticky',
                       top: 0,
@@ -2565,577 +2510,577 @@ function Tracking() {
                   {/* Column 2: Ngày tạo */}
                   {isColVisible('ngay_tao') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.createdDate') || 'NGÀY TẠO'}
-                    field="ngay_tao"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={Boolean(filters.createdFrom || filters.createdTo)}
-                    width={colWidths.ngay_tao}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ngay_tao')}
-                    onResetWidth={() => handleResetWidth('ngay_tao')}
-                  >
-                    <div className="space-y-2 p-1">
-                      <div className="flex items-center justify-between pb-1 border-b border-border/60">
-                        <span className="font-mono font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Khoảng ngày tạo
-                        </span>
-                        {(filters.createdFrom || filters.createdTo) && (
-                          <button
-                            type="button"
-                            onClick={() => setFilters((f) => ({ ...f, createdFrom: '', createdTo: '' }))}
-                            className="text-[10px] text-destructive hover:underline cursor-pointer font-semibold"
-                          >
-                            Xóa lọc
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div>
-                          <span className="text-[9px] text-muted-foreground block mb-0.5">Từ ngày</span>
-                          <input
-                            type="date"
-                            value={filters.createdFrom || ''}
-                            onChange={(e) => setFilters((f) => ({ ...f, createdFrom: e.target.value }))}
-                            className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
-                          />
+                      title={t('tracking.columns.createdDate') || 'NGÀY TẠO'}
+                      field="ngay_tao"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={Boolean(filters.createdFrom || filters.createdTo)}
+                      width={colWidths.ngay_tao}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ngay_tao')}
+                      onResetWidth={() => handleResetWidth('ngay_tao')}
+                    >
+                      <div className="space-y-2 p-1">
+                        <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                          <span className="font-mono font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Khoảng ngày tạo
+                          </span>
+                          {(filters.createdFrom || filters.createdTo) && (
+                            <button
+                              type="button"
+                              onClick={() => setFilters((f) => ({ ...f, createdFrom: '', createdTo: '' }))}
+                              className="text-[10px] text-destructive hover:underline cursor-pointer font-semibold"
+                            >
+                              Xóa lọc
+                            </button>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-[9px] text-muted-foreground block mb-0.5">Đến ngày</span>
-                          <input
-                            type="date"
-                            value={filters.createdTo || ''}
-                            onChange={(e) => setFilters((f) => ({ ...f, createdTo: e.target.value }))}
-                            className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
-                          />
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <span className="text-[9px] text-muted-foreground block mb-0.5">Từ ngày</span>
+                            <input
+                              type="date"
+                              value={filters.createdFrom || ''}
+                              onChange={(e) => setFilters((f) => ({ ...f, createdFrom: e.target.value }))}
+                              className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-muted-foreground block mb-0.5">Đến ngày</span>
+                            <input
+                              type="date"
+                              value={filters.createdTo || ''}
+                              onChange={(e) => setFilters((f) => ({ ...f, createdTo: e.target.value }))}
+                              className="w-full h-7 px-1.5 text-[11px] rounded-xs border border-border bg-background font-mono"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </HeaderFilterCell>
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 3: Người tạo */}
                   {isColVisible('nguoi_tao') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.createdBy') || 'NGƯỜI TẠO'}
-                    field="nguoi_tao"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.nguoi_tao}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'nguoi_tao')}
-                    onResetWidth={() => handleResetWidth('nguoi_tao')}
-                  />
+                      title={t('tracking.columns.createdBy') || 'NGƯỜI TẠO'}
+                      field="nguoi_tao"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.nguoi_tao}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'nguoi_tao')}
+                      onResetWidth={() => handleResetWidth('nguoi_tao')}
+                    />
                   )}
 
-                  {/* Column 4: Quốc gia */}
+                  {/* Column 4: NƯỚC */}
                   {isColVisible('quoc_gia') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.country') || 'QUỐC GIA'}
-                    field="quoc_gia"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={Boolean(filters.countries && filters.countries.length > 0)}
-                    width={colWidths.quoc_gia}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'quoc_gia')}
-                    onResetWidth={() => handleResetWidth('quoc_gia')}
-                  >
-                    <DistinctValueFilterPopover
-                      title="Lọc Quốc gia"
-                      values={countriesList}
-                      selected={filters.countries}
-                      onChange={(selected) => setFilters((f) => ({ ...f, countries: selected }))}
-                      counts={counts.country}
-                    />
-                  </HeaderFilterCell>
+                      title={t('tracking.columns.country') || 'NƯỚC'}
+                      field="quoc_gia"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={Boolean(filters.countries && filters.countries.length > 0)}
+                      width={colWidths.quoc_gia}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'quoc_gia')}
+                      onResetWidth={() => handleResetWidth('quoc_gia')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc NƯỚC"
+                        values={countriesList}
+                        selected={filters.countries}
+                        onChange={(selected) => setFilters((f) => ({ ...f, countries: selected }))}
+                        counts={counts.country}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 5: Phân xưởng */}
                   {isColVisible('phong_sx') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.workshop') || 'XƯỞNG'}
-                    field="phong_sx"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={filters.workshops.length > 0}
-                    width={colWidths.phong_sx}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'phong_sx')}
-                    onResetWidth={() => handleResetWidth('phong_sx')}
-                  >
-                    <DistinctValueFilterPopover
-                      title="Lọc Phân xưởng"
-                      values={workshops}
-                      selected={filters.workshops}
-                      onChange={(selected) => setFilters((f) => ({ ...f, workshops: selected as Workshop[] }))}
-                      counts={counts.ws}
-                    />
-                  </HeaderFilterCell>
+                      title={t('tracking.columns.workshop') || 'XƯỞNG'}
+                      field="phong_sx"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={filters.workshops.length > 0}
+                      width={colWidths.phong_sx}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'phong_sx')}
+                      onResetWidth={() => handleResetWidth('phong_sx')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc Phân xưởng"
+                        values={workshops}
+                        selected={filters.workshops}
+                        onChange={(selected) => setFilters((f) => ({ ...f, workshops: selected as Workshop[] }))}
+                        counts={counts.ws}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 6: Đối tượng hàng */}
                   {isColVisible('doi_tuong_hang') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.targetItem') || 'ĐỐI TƯỢNG HÀNG'}
-                    field="doi_tuong_hang"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={Boolean((filters.targetItems && filters.targetItems.length > 0) || filters.targetItemSearch)}
-                    width={colWidths.doi_tuong_hang}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'doi_tuong_hang')}
-                    onResetWidth={() => handleResetWidth('doi_tuong_hang')}
-                  >
-                    <DistinctValueFilterPopover
-                      title="Lọc Đối tượng hàng"
-                      values={targetItemsList}
-                      selected={filters.targetItems}
-                      onChange={(selected) => setFilters((f) => ({ ...f, targetItems: selected }))}
-                      counts={counts.targetItem}
-                    />
-                  </HeaderFilterCell>
+                      title={t('tracking.columns.targetItem') || 'ĐỐI TƯỢNG HÀNG'}
+                      field="doi_tuong_hang"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={Boolean((filters.targetItems && filters.targetItems.length > 0) || filters.targetItemSearch)}
+                      width={colWidths.doi_tuong_hang}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'doi_tuong_hang')}
+                      onResetWidth={() => handleResetWidth('doi_tuong_hang')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc Đối tượng hàng"
+                        values={targetItemsList}
+                        selected={filters.targetItems}
+                        onChange={(selected) => setFilters((f) => ({ ...f, targetItems: selected }))}
+                        counts={counts.targetItem}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 7: Mã bản vẽ */}
                   {isColVisible('id_ma_hang') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.drawingCode') || 'MÃ BẢN VẼ'}
-                    field="id_ma_hang"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.id_ma_hang}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'id_ma_hang')}
-                    onResetWidth={() => handleResetWidth('id_ma_hang')}
-                  />
+                      title={t('tracking.columns.drawingCode') || 'MÃ BẢN VẼ'}
+                      field="id_ma_hang"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.id_ma_hang}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'id_ma_hang')}
+                      onResetWidth={() => handleResetWidth('id_ma_hang')}
+                    />
                   )}
 
                   {/* Column 8: Số lượng */}
                   {isColVisible('so_luong') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.quantity') || 'SL'}
-                    field="so_luong"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    align="end"
-                    width={colWidths.so_luong}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'so_luong')}
-                    onResetWidth={() => handleResetWidth('so_luong')}
-                  />
+                      title={t('tracking.columns.quantity') || 'SL'}
+                      field="so_luong"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      align="end"
+                      width={colWidths.so_luong}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'so_luong')}
+                      onResetWidth={() => handleResetWidth('so_luong')}
+                    />
                   )}
 
                   {/* Column 9: Vật liệu */}
                   {isColVisible('vat_lieu') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.material') || 'VẬT LIỆU'}
-                    field="vat_lieu"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.vat_lieu}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'vat_lieu')}
-                    onResetWidth={() => handleResetWidth('vat_lieu')}
-                  />
+                      title={t('tracking.columns.material') || 'VẬT LIỆU'}
+                      field="vat_lieu"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.vat_lieu}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'vat_lieu')}
+                      onResetWidth={() => handleResetWidth('vat_lieu')}
+                    />
                   )}
 
                   {/* Column 10: Độ cứng */}
                   {isColVisible('do_cung') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.hardness') || 'ĐỘ CỨNG'}
-                    field="do_cung"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.do_cung}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'do_cung')}
-                    onResetWidth={() => handleResetWidth('do_cung')}
-                  />
+                      title={t('tracking.columns.hardness') || 'ĐỘ CỨNG'}
+                      field="do_cung"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.do_cung}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'do_cung')}
+                      onResetWidth={() => handleResetWidth('do_cung')}
+                    />
                   )}
 
                   {/* Column 11: Quy cách KT */}
                   {isColVisible('kich_thuoc_sp') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.productDimension') || 'QUY CÁCH KT'}
-                    field="kich_thuoc_sp"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.kich_thuoc_sp}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'kich_thuoc_sp')}
-                    onResetWidth={() => handleResetWidth('kich_thuoc_sp')}
-                  />
+                      title={t('tracking.columns.productDimension') || 'QUY CÁCH KT'}
+                      field="kich_thuoc_sp"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.kich_thuoc_sp}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'kich_thuoc_sp')}
+                      onResetWidth={() => handleResetWidth('kich_thuoc_sp')}
+                    />
                   )}
 
                   {/* Column 12: Trọng lượng KG */}
                   {isColVisible('kg_lot') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.weight') || 'KG'}
-                    field="kg_Lot"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    align="end"
-                    width={colWidths.kg_lot}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'kg_lot')}
-                    onResetWidth={() => handleResetWidth('kg_lot')}
-                  />
+                      title={t('tracking.columns.weight') || 'KG'}
+                      field="kg_Lot"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      align="end"
+                      width={colWidths.kg_lot}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'kg_lot')}
+                      onResetWidth={() => handleResetWidth('kg_lot')}
+                    />
                   )}
 
                   {/* Column 13: Đơn vị tính */}
                   {isColVisible('don_vi_tinh') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.uom') || 'ĐVT'}
-                    field="don_vi_tinh"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.don_vi_tinh}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'don_vi_tinh')}
-                    onResetWidth={() => handleResetWidth('don_vi_tinh')}
-                  />
+                      title={t('tracking.columns.uom') || 'ĐVT'}
+                      field="don_vi_tinh"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.don_vi_tinh}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'don_vi_tinh')}
+                      onResetWidth={() => handleResetWidth('don_vi_tinh')}
+                    />
                   )}
 
                   {/* Column 14: Số lượng tính tiền */}
                   {isColVisible('so_luong_tinh') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.calcQuantity') || 'SL TÍNH'}
-                    field="so_luong_tinh"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    align="end"
-                    width={colWidths.so_luong_tinh}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'so_luong_tinh')}
-                    onResetWidth={() => handleResetWidth('so_luong_tinh')}
-                  />
+                      title={t('tracking.columns.calcQuantity') || 'SL TÍNH'}
+                      field="so_luong_tinh"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      align="end"
+                      width={colWidths.so_luong_tinh}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'so_luong_tinh')}
+                      onResetWidth={() => handleResetWidth('so_luong_tinh')}
+                    />
                   )}
 
                   {/* Column 15: Đơn giá */}
                   {isColVisible('don_gia') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.unitPrice') || 'ĐƠN GIÁ'}
-                    field="don_gia"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    align="end"
-                    width={colWidths.don_gia}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'don_gia')}
-                    onResetWidth={() => handleResetWidth('don_gia')}
-                  />
+                      title={t('tracking.columns.unitPrice') || 'ĐƠN GIÁ'}
+                      field="don_gia"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      align="end"
+                      width={colWidths.don_gia}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'don_gia')}
+                      onResetWidth={() => handleResetWidth('don_gia')}
+                    />
                   )}
 
                   {/* Column 16: Thành tiền */}
                   {isColVisible('thanh_tien') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.totalAmount') || 'THÀNH TIỀN'}
-                    field="thanh_tien"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    align="end"
-                    width={colWidths.thanh_tien}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'thanh_tien')}
-                    onResetWidth={() => handleResetWidth('thanh_tien')}
-                  />
+                      title={t('tracking.columns.totalAmount') || 'THÀNH TIỀN'}
+                      field="thanh_tien"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      align="end"
+                      width={colWidths.thanh_tien}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'thanh_tien')}
+                      onResetWidth={() => handleResetWidth('thanh_tien')}
+                    />
                   )}
 
                   {/* Column 17: Tỷ giá */}
                   {isColVisible('ty_gia') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.exchangeRate') || 'TỶ GIÁ'}
-                    align="end"
-                    width={colWidths.ty_gia}
-                    onResize={(e) => handleResizeStart(e, 'ty_gia')}
-                    onResetWidth={() => handleResetWidth('ty_gia')}
-                  />
+                      title={t('tracking.columns.exchangeRate') || 'TỶ GIÁ'}
+                      align="end"
+                      width={colWidths.ty_gia}
+                      onResize={(e) => handleResizeStart(e, 'ty_gia')}
+                      onResetWidth={() => handleResetWidth('ty_gia')}
+                    />
                   )}
 
                   {/* Column 18: Ngày gửi */}
                   {isColVisible('ngay_gui_qt') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.sentDate') || 'NGÀY GỬI'}
-                    field="ngay_gui_QT"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ngay_gui_qt}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ngay_gui_qt')}
-                    onResetWidth={() => handleResetWidth('ngay_gui_qt')}
-                  />
+                      title={t('tracking.columns.sentDate') || 'NGÀY GỬI'}
+                      field="ngay_gui_QT"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ngay_gui_qt}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ngay_gui_qt')}
+                      onResetWidth={() => handleResetWidth('ngay_gui_qt')}
+                    />
                   )}
 
                   {/* Column 19: Đối tác */}
                   {isColVisible('cty_qt') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.partner') || 'ĐỐI TÁC'}
-                    field="cty_QT"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.cty_qt}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'cty_qt')}
-                    onResetWidth={() => handleResetWidth('cty_qt')}
-                  />
+                      title={t('tracking.columns.partner') || 'ĐỐI TÁC'}
+                      field="cty_QT"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.cty_qt}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'cty_qt')}
+                      onResetWidth={() => handleResetWidth('cty_qt')}
+                    />
                   )}
 
                   {/* Column 20: TRẠNG THÁI */}
                   {isColVisible('trang_thai') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.sheetStatus') || 'TRẠNG THÁI'}
-                    field="trang_thai"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={Boolean((filters.sheetStatuses && filters.sheetStatuses.length > 0) || filters.sheetStatusSearch)}
-                    width={colWidths.trang_thai}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'trang_thai')}
-                    onResetWidth={() => handleResetWidth('trang_thai')}
-                  >
-                    <DistinctValueFilterPopover
-                      title="Lọc TRẠNG THÁI"
-                      values={sheetStatusesList}
-                      selected={filters.sheetStatuses}
-                      onChange={(selected) => setFilters((f) => ({ ...f, sheetStatuses: selected }))}
-                      counts={counts.sheetStatus}
-                    />
-                  </HeaderFilterCell>
+                      title={t('tracking.columns.sheetStatus') || 'TRẠNG THÁI'}
+                      field="trang_thai"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={Boolean((filters.sheetStatuses && filters.sheetStatuses.length > 0) || filters.sheetStatusSearch)}
+                      width={colWidths.trang_thai}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'trang_thai')}
+                      onResetWidth={() => handleResetWidth('trang_thai')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc TRẠNG THÁI"
+                        values={sheetStatusesList}
+                        selected={filters.sheetStatuses}
+                        onChange={(selected) => setFilters((f) => ({ ...f, sheetStatuses: selected }))}
+                        counts={counts.sheetStatus}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 21: Số đơn hàng */}
                   {isColVisible('so_dat_hang') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.orderNo') || 'ĐƠN HÀNG'}
-                    field="So_DatHang"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.so_dat_hang}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'so_dat_hang')}
-                    onResetWidth={() => handleResetWidth('so_dat_hang')}
-                  />
+                      title={t('tracking.columns.orderNo') || 'ĐƠN HÀNG'}
+                      field="So_DatHang"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.so_dat_hang}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'so_dat_hang')}
+                      onResetWidth={() => handleResetWidth('so_dat_hang')}
+                    />
                   )}
 
                   {/* Column 22: File đơn hàng */}
                   {isColVisible('ten_file_dat_hang') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.orderPdf') || 'FILE PO'}
-                    field="ten_file_dat_hang"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ten_file_dat_hang}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ten_file_dat_hang')}
-                    onResetWidth={() => handleResetWidth('ten_file_dat_hang')}
-                  />
+                      title={t('tracking.columns.orderPdf') || 'FILE PO'}
+                      field="ten_file_dat_hang"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ten_file_dat_hang}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ten_file_dat_hang')}
+                      onResetWidth={() => handleResetWidth('ten_file_dat_hang')}
+                    />
                   )}
 
                   {/* Column 23: Ghi chú khi gửi */}
                   {isColVisible('ghi_chu_khi_gui') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.dispatchNotes') || 'GHI CHÚ'}
-                    field="ghi_chu"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ghi_chu_khi_gui}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ghi_chu_khi_gui')}
-                    onResetWidth={() => handleResetWidth('ghi_chu_khi_gui')}
-                  />
+                      title={t('tracking.columns.dispatchNotes') || 'GHI CHÚ'}
+                      field="ghi_chu"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ghi_chu_khi_gui}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ghi_chu_khi_gui')}
+                      onResetWidth={() => handleResetWidth('ghi_chu_khi_gui')}
+                    />
                   )}
 
                   {/* Column 24: NCC Ngày vào lò */}
                   {isColVisible('ncc_ngay_qt') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorOvenDate') || 'NCC NGÀY QT'}
-                    field="ncc_ngay_qt"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_ngay_qt}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_ngay_qt')}
-                    onResetWidth={() => handleResetWidth('ncc_ngay_qt')}
-                  />
+                      title={t('tracking.columns.vendorOvenDate') || 'NCC NGÀY QT'}
+                      field="ncc_ngay_qt"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_ngay_qt}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_ngay_qt')}
+                      onResetWidth={() => handleResetWidth('ncc_ngay_qt')}
+                    />
                   )}
 
                   {/* Column 25: NCC Hạn trả cam kết */}
                   {isColVisible('ncc_ngay_tra_qt') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorDueDate') || 'NCC HẠN TRẢ'}
-                    field="ncc_ngay_tra_qt"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_ngay_tra_qt}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_ngay_tra_qt')}
-                    onResetWidth={() => handleResetWidth('ncc_ngay_tra_qt')}
-                  />
+                      title={t('tracking.columns.vendorDueDate') || 'NCC HẠN TRẢ'}
+                      field="ncc_ngay_tra_qt"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_ngay_tra_qt}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_ngay_tra_qt')}
+                      onResetWidth={() => handleResetWidth('ncc_ngay_tra_qt')}
+                    />
                   )}
 
                   {/* Column 26: NCC LÔ QT nhiệt */}
                   {isColVisible('ncc_id_lot_qt') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorLotId') || 'NCC LÔ QT'}
-                    field="ncc_id_lot_qt"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_id_lot_qt}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_id_lot_qt')}
-                    onResetWidth={() => handleResetWidth('ncc_id_lot_qt')}
-                  />
+                      title={t('tracking.columns.vendorLotId') || 'NCC LÔ QT'}
+                      field="ncc_id_lot_qt"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_id_lot_qt}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_id_lot_qt')}
+                      onResetWidth={() => handleResetWidth('ncc_id_lot_qt')}
+                    />
                   )}
 
                   {/* Column 27: NCC TÊN QT viên */}
                   {isColVisible('ncc_name_qt') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorTech') || 'NCC TÊN QT'}
-                    field="ncc_name_qt"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_name_qt}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_name_qt')}
-                    onResetWidth={() => handleResetWidth('ncc_name_qt')}
-                  />
+                      title={t('tracking.columns.vendorTech') || 'NCC TÊN QT'}
+                      field="ncc_name_qt"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_name_qt}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_name_qt')}
+                      onResetWidth={() => handleResetWidth('ncc_name_qt')}
+                    />
                   )}
 
                   {/* Column 28: NCC Giản đồ nhiệt */}
                   {isColVisible('ncc_giando') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorHeatDiagram') || 'GIẢN ĐỒ NHIỆT'}
-                    field="ncc_giando"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_giando}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_giando')}
-                    onResetWidth={() => handleResetWidth('ncc_giando')}
-                  />
+                      title={t('tracking.columns.vendorHeatDiagram') || 'GIẢN ĐỒ NHIỆT'}
+                      field="ncc_giando"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_giando}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_giando')}
+                      onResetWidth={() => handleResetWidth('ncc_giando')}
+                    />
                   )}
 
                   {/* Column 29: NCC Độ cứng đo */}
                   {isColVisible('ncc_ket_qua_hrc') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorHrcMeasured') || 'NCC ĐỘ CỨNG'}
-                    field="ncc_ket_qua_hrc"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_ket_qua_hrc}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_hrc')}
-                    onResetWidth={() => handleResetWidth('ncc_ket_qua_hrc')}
-                  />
+                      title={t('tracking.columns.vendorHrcMeasured') || 'NCC ĐỘ CỨNG'}
+                      field="ncc_ket_qua_hrc"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_ket_qua_hrc}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_hrc')}
+                      onResetWidth={() => handleResetWidth('ncc_ket_qua_hrc')}
+                    />
                   )}
 
                   {/* Column 30: NCC Nghiệm thu QC */}
                   {isColVisible('ncc_ket_qua_qc') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorQcVerdict') || 'NCC NGHIỆM THU'}
-                    field="ncc_ket_qua_qc"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={Boolean((filters.vendorQcVerdicts?.length ?? 0) > 0)}
-                    width={colWidths.ncc_ket_qua_qc}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_qc')}
-                    onResetWidth={() => handleResetWidth('ncc_ket_qua_qc')}
-                  >
-                    <DistinctValueFilterPopover
-                      title="Nghiệm thu NCC"
-                      values={vendorQcVerdictsList}
-                      selected={filters.vendorQcVerdicts}
-                      onChange={(selected) => setFilters((f) => ({ ...f, vendorQcVerdicts: selected }))}
-                      counts={counts.vendorQc}
-                    />
-                  </HeaderFilterCell>
+                      title={t('tracking.columns.vendorQcVerdict') || 'NCC NGHIỆM THU'}
+                      field="ncc_ket_qua_qc"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={Boolean((filters.vendorQcVerdicts?.length ?? 0) > 0)}
+                      width={colWidths.ncc_ket_qua_qc}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_ket_qua_qc')}
+                      onResetWidth={() => handleResetWidth('ncc_ket_qua_qc')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Nghiệm thu NCC"
+                        values={vendorQcVerdictsList}
+                        selected={filters.vendorQcVerdicts}
+                        onChange={(selected) => setFilters((f) => ({ ...f, vendorQcVerdicts: selected }))}
+                        counts={counts.vendorQc}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 31: NCC Đơn giá báo */}
                   {isColVisible('ncc_don_gia') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorQuotedPrice') || 'NCC BÁO GIÁ'}
-                    field="ncc_don_gia"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    align="end"
-                    width={colWidths.ncc_don_gia}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_don_gia')}
-                    onResetWidth={() => handleResetWidth('ncc_don_gia')}
-                  />
+                      title={t('tracking.columns.vendorQuotedPrice') || 'NCC BÁO GIÁ'}
+                      field="ncc_don_gia"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      align="end"
+                      width={colWidths.ncc_don_gia}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_don_gia')}
+                      onResetWidth={() => handleResetWidth('ncc_don_gia')}
+                    />
                   )}
 
                   {/* Column 32: NCC Trạng thái tiến độ */}
                   {isColVisible('ncc_tatus') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorStatus') || 'NCC TIẾN ĐỘ'}
-                    field="ncc_tatus"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    isFiltered={Boolean((filters.vendorStatuses?.length ?? 0) > 0)}
-                    width={colWidths.ncc_tatus}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_tatus')}
-                    onResetWidth={() => handleResetWidth('ncc_tatus')}
-                  >
-                    <DistinctValueFilterPopover
-                      title="Lọc Tiến độ NCC"
-                      values={vendorStatusesList}
-                      selected={filters.vendorStatuses}
-                      onChange={(selected) => setFilters((f) => ({ ...f, vendorStatuses: selected }))}
-                      counts={counts.vendorStatus}
-                    />
-                  </HeaderFilterCell>
+                      title={t('tracking.columns.vendorStatus') || 'NCC TIẾN ĐỘ'}
+                      field="ncc_tatus"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      isFiltered={Boolean((filters.vendorStatuses?.length ?? 0) > 0)}
+                      width={colWidths.ncc_tatus}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_tatus')}
+                      onResetWidth={() => handleResetWidth('ncc_tatus')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc Tiến độ NCC"
+                        values={vendorStatusesList}
+                        selected={filters.vendorStatuses}
+                        onChange={(selected) => setFilters((f) => ({ ...f, vendorStatuses: selected }))}
+                        counts={counts.vendorStatus}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 33: NCC GHI CHÚ 1 */}
                   {isColVisible('ncc_thongtinkhac1') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorExtra1') || 'NCC GHI CHÚ 1'}
-                    field="ncc_thongtinkhac1"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_thongtinkhac1}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_thongtinkhac1')}
-                    onResetWidth={() => handleResetWidth('ncc_thongtinkhac1')}
-                  />
+                      title={t('tracking.columns.vendorExtra1') || 'NCC GHI CHÚ 1'}
+                      field="ncc_thongtinkhac1"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_thongtinkhac1}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_thongtinkhac1')}
+                      onResetWidth={() => handleResetWidth('ncc_thongtinkhac1')}
+                    />
                   )}
 
                   {/* Column 34: NCC GHI CHÚ 2 */}
                   {isColVisible('ncc_thongtinkhac2') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorExtra2') || 'NCC GHI CHÚ 2'}
-                    field="ncc_thongtinkhac2"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_thongtinkhac2}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_thongtinkhac2')}
-                    onResetWidth={() => handleResetWidth('ncc_thongtinkhac2')}
-                  />
+                      title={t('tracking.columns.vendorExtra2') || 'NCC GHI CHÚ 2'}
+                      field="ncc_thongtinkhac2"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_thongtinkhac2}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_thongtinkhac2')}
+                      onResetWidth={() => handleResetWidth('ncc_thongtinkhac2')}
+                    />
                   )}
 
                   {/* Column 35: NCC CHỨNG CHỈ QT */}
                   {isColVisible('ncc_file1') && (
                     <HeaderFilterCell
-                    title={t('tracking.columns.vendorQcCert') || 'CHỨNG CHỈ QT'}
-                    field="ncc_file1"
-                    sortCol={sortCol}
-                    sortDir={sortDir}
-                    width={colWidths.ncc_file1}
-                    onDirectSort={handleToggleSort}
-                    onResize={(e) => handleResizeStart(e, 'ncc_file1')}
-                    onResetWidth={() => handleResetWidth('ncc_file1')}
-                  />
+                      title={t('tracking.columns.vendorQcCert') || 'CHỨNG CHỈ QT'}
+                      field="ncc_file1"
+                      sortCol={sortCol}
+                      sortDir={sortDir}
+                      width={colWidths.ncc_file1}
+                      onDirectSort={handleToggleSort}
+                      onResize={(e) => handleResizeStart(e, 'ncc_file1')}
+                      onResetWidth={() => handleResetWidth('ncc_file1')}
+                    />
                   )}
 
                   {/* Column 36: Phiếu A4 (Sticky top-0 right-0) */}
                   <th
-                    className="sticky top-0 right-0 z-50 whitespace-nowrap px-2 py-2 text-center bg-secondary font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none border-l border-border/80 shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)]"
+                    className="sticky top-0 right-0 z-50 whitespace-nowrap px-2 py-1 text-center bg-secondary font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground select-none border-l border-slate-200 dark:border-border/80 border-b border-slate-200 dark:border-border shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)]"
                     style={{
                       position: 'sticky',
                       top: 0,
@@ -3146,24 +3091,24 @@ function Tracking() {
                       maxWidth: `${colWidths.ticket}px`,
                     }}
                   >
-                    <span className="text-[10px]">{t('tracking.columns.ticket') || 'PHIẾU A4'}</span>
+                    <span className="text-[10.5px]">{t('tracking.columns.ticket') || 'PHIẾU A4'}</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/70">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {tableRows.length ? (
                   tableRows.map((r) => {
                     const isSelected = selectedLots.has(r.ID_Key);
-                    const padY = density === 'compact' ? 'py-1' : 'py-2.5';
+                    const padY = 'py-1';
 
                     return (
                       <tr
                         key={r.ID_Key}
-                        className={`group transition-colors ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'}`}
+                        className={`group h-[34px] transition-colors border-b border-slate-200 dark:border-slate-800 ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'}`}
                       >
                         {/* 0. Checkbox */}
                         <td
-                          className={`sticky left-0 z-20 px-3 ${padY} text-center transition-colors border-r border-border/40 bg-card relative ${isSelected
+                          className={`sticky left-0 z-20 px-2 ${padY} text-center transition-colors border-r border-slate-200 dark:border-border/40 bg-card h-[34px] relative ${isSelected
                             ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}
@@ -3182,14 +3127,14 @@ function Tracking() {
                               aria-label={t('tracking.table.selectLot', { lotId: r.ID_Key }) || `Chọn lô ${r.ID_Key}`}
                               checked={isSelected}
                               onChange={() => toggleSelectLot(r.ID_Key)}
-                              className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
+                              className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer touch-manipulation"
                             />
                           </div>
                         </td>
 
                         {/* 1. Mã hàng (Sticky left-[checkbox], click -> opens drawer) */}
                         <td
-                          className={`sticky z-20 whitespace-nowrap px-3.5 ${padY} transition-colors border-r border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative overflow-hidden ${isSelected
+                          className={`sticky z-20 whitespace-nowrap px-2 ${padY} transition-colors border-r border-slate-200 dark:border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card h-[34px] relative overflow-hidden ${isSelected
                             ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}
@@ -3214,825 +3159,831 @@ function Tracking() {
 
                         {/* 2. Ngày tạo */}
                         {isColVisible('ngay_tao') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ngay_tao}px` }} title={r.ngay_tao ?? ''}>
-                          {r.ngay_tao ? dateTime(r.ngay_tao) : '—'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ngay_tao}px` }} title={r.ngay_tao ?? ''}>
+                            {r.ngay_tao ? dateTime(r.ngay_tao) : '—'}
+                          </td>
                         )}
 
                         {/* 3. Người tạo */}
                         {isColVisible('nguoi_tao') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.nguoi_tao}px` }}>
-                          {r.nguoi_tao ? String(r.nguoi_tao) : '—'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.nguoi_tao}px` }}>
+                            {r.nguoi_tao ? String(r.nguoi_tao) : '—'}
+                          </td>
                         )}
 
-                        {/* 4. Quốc gia */}
+                        {/* 4. NƯỚC */}
                         {isColVisible('quoc_gia') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.quoc_gia}px` }}>
-                          {r.quoc_gia || 'Vietnam'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.quoc_gia}px` }}>
+                            {r.quoc_gia || 'Vietnam'}
+                          </td>
                         )}
 
                         {/* 5. Phân xưởng */}
                         {isColVisible('phong_sx') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} truncate`} style={{ maxWidth: `${colWidths.phong_sx}px` }}>
-                          <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-secondary border border-border/60">
-                            {r.phong_sx}
-                          </span>
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} truncate`} style={{ maxWidth: `${colWidths.phong_sx}px` }}>
+                            <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-secondary border border-border/60">
+                              {r.phong_sx}
+                            </span>
+                          </td>
                         )}
 
                         {/* 6. Đối tượng hàng */}
                         {isColVisible('doi_tuong_hang') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.doi_tuong_hang}px` }}>
-                          {r.doi_tuong_hang || '—'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.doi_tuong_hang}px` }}>
+                            {r.doi_tuong_hang || '—'}
+                          </td>
                         )}
 
                         {/* 7. Mã bản vẽ / phôi */}
                         {isColVisible('id_ma_hang') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.id_ma_hang}px` }}>
-                          {r.id_ma_hang || '—'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.id_ma_hang}px` }}>
+                            {r.id_ma_hang || '—'}
+                          </td>
                         )}
 
                         {/* 8. Số lượng */}
                         {isColVisible('so_luong') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums font-bold text-foreground`} style={{ maxWidth: `${colWidths.so_luong}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
-                            <input
-                              type="number"
-                              min={1}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
-                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.quantity') || 'Click đúp để sửa số lượng') : undefined}
-                            >
-                              <span>{number(r.so_luong)}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong));
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title={t('tracking.inlineEdit.touch.quantity') || 'Chạm để sửa số lượng'}
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono tabular-nums font-bold text-foreground`} style={{ maxWidth: `${colWidths.so_luong}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'so_luong' ? (
+                              <input
+                                type="number"
+                                min={1}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong))}
+                                className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                                title={canEdit ? (t('tracking.inlineEdit.doubleClick.quantity') || 'Click đúp để sửa số lượng') : undefined}
+                              >
+                                <span>{number(r.so_luong)}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'so_luong', String(r.so_luong));
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title={t('tracking.inlineEdit.touch.quantity') || 'Chạm để sửa số lượng'}
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 9. Vật liệu */}
                         {isColVisible('vat_lieu') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono font-bold text-foreground truncate`} style={{ maxWidth: `${colWidths.vat_lieu}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.material') || 'Click đúp để sửa mác thép') : undefined}
-                            >
-                              <span className="truncate">{r.vat_lieu || 'Chưa rõ'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title={t('tracking.inlineEdit.touch.material') || 'Chạm để sửa mác thép'}
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono font-bold text-foreground truncate`} style={{ maxWidth: `${colWidths.vat_lieu}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'vat_lieu' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title={canEdit ? (t('tracking.inlineEdit.doubleClick.material') || 'Click đúp để sửa mác thép') : undefined}
+                              >
+                                <span className="truncate">{r.vat_lieu || 'Chưa rõ'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'vat_lieu', r.vat_lieu || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title={t('tracking.inlineEdit.touch.material') || 'Chạm để sửa mác thép'}
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 10. Độ cứng HRC */}
                         {isColVisible('do_cung') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-destructive font-black truncate`} style={{ maxWidth: `${colWidths.do_cung}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-destructive outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title={canEdit ? (t('tracking.inlineEdit.doubleClick.hardness') || 'Click đúp để sửa độ cứng') : undefined}
-                            >
-                              <span className="truncate">{r.do_cung || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'do_cung', r.do_cung || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title={t('tracking.inlineEdit.touch.hardness') || 'Chạm để sửa độ cứng'}
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-destructive font-black truncate`} style={{ maxWidth: `${colWidths.do_cung}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'do_cung' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-destructive outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'do_cung', r.do_cung || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title={canEdit ? (t('tracking.inlineEdit.doubleClick.hardness') || 'Click đúp để sửa độ cứng') : undefined}
+                              >
+                                <span className="truncate">{r.do_cung || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'do_cung', r.do_cung || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title={t('tracking.inlineEdit.touch.hardness') || 'Chạm để sửa độ cứng'}
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 11. Quy cách kích thước */}
                         {isColVisible('kich_thuoc_sp') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.kich_thuoc_sp}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'kich_thuoc_sp' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'kich_thuoc_sp', r.kich_thuoc_sp || r.Kich_Thuoc_SP || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa quy cách kích thước"
-                            >
-                              <span className="truncate">{r.kich_thuoc_sp || r.Kich_Thuoc_SP || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'kich_thuoc_sp', r.kich_thuoc_sp || r.Kich_Thuoc_SP || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa quy cách kích thước"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.kich_thuoc_sp}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'kich_thuoc_sp' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'kich_thuoc_sp', r.kich_thuoc_sp || r.Kich_Thuoc_SP || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa quy cách kích thước"
+                              >
+                                <span className="truncate">{r.kich_thuoc_sp || r.Kich_Thuoc_SP || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'kich_thuoc_sp', r.kich_thuoc_sp || r.Kich_Thuoc_SP || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa quy cách kích thước"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 12. Trọng lượng KG */}
                         {isColVisible('kg_lot') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.kg_lot}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              min={0}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_lot || r.kg_Lot || ''))}
-                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa trọng lượng"
-                            >
-                              <span>{number(r.kg_lot || r.kg_Lot, 2)}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_lot || r.kg_Lot || ''));
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa trọng lượng"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.kg_lot}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'kg_Lot' ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                min={0}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_lot || r.kg_Lot || ''))}
+                                className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa trọng lượng"
+                              >
+                                <span>{number(r.kg_lot || r.kg_Lot, 2)}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'kg_Lot', String(r.kg_lot || r.kg_Lot || ''));
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa trọng lượng"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 13. Đơn vị tính */}
                         {isColVisible('don_vi_tinh') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-muted-foreground font-mono truncate`} style={{ maxWidth: `${colWidths.don_vi_tinh}px` }}>
-                          {r.don_vi_tinh || 'pcs'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-muted-foreground font-mono truncate`} style={{ maxWidth: `${colWidths.don_vi_tinh}px` }}>
+                            {r.don_vi_tinh || 'pcs'}
+                          </td>
                         )}
 
                         {/* 14. Số lượng tính */}
                         {isColVisible('so_luong_tinh') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.so_luong_tinh}px` }}>
-                          {number(r.so_luong_tinh || (r.don_vi_tinh === 'Kg' ? (r.kg_lot || r.kg_Lot) : r.so_luong), 2)}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.so_luong_tinh}px` }}>
+                            {number(r.so_luong_tinh || (r.don_vi_tinh === 'Kg' ? (r.kg_lot || r.kg_Lot) : r.so_luong), 2)}
+                          </td>
                         )}
 
                         {/* 15. Đơn giá */}
                         {isColVisible('don_gia') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.don_gia}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'don_gia' ? (
-                            <input
-                              type="number"
-                              min={0}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => canViewPricing(role as any) && startInlineEdit(r.ID_Key, 'don_gia', String(r.don_gia ?? ''))}
-                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title={canViewPricing(role as any) ? 'Click đúp để sửa đơn giá' : undefined}
-                            >
-                              <span>{canViewPricing(role as any) ? money(r.don_gia) : '*** ₫'}</span>
-                              {canEdit && canViewPricing(role as any) && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'don_gia', String(r.don_gia ?? ''));
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa đơn giá"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono tabular-nums text-foreground`} style={{ maxWidth: `${colWidths.don_gia}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'don_gia' ? (
+                              <input
+                                type="number"
+                                min={0}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => canViewPricing(role as any) && startInlineEdit(r.ID_Key, 'don_gia', String(r.don_gia ?? ''))}
+                                className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                                title={canViewPricing(role as any) ? 'Click đúp để sửa đơn giá' : undefined}
+                              >
+                                <span>{canViewPricing(role as any) ? money(r.don_gia) : '*** ₫'}</span>
+                                {canEdit && canViewPricing(role as any) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'don_gia', String(r.don_gia ?? ''));
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa đơn giá"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 16. Thành tiền */}
                         {isColVisible('thanh_tien') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums font-bold text-primary`} style={{ maxWidth: `${colWidths.thanh_tien}px` }}>
-                          {canViewPricing(role as any) ? money(r.thanh_tien) : '*** ₫'}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono tabular-nums font-bold text-primary`} style={{ maxWidth: `${colWidths.thanh_tien}px` }}>
+                            {canViewPricing(role as any) ? money(r.thanh_tien) : '*** ₫'}
+                          </td>
                         )}
 
                         {/* 17. Tỷ giá */}
                         {isColVisible('ty_gia') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono tabular-nums text-muted-foreground`} style={{ maxWidth: `${colWidths.ty_gia}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ty_gia' ? (
-                            <input
-                              type="number"
-                              step="0.001"
-                              min={0}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ty_gia', String(r.ty_gia || 1))}
-                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa tỷ giá"
-                            >
-                              <span>{number(r.ty_gia || 1)}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ty_gia', String(r.ty_gia || 1));
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa tỷ giá"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono tabular-nums text-muted-foreground`} style={{ maxWidth: `${colWidths.ty_gia}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ty_gia' ? (
+                              <input
+                                type="number"
+                                step="0.001"
+                                min={0}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ty_gia', String(r.ty_gia || 1))}
+                                className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa tỷ giá"
+                              >
+                                <span>{number(r.ty_gia || 1)}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ty_gia', String(r.ty_gia || 1));
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa tỷ giá"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 18. Ngày gửi */}
                         {isColVisible('ngay_gui_qt') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground`} style={{ maxWidth: `${colWidths.ngay_gui_qt}px` }}>
-                          <DateCell
-                            field="ngay_gui_QT"
-                            title={t('tracking.columns.sentDate') || 'Ngày gửi QT'}
-                            value={r.ngay_gui_qt || r.ngay_gui_QT}
-                            canEdit={canEdit}
-                            onChange={(newVal) => {
-                              applyQuickCellUpdate(r, 'ngay_gui_QT', { ngay_gui_qt: newVal, ngay_gui_QT: newVal });
-                              toast.success('Đã cập nhật ngày gửi QT');
-                            }}
-                          />
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground`} style={{ maxWidth: `${colWidths.ngay_gui_qt}px` }}>
+                            <DateCell
+                              field="ngay_gui_QT"
+                              title={t('tracking.columns.sentDate') || 'Ngày gửi QT'}
+                              value={r.ngay_gui_qt || r.ngay_gui_QT}
+                              canEdit={canEdit}
+                              onChange={(newVal) => {
+                                applyQuickCellUpdate(r, 'ngay_gui_QT', { ngay_gui_qt: newVal, ngay_gui_QT: newVal });
+                                toast.success('Đã cập nhật ngày gửi QT');
+                              }}
+                            />
+                          </td>
                         )}
 
                         {/* 19. Đối tác */}
                         {isColVisible('cty_qt') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-medium text-foreground truncate`} style={{ maxWidth: `${colWidths.cty_qt}px` }}>
-                          {formatVendorName(r.cty_qt || r.cty_QT, role as any)}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-medium text-foreground truncate`} style={{ maxWidth: `${colWidths.cty_qt}px` }}>
+                            {formatVendorName(r.cty_qt || r.cty_QT, role as any)}
+                          </td>
                         )}
 
                         {/* 20. TRẠNG THÁI */}
                         {isColVisible('trang_thai') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} truncate`} style={{ maxWidth: `${colWidths.trang_thai}px` }}>
-                          <span className="px-1.5 py-0.5 rounded-xs font-mono text-[10px] bg-secondary border border-border/60">
-                            {r.trang_thai || r.TrangThai}
-                          </span>
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} truncate`} style={{ maxWidth: `${colWidths.trang_thai}px` }}>
+                            <span className="px-1.5 py-0.5 rounded-xs font-mono text-[10px] bg-secondary border border-border/60">
+                              {r.trang_thai || r.TrangThai}
+                            </span>
+                          </td>
                         )}
 
                         {/* 21. Số đơn hàng */}
                         {isColVisible('so_dat_hang') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.so_dat_hang}px` }}>
-                          {r.so_dat_hang || r.So_DatHang}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.so_dat_hang}px` }}>
+                            {r.so_dat_hang || r.So_DatHang}
+                          </td>
                         )}
 
-                        {/* 22. File đơn hàng */}
+                        {/* 22. File đơn hàng (FILE PO) */}
                         {isColVisible('ten_file_dat_hang') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} truncate`} style={{ maxWidth: `${colWidths.ten_file_dat_hang}px` }}>
-                          {r.ten_file_dat_hang ? (
-                            <a href={r.ten_file_dat_hang} target="_blank" rel="noreferrer" className="text-primary hover:underline font-mono text-[11px]">
-                              [PDF]
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground/50">—</span>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px]`} style={{ maxWidth: `${colWidths.ten_file_dat_hang}px` }}>
+                            <AttachmentCell
+                              field="ten_file_dat_hang"
+                              title={t('tracking.columns.orderPdf') || 'FILE PO'}
+                              lotCode={r.id_ma_hang || r.ma_hang}
+                              workshop={r.phong_sx}
+                              material={r.vat_lieu}
+                              value={r.ten_file_dat_hang}
+                              canEdit={canEdit}
+                              onChange={(newVal) => {
+                                applyQuickCellUpdate(r, 'ten_file_dat_hang', { ten_file_dat_hang: newVal || undefined });
+                                toast.success('Đã cập nhật FILE PO');
+                              }}
+                            />
+                          </td>
                         )}
 
                         {/* 23. Ghi chú khi gửi */}
                         {isColVisible('ghi_chu_khi_gui') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ghi_chu_khi_gui}px` }} title={r.ghi_chu_khi_gui || r.ghi_chu}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
-                            <textarea
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="min-h-[30px] w-full rounded-xs border-2 border-primary bg-background px-1.5 py-0.5 font-mono text-xs text-foreground outline-none shadow-xs leading-tight"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu_khi_gui || r.ghi_chu || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title={t('tracking.inlineEdit.doubleClick.note') || 'Click đúp để sửa ghi chú'}
-                            >
-                              <span className="truncate">{r.ghi_chu_khi_gui || r.ghi_chu || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu_khi_gui || r.ghi_chu || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title={t('tracking.inlineEdit.touch.note') || 'Chạm để sửa ghi chú'}
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ghi_chu_khi_gui}px` }} title={r.ghi_chu_khi_gui || r.ghi_chu}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ghi_chu' ? (
+                              <textarea
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="min-h-[30px] w-full rounded-xs border-2 border-primary bg-background px-1.5 py-0.5 font-mono text-xs text-foreground outline-none shadow-xs leading-tight"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu_khi_gui || r.ghi_chu || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title={t('tracking.inlineEdit.doubleClick.note') || 'Click đúp để sửa ghi chú'}
+                              >
+                                <span className="truncate">{r.ghi_chu_khi_gui || r.ghi_chu || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ghi_chu', r.ghi_chu_khi_gui || r.ghi_chu || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title={t('tracking.inlineEdit.touch.note') || 'Chạm để sửa ghi chú'}
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 24. NCC Ngày vào lò */}
                         {isColVisible('ncc_ngay_qt') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-xs text-muted-foreground`} style={{ maxWidth: `${colWidths.ncc_ngay_qt}px` }}>
-                          <DateCell
-                            field="ncc_ngay_qt"
-                            title={t('tracking.columns.vendorOvenDate') || 'NCC Ngày vào lò'}
-                            value={r.ncc_ngay_qt}
-                            canEdit={canEdit}
-                            onChange={(newVal) => {
-                              applyQuickCellUpdate(r, 'ncc_ngay_qt', { ncc_ngay_qt: newVal || undefined });
-                              toast.success('Đã cập nhật ngày vào lò');
-                            }}
-                          />
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-[11.5px] text-muted-foreground`} style={{ maxWidth: `${colWidths.ncc_ngay_qt}px` }}>
+                            <DateCell
+                              field="ncc_ngay_qt"
+                              title={t('tracking.columns.vendorOvenDate') || 'NCC Ngày vào lò'}
+                              value={r.ncc_ngay_qt}
+                              canEdit={canEdit}
+                              onChange={(newVal) => {
+                                applyQuickCellUpdate(r, 'ncc_ngay_qt', { ncc_ngay_qt: newVal || undefined });
+                                toast.success('Đã cập nhật ngày vào lò');
+                              }}
+                            />
+                          </td>
                         )}
 
                         {/* 25. NCC Hạn trả */}
                         {isColVisible('ncc_ngay_tra_qt') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-xs font-bold text-foreground`} style={{ maxWidth: `${colWidths.ncc_ngay_tra_qt}px` }}>
-                          <DateCell
-                            field="ncc_ngay_tra_qt"
-                            title={t('tracking.columns.vendorDueDate') || 'NCC Hạn trả'}
-                            value={r.ncc_ngay_tra_qt}
-                            canEdit={canEdit}
-                            onChange={(newVal) => {
-                              applyQuickCellUpdate(r, 'ncc_ngay_tra_qt', { ncc_ngay_tra_qt: newVal || undefined, han_tra: newVal || r.han_tra });
-                              toast.success('Đã cập nhật hạn trả NCC');
-                            }}
-                          />
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-[11.5px] font-bold text-foreground`} style={{ maxWidth: `${colWidths.ncc_ngay_tra_qt}px` }}>
+                            <DateCell
+                              field="ncc_ngay_tra_qt"
+                              title={t('tracking.columns.vendorDueDate') || 'NCC Hạn trả'}
+                              value={r.ncc_ngay_tra_qt}
+                              canEdit={canEdit}
+                              onChange={(newVal) => {
+                                applyQuickCellUpdate(r, 'ncc_ngay_tra_qt', { ncc_ngay_tra_qt: newVal || undefined, han_tra: newVal || r.han_tra });
+                                toast.success('Đã cập nhật hạn trả NCC');
+                              }}
+                            />
+                          </td>
                         )}
 
                         {/* 26. NCC LÔ QT */}
                         {isColVisible('ncc_id_lot_qt') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_id_lot_qt}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_id_lot_qt' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_id_lot_qt', r.ncc_id_lot_qt || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa mã mẻ NCC"
-                            >
-                              <span className="truncate">{r.ncc_id_lot_qt || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_id_lot_qt', r.ncc_id_lot_qt || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa mã mẻ"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_id_lot_qt}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_id_lot_qt' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_id_lot_qt', r.ncc_id_lot_qt || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa mã mẻ NCC"
+                              >
+                                <span className="truncate">{r.ncc_id_lot_qt || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_id_lot_qt', r.ncc_id_lot_qt || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa mã mẻ"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 27. NCC TÊN QT viên */}
                         {isColVisible('ncc_name_qt') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_name_qt}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_name_qt' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_name_qt', r.ncc_name_qt || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa kỹ thuật viên NCC"
-                            >
-                              <span className="truncate">{r.ncc_name_qt || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_name_qt', r.ncc_name_qt || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa kỹ thuật viên"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_name_qt}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_name_qt' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_name_qt', r.ncc_name_qt || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa kỹ thuật viên NCC"
+                              >
+                                <span className="truncate">{r.ncc_name_qt || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_name_qt', r.ncc_name_qt || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa kỹ thuật viên"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 28. NCC Giản đồ nhiệt */}
                         {isColVisible('ncc_giando') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs`} style={{ maxWidth: `${colWidths.ncc_giando}px` }}>
-                          <AttachmentCell
-                            field="ncc_giando"
-                            title={t('tracking.columns.vendorHeatDiagram') || 'Giản đồ nhiệt'}
-                            lotCode={r.id_ma_hang || r.ma_hang}
-                            workshop={r.phong_sx}
-                            material={r.vat_lieu}
-                            value={r.ncc_giando}
-                            canEdit={canEdit}
-                            onChange={(newVal) => {
-                              applyQuickCellUpdate(r, 'ncc_giando', { ncc_giando: newVal || undefined });
-                              toast.success('Đã cập nhật giản đồ nhiệt');
-                            }}
-                          />
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px]`} style={{ maxWidth: `${colWidths.ncc_giando}px` }}>
+                            <AttachmentCell
+                              field="ncc_giando"
+                              title={t('tracking.columns.vendorHeatDiagram') || 'Giản đồ nhiệt'}
+                              lotCode={r.id_ma_hang || r.ma_hang}
+                              workshop={r.phong_sx}
+                              material={r.vat_lieu}
+                              value={r.ncc_giando}
+                              canEdit={canEdit}
+                              onChange={(newVal) => {
+                                applyQuickCellUpdate(r, 'ncc_giando', { ncc_giando: newVal || undefined });
+                                toast.success('Đã cập nhật giản đồ nhiệt');
+                              }}
+                            />
+                          </td>
                         )}
 
                         {/* 29. NCC Độ cứng đo */}
                         {isColVisible('ncc_ket_qua_hrc') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} font-mono font-bold text-xs text-run`} style={{ maxWidth: `${colWidths.ncc_ket_qua_hrc}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_hrc' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_hrc', r.ncc_ket_qua_hrc || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa độ cứng đo thực tế"
-                            >
-                              <span className="truncate">{r.ncc_ket_qua_hrc || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_ket_qua_hrc', r.ncc_ket_qua_hrc || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa độ cứng đo"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} font-mono font-bold text-[11.5px] text-run`} style={{ maxWidth: `${colWidths.ncc_ket_qua_hrc}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_hrc' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_hrc', r.ncc_ket_qua_hrc || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa độ cứng đo thực tế"
+                              >
+                                <span className="truncate">{r.ncc_ket_qua_hrc || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_ket_qua_hrc', r.ncc_ket_qua_hrc || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa độ cứng đo"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 30. NCC Nghiệm thu QC */}
                         {isColVisible('ncc_ket_qua_qc') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs`} style={{ maxWidth: `${colWidths.ncc_ket_qua_qc}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_qc' ? (
-                            <select
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            >
-                              <option value="">Chưa QC</option>
-                              <option value="PASS">PASS (Đạt)</option>
-                              <option value="FAIL">FAIL (Không đạt)</option>
-                            </select>
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa nghiệm thu QC của NCC"
-                            >
-                              <span>
-                                {r.ncc_ket_qua_qc === 'PASS' ? (
-                                  <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
-                                    PASS
-                                  </span>
-                                ) : r.ncc_ket_qua_qc === 'FAIL' ? (
-                                  <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-destructive/10 text-destructive border border-destructive/30">
-                                    FAIL
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground/60 text-[10px] font-mono">PENDING</span>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px]`} style={{ maxWidth: `${colWidths.ncc_ket_qua_qc}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_ket_qua_qc' ? (
+                              <select
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              >
+                                <option value="">Chưa QC</option>
+                                <option value="PASS">PASS (Đạt)</option>
+                                <option value="FAIL">FAIL (Không đạt)</option>
+                              </select>
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa nghiệm thu QC của NCC"
+                              >
+                                <span>
+                                  {r.ncc_ket_qua_qc === 'PASS' ? (
+                                    <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                                      PASS
+                                    </span>
+                                  ) : r.ncc_ket_qua_qc === 'FAIL' ? (
+                                    <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10px] bg-destructive/10 text-destructive border border-destructive/30">
+                                      FAIL
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground/60 text-[10px] font-mono">PENDING</span>
+                                  )}
+                                </span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa nghiệm thu NCC"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
                                 )}
-                              </span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_ket_qua_qc', r.ncc_ket_qua_qc || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa nghiệm thu NCC"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 31. NCC Đơn giá báo */}
                         {isColVisible('ncc_don_gia') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-right font-mono text-xs`} style={{ maxWidth: `${colWidths.ncc_don_gia}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_don_gia' ? (
-                            <input
-                              type="number"
-                              min={0}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => canViewPricing(role as any) && startInlineEdit(r.ID_Key, 'ncc_don_gia', String(r.ncc_don_gia ?? ''))}
-                              className="flex items-center justify-end gap-1 group/edit cursor-pointer"
-                              title={canViewPricing(role as any) ? 'Click đúp để sửa đơn giá báo NCC' : undefined}
-                            >
-                              <span>{r.ncc_don_gia ? (canViewPricing(role as any) ? money(r.ncc_don_gia) : '*** ₫') : '—'}</span>
-                              {canEdit && canViewPricing(role as any) && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_don_gia', String(r.ncc_don_gia ?? ''));
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa đơn giá NCC"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-right font-mono text-[11.5px]`} style={{ maxWidth: `${colWidths.ncc_don_gia}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_don_gia' ? (
+                              <input
+                                type="number"
+                                min={0}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-right font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => canViewPricing(role as any) && startInlineEdit(r.ID_Key, 'ncc_don_gia', String(r.ncc_don_gia ?? ''))}
+                                className="flex items-center justify-end gap-1 group/edit cursor-pointer"
+                                title={canViewPricing(role as any) ? 'Click đúp để sửa đơn giá báo NCC' : undefined}
+                              >
+                                <span>{r.ncc_don_gia ? (canViewPricing(role as any) ? money(r.ncc_don_gia) : '*** ₫') : '—'}</span>
+                                {canEdit && canViewPricing(role as any) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_don_gia', String(r.ncc_don_gia ?? ''));
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa đơn giá NCC"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 32. NCC Tiến độ */}
                         {isColVisible('ncc_tatus') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_tatus}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_tatus' ? (
-                            <select
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            >
-                              <option value="">Chưa chọn</option>
-                              <option value="WAIT">WAIT (Chờ xử lý)</option>
-                              <option value="HEAT">HEAT (Đang nhiệt)</option>
-                              <option value="DONE">DONE (Hoàn thành)</option>
-                            </select>
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa tiến độ xử lý của NCC"
-                            >
-                              <span className="truncate">{r.ncc_tatus || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa tiến độ NCC"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_tatus}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_tatus' ? (
+                              <select
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                className="h-6 w-full rounded-xs border-2 border-primary bg-background px-1 font-mono text-xs font-bold text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              >
+                                <option value="">Chưa chọn</option>
+                                <option value="WAIT">WAIT (Chờ xử lý)</option>
+                                <option value="HEAT">HEAT (Đang nhiệt)</option>
+                                <option value="DONE">DONE (Hoàn thành)</option>
+                              </select>
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa tiến độ xử lý của NCC"
+                              >
+                                <span className="truncate">{r.ncc_tatus || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_tatus', r.ncc_tatus || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa tiến độ NCC"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 33. NCC GHI CHÚ 1 */}
                         {isColVisible('ncc_thongtinkhac1') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_thongtinkhac1}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_thongtinkhac1' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_thongtinkhac1', r.ncc_thongtinkhac1 || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa thông tin ghi chú 1"
-                            >
-                              <span className="truncate">{r.ncc_thongtinkhac1 || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_thongtinkhac1', r.ncc_thongtinkhac1 || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa thông tin 1"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_thongtinkhac1}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_thongtinkhac1' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_thongtinkhac1', r.ncc_thongtinkhac1 || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa thông tin ghi chú 1"
+                              >
+                                <span className="truncate">{r.ncc_thongtinkhac1 || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_thongtinkhac1', r.ncc_thongtinkhac1 || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa thông tin 1"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 34. NCC GHI CHÚ 2 */}
                         {isColVisible('ncc_thongtinkhac2') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_thongtinkhac2}px` }}>
-                          {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_thongtinkhac2' ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => saveInlineEdit(r)}
-                              onKeyDown={(e) => handleCellKeyDown(e, r)}
-                              className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_thongtinkhac2', r.ncc_thongtinkhac2 || '')}
-                              className="flex items-center justify-between gap-1 group/edit cursor-pointer"
-                              title="Click đúp để sửa thông tin GHI CHÚ 2"
-                            >
-                              <span className="truncate">{r.ncc_thongtinkhac2 || '—'}</span>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startInlineEdit(r.ID_Key, 'ncc_thongtinkhac2', r.ncc_thongtinkhac2 || '');
-                                  }}
-                                  className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
-                                  title="Sửa thông tin 2"
-                                >
-                                  <PenLine size={10} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px] text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.ncc_thongtinkhac2}px` }}>
+                            {editingCell?.id === r.ID_Key && editingCell.field === 'ncc_thongtinkhac2' ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => saveInlineEdit(r)}
+                                onKeyDown={(e) => handleCellKeyDown(e, r)}
+                                className="h-6 w-full max-w-full rounded-xs border-2 border-primary bg-background px-1 text-xs text-foreground outline-none shadow-xs box-border"
+                                autoFocus
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => startInlineEdit(r.ID_Key, 'ncc_thongtinkhac2', r.ncc_thongtinkhac2 || '')}
+                                className="flex items-center justify-between gap-1 group/edit cursor-pointer"
+                                title="Click đúp để sửa thông tin GHI CHÚ 2"
+                              >
+                                <span className="truncate">{r.ncc_thongtinkhac2 || '—'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startInlineEdit(r.ID_Key, 'ncc_thongtinkhac2', r.ncc_thongtinkhac2 || '');
+                                    }}
+                                    className="opacity-0 group-hover/edit:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary transition-opacity p-0.5 rounded hover:bg-secondary cursor-pointer shrink-0 touch-manipulation"
+                                    title="Sửa thông tin 2"
+                                  >
+                                    <PenLine size={10} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
                         )}
 
                         {/* 35. NCC CHỨNG CHỈ QT */}
                         {isColVisible('ncc_file1') && (
-                          <td className={`whitespace-nowrap px-3.5 ${padY} text-xs`} style={{ maxWidth: `${colWidths.ncc_file1}px` }}>
-                          <AttachmentCell
-                            field="ncc_file1"
-                            title={t('tracking.columns.vendorQcCert') || 'CHỨNG CHỈ QT'}
-                            lotCode={r.id_ma_hang || r.ma_hang}
-                            workshop={r.phong_sx}
-                            material={r.vat_lieu}
-                            value={r.ncc_file1}
-                            canEdit={canEdit}
-                            onChange={(newVal) => {
-                              applyQuickCellUpdate(r, 'ncc_file1', { ncc_file1: newVal || undefined });
-                              toast.success('Đã cập nhật CHỨNG CHỈ QT');
-                            }}
-                          />
-                        </td>
+                          <td className={`whitespace-nowrap px-2 ${padY} text-[11.5px]`} style={{ maxWidth: `${colWidths.ncc_file1}px` }}>
+                            <AttachmentCell
+                              field="ncc_file1"
+                              title={t('tracking.columns.vendorQcCert') || 'CHỨNG CHỈ QT'}
+                              lotCode={r.id_ma_hang || r.ma_hang}
+                              workshop={r.phong_sx}
+                              material={r.vat_lieu}
+                              value={r.ncc_file1}
+                              canEdit={canEdit}
+                              onChange={(newVal) => {
+                                applyQuickCellUpdate(r, 'ncc_file1', { ncc_file1: newVal || undefined });
+                                toast.success('Đã cập nhật CHỨNG CHỈ QT');
+                              }}
+                            />
+                          </td>
                         )}
 
                         {/* 36. Phiếu A4 (Sticky Right Pin) */}
                         <td
-                          className={`sticky right-0 z-20 whitespace-nowrap px-2 ${padY} text-center transition-colors border-l border-border/80 shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card relative ${isSelected
+                          className={`sticky right-0 z-20 whitespace-nowrap px-2 ${padY} text-center transition-colors border-l border-slate-200 dark:border-border/80 shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card h-[34px] relative ${isSelected
                             ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}

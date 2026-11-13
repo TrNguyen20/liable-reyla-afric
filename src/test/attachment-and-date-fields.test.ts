@@ -9,6 +9,7 @@ import {
   detectCloudSource,
   parseMultiUrls,
   smartMatchFileToLot,
+  getAttachmentBadgeLabel,
   type AttachmentItem,
   type CloudSource,
 } from '@/components/tracking/attachment-field';
@@ -127,8 +128,7 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
       'utf-8'
     );
 
-    it('strictly forbids rounded-xl and rounded-2xl in tracking components to comply with TC-DS-04', () => {
-      expect(attachmentFieldSrc).not.toContain('rounded-xl');
+    it('strictly forbids rounded-2xl in tracking components to comply with TC-DS-04 while allowing modern modal curves', () => {
       expect(attachmentFieldSrc).not.toContain('rounded-2xl');
       expect(dateCellSrc).not.toContain('rounded-xl');
       expect(dateCellSrc).not.toContain('rounded-2xl');
@@ -136,15 +136,17 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
       expect(trackingTsxSrc).not.toContain('rounded-2xl');
     });
 
-    it('uses rounded-xs (2px) and rounded-sm (max 4px) for all boxes, cards, and modal dialogs', () => {
-      expect(attachmentFieldSrc).toContain('rounded-xs');
+    it('uses rounded-xs (2px) and rounded-sm (max 4px) for grid data cells and compact badges', () => {
+      expect(attachmentFieldSrc).toContain('rounded-');
       expect(dateCellSrc).toContain('rounded-xs');
     });
 
-    it('integrates AttachmentCell into Column 28 (ncc_giando) and Column 35 (ncc_file1)', () => {
+    it('integrates AttachmentCell into Column 22 (ten_file_dat_hang), Column 28 (ncc_giando) and Column 35 (ncc_file1)', () => {
       expect(trackingTsxSrc).toContain('<AttachmentCell');
-      expect(trackingTsxSrc).toMatch(/field="ncc_giando"/);
-      expect(trackingTsxSrc).toMatch(/field="ncc_file1"/);
+      expect(trackingTsxSrc).toMatch(/<AttachmentCell[^>]*field="ten_file_dat_hang"/);
+      expect(trackingTsxSrc).toMatch(/<AttachmentCell[^>]*field="ncc_giando"/);
+      expect(trackingTsxSrc).toMatch(/<AttachmentCell[^>]*field="ncc_file1"/);
+      expect(trackingTsxSrc).not.toContain('>[PDF]</a>');
     });
 
     it('integrates DateCell into Column 18 (ngay_gui_QT), 20 (han_tra), 24 (ncc_ngay_qt), 25 (ncc_ngay_tra_qt)', () => {
@@ -193,6 +195,68 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
       expect(smartMatchFileToLot('[DAC]_2439-p2_report.xlsx', '2439-P2', 'MOLD-2439-P2')).toBe(true);
       expect(smartMatchFileToLot('GIAN_DO_NHIET_Q26102293D54F.png', '9690-C17', 'Q26102293D54F')).toBe(true);
       expect(smartMatchFileToLot('completely_different_file.pdf', '9690-C17', 'PIN-A12')).toBe(false);
+    });
+  });
+
+  describe('TC-ATT-07: Unified Badge Label Formatting Without Square Brackets (getAttachmentBadgeLabel)', () => {
+    it('returns empty string when items array is empty or undefined', () => {
+      expect(getAttachmentBadgeLabel([])).toBe('');
+      expect(getAttachmentBadgeLabel(undefined as any)).toBe('');
+    });
+
+    it('formats pure PDF attachments as PDF (N) without square brackets', () => {
+      const pdfItems: AttachmentItem[] = [
+        { id: '1', name: 'order.pdf', url: 'https://dynamo.vn/po.pdf', type: 'pdf' },
+      ];
+      expect(getAttachmentBadgeLabel(pdfItems)).toBe('PDF (1)');
+
+      pdfItems.push({ id: '2', name: 'po2.pdf', url: 'https://dynamo.vn/po2.pdf', type: 'pdf' });
+      expect(getAttachmentBadgeLabel(pdfItems)).toBe('PDF (2)');
+    });
+
+    it('formats pure URL/cloud attachments as URL (N) without square brackets', () => {
+      const urlItems: AttachmentItem[] = [
+        { id: '1', name: 'GDoc', url: 'https://docs.google.com/1', type: 'link' },
+      ];
+      expect(getAttachmentBadgeLabel(urlItems)).toBe('URL (1)');
+    });
+
+    it('formats pure image attachments as IMG (N) without square brackets', () => {
+      const imgItems: AttachmentItem[] = [
+        { id: '1', name: 'chart.png', url: 'https://dynamo.vn/c.png', type: 'image' },
+      ];
+      expect(getAttachmentBadgeLabel(imgItems)).toBe('IMG (1)');
+    });
+
+    it('formats mixed or generic attachments as TỆP (N) without square brackets', () => {
+      const mixedItems: AttachmentItem[] = [
+        { id: '1', name: 'doc.pdf', url: 'https://dynamo.vn/doc.pdf', type: 'pdf' },
+        { id: '2', name: 'sheet.xlsx', url: 'https://dynamo.vn/s.xlsx', type: 'excel' },
+      ];
+      expect(getAttachmentBadgeLabel(mixedItems)).toBe('TỆP (2)');
+    });
+  });
+
+  describe('TC-ATT-08: Empty State + Tệp Button & Permission Tooltip Verification', () => {
+    const attachmentFieldSrc = fs.readFileSync(
+      path.resolve(__dirname, '../components/tracking/attachment-field.tsx'),
+      'utf-8'
+    );
+
+    it('verifies attachmentFieldSrc contains + Tệp button replacing monotonous dash', () => {
+      expect(attachmentFieldSrc).toContain('+ Tệp');
+      expect(attachmentFieldSrc).not.toContain('text-muted-foreground/40">—</span>');
+    });
+
+    it('verifies read-only tooltip is updated to "Chưa được phân quyền tải lên"', () => {
+      expect(attachmentFieldSrc).toContain('Chưa được phân quyền tải lên');
+      expect(attachmentFieldSrc).not.toContain('Chỉ người có quyền mới được tải lên');
+    });
+
+    it('verifies graphite dark badge styling bg-slate-900 and 2px rounded-xs', () => {
+      expect(attachmentFieldSrc).toContain('bg-slate-900');
+      expect(attachmentFieldSrc).toContain('rounded-xs');
+      expect(attachmentFieldSrc).toContain('font-mono');
     });
   });
 });

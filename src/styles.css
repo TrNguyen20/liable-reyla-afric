@@ -450,3 +450,12 @@
 .flip-card-back {
   transform: rotateY(180deg) translate3d(0, 0, 0);
 }
+
+/* Prototype Slide Up Fade Animation */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUpFade 0.18s ease-out forwards;
+}

@@ -15,11 +15,11 @@ describe('UI/UX Graphite Wireframe Standardization (v2.2.0)', () => {
     expect(themeInlineMatch![1]).toContain('--font-mono');
   });
 
-  it('TC-UI-02: TrackingHeaderCell trong tracking.tsx phải dùng font-mono text-[10px]', () => {
+  it('TC-UI-02: TrackingHeaderCell trong tracking.tsx phải dùng text-[10.5px] chuẩn v2.6.0', () => {
     const trackingPath = path.join(root, 'src', 'routes', 'tracking.tsx');
     const content = fs.readFileSync(trackingPath, 'utf8');
 
-    expect(content).toContain('font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground');
+    expect(content).toContain('text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground');
   });
 
   it('TC-UI-03: Cả 4 routes chính phải sở hữu huy hiệu định danh phân hệ thống nhất [1]..[4]', () => {

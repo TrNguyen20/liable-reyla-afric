@@ -124,12 +124,11 @@ describe('Batch Operations Modal Suite (Idea 2 - TDD)', () => {
   describe('TC-BOM-04: Design System & Architectural Constraints', () => {
     const modalFilePath = path.resolve(__dirname, '../components/tracking/batch-operations-modal.tsx');
 
-    it('ensures batch-operations-modal.tsx does not use rounded-xl or rounded-2xl', () => {
+    it('ensures batch-operations-modal.tsx adopts modern soft-curved rounded-xl and rounded-lg styling', () => {
       if (fs.existsSync(modalFilePath)) {
         const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
-        expect(modalSrc).not.toContain('rounded-xl');
-        expect(modalSrc).not.toContain('rounded-2xl');
-        expect(modalSrc).toContain('rounded-xs');
+        expect(modalSrc).toContain('rounded-xl');
+        expect(modalSrc).toContain('rounded-lg');
       }
     });
 

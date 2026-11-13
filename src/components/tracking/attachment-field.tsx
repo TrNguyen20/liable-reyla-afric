@@ -346,6 +346,19 @@ export function renderFileTypeBadge(type: AttachmentType, source?: CloudSource) 
   }
 }
 
+/** Returns unified clean badge label for populated attachments cell: PDF (N), URL (N), IMG (N), TỆP (N) */
+export function getAttachmentBadgeLabel(items: AttachmentItem[]): string {
+  if (!items || items.length === 0) return '';
+  const count = items.length;
+  const allPdf = items.every((i) => i.type === 'pdf');
+  if (allPdf) return `PDF (${count})`;
+  const allUrl = items.every((i) => i.type === 'link');
+  if (allUrl) return `URL (${count})`;
+  const allImg = items.every((i) => i.type === 'image');
+  if (allImg) return `IMG (${count})`;
+  return `TỆP (${count})`;
+}
+
 export function renderFileIcon(type: AttachmentType, source?: CloudSource) {
   if (source === 'gdrive' || source === 'onedrive' || source === 'sharepoint') {
     return <Cloud size={16} className="text-sky-500 shrink-0" />;
@@ -394,6 +407,7 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
 
   const handleOpenDialog = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canEdit && items.length === 0) return;
     setIsDialogOpen(true);
   };
 
@@ -406,48 +420,36 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
 
   return (
     <>
-      <div
-        onClick={handleOpenDialog}
-        className="group/cell flex h-6 max-w-full items-center justify-between gap-1 overflow-hidden cursor-pointer select-none"
-        title={
-          items.length > 0
-            ? `${title} (${items.length} tệp) - Click để xem chi tiết`
-            : `${title} - Click để thêm tệp/link`
-        }
-      >
+      <div className="flex h-6 max-w-full items-center select-none overflow-hidden">
         {items.length === 0 ? (
-          <div className="flex w-full items-center justify-between">
-            <span className="font-mono text-xs text-muted-foreground/40">—</span>
-            {canEdit && (
-              <span
-                className="opacity-0 group-hover/cell:opacity-100 hover:!opacity-100 p-0.5 rounded-xs text-muted-foreground hover:text-primary hover:bg-secondary transition-all"
-                title="Thêm tệp hoặc chèn link"
-              >
-                <Plus size={11} />
-              </span>
-            )}
-          </div>
+          canEdit ? (
+            <button
+              type="button"
+              onClick={handleOpenDialog}
+              title={`${title}: Bấm để tải lên tệp hoặc dán liên kết`}
+              className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all border-slate-200 dark:border-slate-700 bg-secondary/50 hover:bg-secondary text-slate-700 dark:text-slate-300 hover:border-primary/40 cursor-pointer active:scale-95 select-none"
+            >
+              <span>+ Tệp</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Chưa được phân quyền tải lên"
+              className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all border-slate-200/50 dark:border-slate-800 bg-secondary/20 text-muted-foreground/50 opacity-50 cursor-not-allowed select-none"
+            >
+              <span>+ Tệp</span>
+            </button>
+          )
         ) : (
-          <div className="flex items-center gap-1 overflow-hidden">
-            {items.slice(0, 2).map((item) => (
-              <React.Fragment key={item.id}>
-                {item.type === 'image' && item.url.startsWith('data:') ? (
-                  <img
-                    src={item.url}
-                    alt={item.name}
-                    className="size-4.5 rounded-xs object-cover border border-border shrink-0"
-                  />
-                ) : (
-                  renderFileTypeBadge(item.type, item.source)
-                )}
-              </React.Fragment>
-            ))}
-            {items.length > 2 && (
-              <span className="rounded-xs border border-border bg-muted/80 px-1 py-0.2 font-mono text-[9px] font-bold text-muted-foreground shrink-0">
-                +{items.length - 2}
-              </span>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenDialog}
+            title={`${title} (${items.length} tệp) - Bấm để xem hoặc chỉnh sửa`}
+            className="inline-flex items-center justify-center gap-1 rounded-xs bg-slate-900 px-2 py-0.5 font-mono text-[10.5px] font-bold text-white shadow-2xs transition-all hover:bg-slate-800 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 border border-slate-700/60 dark:border-slate-600/60 tabular-nums cursor-pointer active:scale-95 select-none"
+          >
+            <span>{getAttachmentBadgeLabel(items)}</span>
+          </button>
         )}
       </div>
 
@@ -615,212 +617,254 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-lg w-full rounded-xs border border-border bg-card p-5 font-sans shadow-xl text-foreground">
-          {/* Header */}
-          <DialogTitle className="flex items-center justify-between border-b border-border pb-3">
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-[1px] animate-in fade-in-0 duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <div
+            className="max-w-[680px] w-[95vw] max-h-[88vh] rounded-xl border border-slate-200 bg-white p-5 font-sans shadow-2xl text-slate-900 animate-slide-up flex flex-col overflow-hidden"
+            style={{ borderRadius: '12px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-black uppercase tracking-wider text-foreground">
+                <span className="text-sm font-bold uppercase tracking-tight text-slate-900">
                   {title}
                 </span>
                 {workshop && (
-                  <span className="px-1.5 py-0.2 rounded-xs border border-primary/30 bg-primary/10 font-mono text-[10px] font-bold text-primary">
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono">
                     {workshop}
                   </span>
                 )}
                 {material && (
-                  <span className="px-1.5 py-0.2 rounded-xs border border-border bg-muted/70 font-mono text-[10px] text-muted-foreground">
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono">
                     {material}
                   </span>
                 )}
               </div>
               {lotCode && (
-                <span className="font-mono text-[11px] text-muted-foreground block mt-1">
-                  Mã Lô: <b className="text-primary">{lotCode}</b>
+                <span className="text-xs text-slate-500 block mt-1">
+                  Lô: <strong className="text-slate-900 font-mono">{lotCode}</strong>
                 </span>
               )}
             </div>
-          </DialogTitle>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-base transition cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
 
-          {/* Dropzone & Multi-URL Input (Chỉ khi có quyền canEdit) */}
-          {canEdit && (
-            <div className="mt-3 space-y-2.5">
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(true);
-                }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`flex flex-col items-center justify-center p-4 rounded-xs border-2 border-dashed transition-all duration-200 cursor-pointer ${
-                  isDragOver
-                    ? 'border-primary bg-primary/10 scale-[1.01]'
-                    : 'border-border/80 hover:border-primary/50 bg-secondary/15 hover:bg-secondary/30'
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      Array.from(e.target.files).forEach(handleProcessFile);
-                    }
+          {/* Body Content */}
+          <div className="flex-1 overflow-y-auto space-y-4 pt-3 pr-1">
+            {/* Dropzone & Multi-URL Input (Chỉ khi có quyền canEdit) */}
+            {canEdit && (
+              <div className="space-y-3">
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOver(true);
                   }}
-                />
-                <Upload size={18} className="text-primary/70 mb-1" />
-                <p className="text-xs font-medium text-foreground">
-                  Kéo thả tệp vào đây, hoặc <span className="text-primary font-bold hover:underline">chọn từ máy tính</span>
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Hỗ trợ PDF, Ảnh, Excel (Ảnh tự nén &lt;45KB, PDF khuyến nghị &lt;50KB hoặc dán link Cloud)
-                </p>
-              </div>
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-5 text-center transition cursor-pointer ${
+                    isDragOver
+                      ? 'border-slate-900 bg-slate-100'
+                      : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 hover:border-slate-500'
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        Array.from(e.target.files).forEach(handleProcessFile);
+                      }
+                    }}
+                  />
+                  <div className="w-9 h-9 rounded-full bg-white border border-slate-200 mx-auto flex items-center justify-center text-slate-700 shadow-sm mb-2 font-bold">
+                    ↑
+                  </div>
+                  <div className="text-xs font-semibold text-slate-800">
+                    Kéo thả tệp vào đây, hoặc <span className="underline text-slate-900">chọn từ máy tính</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Hỗ trợ PDF, Ảnh, Excel (Ảnh tự nén &lt;45KB, PDF khuyến nghị &lt;50KB hoặc dán link Cloud)
+                  </p>
+                </div>
 
-              {/* Paste Multi-URL Input bar */}
-              <form onSubmit={handleAddUrl} className="space-y-1.5 rounded-xs border border-border/70 p-2 bg-muted/20">
-                <div className="flex gap-1.5 items-center">
+                {/* Paste Multi-URL Input bar */}
+                <form onSubmit={handleAddUrl} className="flex flex-col sm:flex-row gap-2">
                   <label htmlFor={urlInputId} className="sr-only">Đường link tài liệu</label>
                   <input
                     id={urlInputId}
                     type="text"
-                    placeholder="Dán link Cloud (Google Drive / OneDrive, hỗ trợ nhiều link cách bởi dấu phẩy/xuống dòng)..."
+                    placeholder="Hoặc dán Link URL (Google Drive / OneDrive / Cloud)..."
                     value={pastedUrl}
                     onChange={(e) => setPastedUrl(e.target.value)}
-                    className="flex-1 h-7 rounded-xs border border-border bg-background px-2 text-xs font-mono placeholder:text-muted-foreground/60 outline-none focus:border-primary"
+                    className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Tên gợi nhớ (tùy chọn)"
+                    value={urlNote}
+                    onChange={(e) => setUrlNote(e.target.value)}
+                    className="sm:w-44 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
                   />
                   <button
                     type="submit"
                     disabled={!pastedUrl.trim()}
-                    className="h-7 px-3 rounded-xs border border-border bg-secondary hover:bg-secondary/80 font-mono text-xs font-bold text-foreground transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+                    className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold whitespace-nowrap transition cursor-pointer disabled:opacity-40"
                   >
-                    Thêm Link
+                    + Thêm Link
                   </button>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    placeholder="Tên hiển thị / Ghi chú ngắn (tùy chọn, VD: Chứng chỉ lò mẻ 01)..."
-                    value={urlNote}
-                    onChange={(e) => setUrlNote(e.target.value)}
-                    className="flex-1 h-6 rounded-xs border border-border/70 bg-background/80 px-2 text-[11px] font-sans placeholder:text-muted-foreground/50 outline-none focus:border-primary"
-                  />
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Danh sách tệp (Vertical File List) */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between pb-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
-              <span>Danh sách tệp ({fileList.length})</span>
-            </div>
-
-            {fileList.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground/60 border border-border/40 rounded-xs bg-muted/20">
-                Chưa có tệp đính kèm nào
+                </form>
               </div>
-            ) : (
-              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
-                {fileList.map((file) => (
-                  <div
-                    key={file.id}
-                    className="group/row flex h-11 items-center justify-between p-2 rounded-xs border border-border/70 bg-card hover:bg-secondary/40 transition-colors duration-150"
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
-                      {renderFileIcon(file.type, file.source)}
-                      <div className="overflow-hidden flex-1 min-w-0">
-                        <p className="text-xs font-mono font-medium text-foreground truncate" title={file.name}>
-                          {middleTruncate(file.name, 28)}
-                        </p>
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/70">
-                          {file.size && <span>{file.size}</span>}
-                          {file.source && file.source !== 'generic' && (
-                            <span className="uppercase text-primary/80 font-bold">[{file.source}]</span>
-                          )}
+            )}
+
+            {/* Danh sách tệp (Vertical File List) */}
+            <div>
+              <div className="flex items-center justify-between pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                <span>Danh sách tệp ({fileList.length})</span>
+              </div>
+
+              {fileList.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-slate-200 rounded-lg text-xs text-slate-400">
+                  Chưa có tệp đính kèm nào
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                  {fileList.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white hover:border-slate-300 shadow-sm transition"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        {renderFileIcon(file.type, file.source)}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-900 truncate" title={file.name}>
+                            {middleTruncate(file.name, 28)}
+                          </p>
+                          <div className="flex items-center gap-2 text-[10.5px] text-slate-500 font-mono">
+                            {file.size && <span>{file.size}</span>}
+                            {file.source && file.source !== 'generic' && (
+                              <span className="uppercase text-emerald-700 font-bold">[{file.source}]</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Cụm nút tác vụ (Xem trước, Sao chép, Mở link, Thùng rác) */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile(file)}
+                          className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                          title="Xem trước tệp"
+                        >
+                          <Eye size={12} />
+                          <span className="hidden sm:inline">Xem</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(file.url);
+                            playAudioCue('pop');
+                            toast.success('Đã sao chép liên kết vào bộ nhớ tạm');
+                          }}
+                          className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] cursor-pointer"
+                          title="Sao chép liên kết"
+                        >
+                          <Copy size={12} />
+                        </button>
+
+                        <a
+                          href={file.url}
+                          download={file.name}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] cursor-pointer inline-flex items-center"
+                          title="Mở tab mới hoặc tải về"
+                        >
+                          {file.url.startsWith('data:') ? <Download size={12} /> : <ExternalLink size={12} />}
+                        </a>
+
+                        {canEdit && (
+                          <>
+                            {confirmDeleteId === file.id ? (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClick(file.id, e)}
+                                className="px-2 py-1 rounded border border-rose-300 bg-rose-50 text-rose-700 font-mono text-[10.5px] font-bold animate-in fade-in cursor-pointer shrink-0"
+                                title="Bấm lần nữa để xác nhận xóa"
+                              >
+                                Bấm lại để xóa
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClick(file.id, e)}
+                                className="p-1.5 rounded border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-400 hover:text-rose-600 text-[11px] transition cursor-pointer"
+                                title="Xóa tệp này (Bấm 2 lần)"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                    {/* Cụm nút tác vụ (Xem trước, Sao chép, Mở link, Thùng rác) */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewFile(file)}
-                        className="p-1 rounded-xs hover:bg-secondary text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                        title="Xem trước tệp"
-                      >
-                        <Eye size={13} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(file.url);
-                          playAudioCue('pop');
-                          toast.success('Đã sao chép liên kết vào bộ nhớ tạm');
-                        }}
-                        className="p-1 rounded-xs hover:bg-secondary text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                        title="Sao chép liên kết"
-                      >
-                        <Copy size={13} />
-                      </button>
-
-                      <a
-                        href={file.url}
-                        download={file.name}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 rounded-xs hover:bg-secondary text-muted-foreground hover:text-primary transition-colors cursor-pointer inline-flex items-center"
-                        title="Mở tab mới hoặc tải về"
-                      >
-                        {file.url.startsWith('data:') ? <Download size={13} /> : <ExternalLink size={13} />}
-                      </a>
-
-                      {canEdit && (
-                        <>
-                          {confirmDeleteId === file.id ? (
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteClick(file.id, e)}
-                              className="px-1.5 py-0.5 rounded-xs bg-destructive text-destructive-foreground font-mono text-[10px] font-bold animate-in fade-in cursor-pointer shrink-0"
-                              title="Bấm lần nữa để xác nhận xóa"
-                            >
-                              Bấm lần nữa để xóa
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteClick(file.id, e)}
-                              className="opacity-0 group-hover/row:opacity-100 hover:!opacity-100 p-1 rounded-xs hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-all cursor-pointer"
-                              title="Xóa tệp này (Bấm 2 lần)"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            {/* Inline Quick Preview Box (Slate 900 nổi bật) */}
+            {previewFile && (
+              <div className="rounded-lg border border-slate-700 bg-slate-900 text-slate-100 p-3.5 text-xs space-y-2 animate-slide-up">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+                  <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                    <span>👁</span> Xem trước nhanh: <span className="text-white font-mono">{previewFile.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFile(null)}
+                    className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    Đóng xem trước ✕
+                  </button>
+                </div>
+                <div className="text-[11px] text-slate-300 font-mono leading-relaxed">
+                  <div>• Đường dẫn gốc: <a href={previewFile.url} target="_blank" rel="noreferrer" className="underline text-emerald-300">{previewFile.url}</a></div>
+                  <div>• Mã lô: {lotCode || '—'} | Xưởng: {workshop || '—'} | Vật liệu: {material || '—'}</div>
+                  <div>• Dung lượng / Trạng thái: {previewFile.size || 'Cloud Link'} • Hợp lệ</div>
+                </div>
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3">
-            <span className="font-mono text-xs text-muted-foreground">
+          <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 -mx-5 -mb-5 mt-4">
+            <span className="text-[11px] text-slate-500">
               Đang lưu {fileList.length} tệp đính kèm
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="h-7 px-3 rounded-xs border border-border bg-secondary hover:bg-secondary/80 font-mono text-xs font-semibold text-foreground transition-colors cursor-pointer"
+                className="px-4 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium cursor-pointer"
               >
                 Đóng
               </button>
@@ -832,21 +876,22 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                   toast.success('Đã lưu thay đổi tệp đính kèm');
                   onClose();
                 }}
-                className="h-7 px-4 rounded-xs bg-primary hover:bg-primary/90 font-mono text-xs font-bold text-primary-foreground transition-colors cursor-pointer inline-flex items-center gap-1 shadow-xs"
+                className="px-4 py-1.5 rounded-lg bg-[#111827] hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer inline-flex items-center gap-1"
               >
                 <Check size={12} />
                 Lưu thay đổi
               </button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
+    )}
 
       {/* Lightbox / Preview Sub-dialog */}
       {previewFile && (
         <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-          <DialogContent className="max-w-2xl w-full rounded-xs border border-border bg-card p-4 shadow-lg font-sans">
-            <DialogTitle className="flex items-center justify-between border-b border-border pb-2 font-mono text-xs font-bold">
+          <DialogContent className="max-w-2xl w-full rounded-xl border border-slate-200 bg-white p-4 shadow-2xl font-sans">
+            <DialogTitle className="flex items-center justify-between border-b border-slate-200 pb-2 text-xs font-bold text-slate-900">
               <span className="truncate pr-2">{previewFile.name}</span>
               <a
                 href={previewFile.url}
