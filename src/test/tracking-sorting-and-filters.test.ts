@@ -58,7 +58,7 @@ describe('Tracking Sorting & Popover Filters Suite (TDD)', () => {
       expect(trackingTsx).toMatch(/useState<SortDirection>\('desc'\)/);
     });
 
-    it('wires onDirectSort and field for QUỐC GIA and XƯỞNG headers', () => {
+    it('wires onDirectSort and field for NƯỚC and XƯỞNG headers', () => {
       expect(trackingTsx).toContain('field="quoc_gia"');
       expect(trackingTsx).toContain('field="phong_sx"');
       expect(trackingTsx).toMatch(/field="quoc_gia"[\s\S]*?onDirectSort=/);

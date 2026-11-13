@@ -159,15 +159,16 @@ describe('DYNAMO QT-MES: Graphite Wireframe Design System Compliance Tests', () 
     expect(trackingSrc).toContain('sticky top-0 right-0 z-50');
     expect(trackingSrc).toContain('sticky right-0 z-20');
     expect(trackingSrc).toContain('shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)]');
-    expect(trackingSrc).toContain('border-l border-border/80');
+    expect(trackingSrc).toContain('border-l border-slate-200 dark:border-border/80');
   });
 
-  it('TC-DS-09: Bộ chuyển đổi mật độ dòng Row Density Switcher và căn phải số học', () => {
+  it('TC-DS-09: Chuẩn hóa High-Density Industrial Grid (chiều cao 34px, micro-spacing py-1 px-2 và font-mono tabular-nums)', () => {
     const trackingSrc = fs.readFileSync(trackingTsxPath, 'utf-8');
-    // Kiểm tra định nghĩa type và persistence
-    expect(trackingSrc).toContain("type TableDensity = 'compact' | 'normal'");
-    expect(trackingSrc).toContain("'dynamo-tracking-density'");
-    expect(trackingSrc).toContain("density === 'compact' ? 'py-1' : 'py-2.5'");
+    // Kiểm tra chuẩn hóa chiều cao dòng 34px, padding 4px x 8px, font size và viền slate-200
+    expect(trackingSrc).toContain('h-[34px]');
+    expect(trackingSrc).toContain('text-[10.5px]');
+    expect(trackingSrc).toContain('text-[11.5px]');
+    expect(trackingSrc).toContain('border-slate-200');
 
     // Kiểm tra căn phải và monospace định lượng số học
     expect(trackingSrc).toContain('text-right font-mono tabular-nums text-foreground');

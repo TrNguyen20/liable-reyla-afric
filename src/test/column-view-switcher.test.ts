@@ -2,13 +2,18 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type ColumnView = 'ALL' | 'TECH' | 'COMM' | 'VENDOR_QC';
+export type ColumnView = 'ALL' | 'DOCS' | 'TECH' | 'COMM' | 'VENDOR_QC';
 
 export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: string; description: string }> = {
   ALL: {
     label: 'Tất cả cột (36)',
     shortLabel: 'Tất cả (36)',
     description: 'Toàn bộ 36 cột từ Google Sheets mới',
+  },
+  DOCS: {
+    label: 'Hình 0: 📎 Tài liệu & File đính kèm',
+    shortLabel: '📎 Tài liệu',
+    description: 'Hồ sơ bản vẽ, file đơn đặt hàng PO, giản đồ nhiệt, file đính kèm NCC và phiếu A4',
   },
   TECH: {
     label: 'Hình 1: Kỹ thuật',
@@ -21,8 +26,8 @@ export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: 
     description: 'Đơn giá, thành tiền, ngày gửi, hạn trả, đơn hàng PO, đối tác',
   },
   VENDOR_QC: {
-    label: 'Hình 3: NCC & QC',
-    shortLabel: 'NCC & QC',
+    label: 'Hình 3: NCC Ghi',
+    shortLabel: 'NCC Ghi',
     description: 'Hạn trả NCC, mã mẻ lò, giản đồ nhiệt, đo HRC, nghiệm thu QC, báo giá',
   },
 };
@@ -34,6 +39,19 @@ export function isColumnVisibleInView(colKey: string, view: ColumnView): boolean
   }
 
   if (view === 'ALL') return true;
+
+  if (view === 'DOCS') {
+    return [
+      'phong_sx',
+      'id_ma_hang',
+      'so_dat_hang',
+      'ten_file_dat_hang',
+      'ncc_giando',
+      'ncc_file1',
+      'ncc_name_qt',
+      'ghi_chu_khi_gui',
+    ].includes(colKey);
+  }
 
   if (view === 'TECH') {
     return [
@@ -147,11 +165,12 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
     ticket: 58,
   };
 
-  it('TC-CVS-01: Định nghĩa 4 chế độ góc nhìn chuẩn và nhãn tiếng Việt', () => {
+  it('TC-CVS-01: Định nghĩa 5 chế độ góc nhìn chuẩn và nhãn tiếng Việt', () => {
     expect(COLUMN_VIEW_SPECS.ALL.shortLabel).toContain('Tất cả');
+    expect(COLUMN_VIEW_SPECS.DOCS.shortLabel).toContain('Tài liệu');
     expect(COLUMN_VIEW_SPECS.TECH.shortLabel).toBe('Kỹ thuật');
     expect(COLUMN_VIEW_SPECS.COMM.shortLabel).toBe('Đơn giá & PO');
-    expect(COLUMN_VIEW_SPECS.VENDOR_QC.shortLabel).toBe('NCC & QC');
+    expect(COLUMN_VIEW_SPECS.VENDOR_QC.shortLabel).toBe('NCC Ghi');
   });
 
   it('TC-CVS-02: Phân loại cột chính xác theo từng chế độ góc nhìn', () => {
@@ -160,7 +179,16 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
       expect(isColumnVisibleInView(key, 'ALL')).toBe(true);
     });
 
-    // 2. Chế độ TECH: Chỉ hiển thị cột kỹ thuật, ẩn đơn giá và NCC
+    // 2. Chế độ DOCS: Chỉ hiển thị cột tài liệu và hồ sơ đính kèm
+    expect(isColumnVisibleInView('ten_file_dat_hang', 'DOCS')).toBe(true);
+    expect(isColumnVisibleInView('ncc_giando', 'DOCS')).toBe(true);
+    expect(isColumnVisibleInView('ncc_file1', 'DOCS')).toBe(true);
+    expect(isColumnVisibleInView('id_ma_hang', 'DOCS')).toBe(true);
+    expect(isColumnVisibleInView('so_dat_hang', 'DOCS')).toBe(true);
+    expect(isColumnVisibleInView('don_gia', 'DOCS')).toBe(false);
+    expect(isColumnVisibleInView('vat_lieu', 'DOCS')).toBe(false);
+
+    // 3. Chế độ TECH: Chỉ hiển thị cột kỹ thuật, ẩn đơn giá và NCC
     expect(isColumnVisibleInView('so_luong', 'TECH')).toBe(true);
     expect(isColumnVisibleInView('vat_lieu', 'TECH')).toBe(true);
     expect(isColumnVisibleInView('do_cung', 'TECH')).toBe(true);
@@ -170,7 +198,7 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
     expect(isColumnVisibleInView('thanh_tien', 'TECH')).toBe(false);
     expect(isColumnVisibleInView('ncc_file1', 'TECH')).toBe(false);
 
-    // 3. Chế độ COMM: Chỉ hiển thị cột thương mại, ẩn chi tiết quy cách và NCC
+    // 4. Chế độ COMM: Chỉ hiển thị cột thương mại, ẩn chi tiết quy cách và NCC
     expect(isColumnVisibleInView('don_gia', 'COMM')).toBe(true);
     expect(isColumnVisibleInView('thanh_tien', 'COMM')).toBe(true);
     expect(isColumnVisibleInView('so_dat_hang', 'COMM')).toBe(true);
@@ -178,7 +206,7 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
     expect(isColumnVisibleInView('kich_thuoc_sp', 'COMM')).toBe(false);
     expect(isColumnVisibleInView('ncc_giando', 'COMM')).toBe(false);
 
-    // 4. Chế độ VENDOR_QC: Chỉ hiển thị cột NCC và KCS
+    // 5. Chế độ VENDOR_QC: Chỉ hiển thị cột NCC và KCS
     expect(isColumnVisibleInView('ncc_ngay_qt', 'VENDOR_QC')).toBe(true);
     expect(isColumnVisibleInView('ncc_id_lot_qt', 'VENDOR_QC')).toBe(true);
     expect(isColumnVisibleInView('ncc_giando', 'VENDOR_QC')).toBe(true);
@@ -188,8 +216,8 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
     expect(isColumnVisibleInView('don_gia', 'VENDOR_QC')).toBe(false);
   });
 
-  it('TC-CVS-03: Cột Checkbox, Mã hàng và Phiếu A4 luôn hiển thị ở cả 4 chế độ góc nhìn', () => {
-    const views: ColumnView[] = ['ALL', 'TECH', 'COMM', 'VENDOR_QC'];
+  it('TC-CVS-03: Cột Checkbox, Mã hàng và Phiếu A4 luôn hiển thị ở cả 5 chế độ góc nhìn', () => {
+    const views: ColumnView[] = ['ALL', 'DOCS', 'TECH', 'COMM', 'VENDOR_QC'];
     views.forEach((v) => {
       expect(isColumnVisibleInView('checkbox', v), `checkbox must be visible in ${v}`).toBe(true);
       expect(isColumnVisibleInView('ma_hang', v), `ma_hang must be visible in ${v}`).toBe(true);
@@ -199,6 +227,7 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
 
   it('TC-CVS-04: Độ rộng bảng co giãn thông minh, giảm hơn 50% ở các chế độ tập trung', () => {
     const totalAll = computeVisibleTableWidth(defaultColWidths, 'ALL');
+    const totalDocs = computeVisibleTableWidth(defaultColWidths, 'DOCS');
     const totalTech = computeVisibleTableWidth(defaultColWidths, 'TECH');
     const totalComm = computeVisibleTableWidth(defaultColWidths, 'COMM');
     const totalVendor = computeVisibleTableWidth(defaultColWidths, 'VENDOR_QC');
@@ -207,6 +236,7 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
     expect(totalAll).toBeGreaterThan(3500);
 
     // Các chế độ rút gọn phải nhỏ hơn 2100px (giảm trên 50% áp lực cuộn ngang)
+    expect(totalDocs).toBeLessThan(totalAll * 0.55);
     expect(totalTech).toBeLessThan(totalAll * 0.55);
     expect(totalComm).toBeLessThan(totalAll * 0.55);
     expect(totalVendor).toBeLessThan(totalAll * 0.55);
@@ -221,10 +251,19 @@ describe('Column View Switcher Suite (4 Tab Góc Nhìn Cột - TDD)', () => {
     expect(trackingCode).toContain('dynamo-column-view');
     expect(trackingCode).toContain('isColVisible');
 
-    // Phải có 4 nút tab chuyển đổi trên Toolbar
+    // Phải có 5 nút tab chuyển đổi trên Toolbar
     expect(trackingCode).toContain("'ALL'");
+    expect(trackingCode).toContain("'DOCS'");
     expect(trackingCode).toContain("'TECH'");
     expect(trackingCode).toContain("'COMM'");
     expect(trackingCode).toContain("'VENDOR_QC'");
+  });
+
+  it('TC-CVS-06: Khắc phục triệt để lỗi colgroup rỗng - chỉ render col cho các cột visible', () => {
+    expect(fs.existsSync(trackingTsxPath)).toBe(true);
+    const trackingCode = fs.readFileSync(trackingTsxPath, 'utf-8');
+
+    // Thẻ colgroup phải lọc theo cột hiển thị động, không render cứng 37 thẻ col
+    expect(trackingCode).toContain('ACTIVE_GRID_COLUMNS.filter((key) => isColVisible(key)).map');
   });
 });

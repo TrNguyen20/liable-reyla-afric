@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useId } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useId } from 'react';
 import {
   PenLine,
   X,
@@ -67,7 +67,7 @@ export const BATCH_FIELDS_CONFIG: BatchFieldDefinition[] = [
   { key: 'so_dat_hang', label: 'Mã đơn đặt hàng', category: 'commercial', type: 'text' },
   { key: 'ghi_chu', label: 'Ghi chú điều độ', category: 'commercial', type: 'text' },
 
-  // 3. Phản hồi NCC & QC
+  // 3. Phản hồi NCC Ghi
   { key: 'ncc_ngay_qt', label: 'NCC Ngày QT', category: 'vendor_qc', type: 'date' },
   { key: 'ncc_ngay_tra_qt', label: 'NCC Ngày trả QT', category: 'vendor_qc', type: 'date' },
   { key: 'ncc_so_lo', label: 'NCC Số lò / Lô QT', category: 'vendor_qc', type: 'text' },
@@ -480,115 +480,166 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     onClose();
   };
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[960px] w-[95vw] max-h-[88vh] rounded-xs border border-border bg-card p-0 shadow-2xl flex flex-col overflow-hidden text-foreground">
-        {/* 1. Fixed Header */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-muted/20 shrink-0">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-[1px] animate-in fade-in-0 duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="max-w-[1260px] 2xl:max-w-[1360px] w-[96vw] max-h-[92vh] rounded-xl border border-slate-200 bg-white p-0 shadow-2xl flex flex-col overflow-hidden text-slate-900 animate-slide-up"
+        style={{ borderRadius: '12px' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 1. Modal Header (Phong cách Slate tương phản cao, icon bo tròn hộp nổi bật) */}
+        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between gap-3 bg-white shrink-0">
           <div className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-xs bg-primary/10 text-primary border border-primary/20">
-              <PenLine size={16} />
-            </span>
+            <div className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-800 font-bold text-base shadow-inner">
+              <PenLine size={18} />
+            </div>
             <div>
-              <DialogTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                THAO TÁC HÀNG LOẠT ({items.length} LÔ)
-              </DialogTitle>
-              <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
-                Cập nhật đồng bộ cho {items.length} lô đã chọn ({totalPieces} chi tiết • {totalWeight} kg)
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight uppercase whitespace-nowrap">
+                  THAO TÁC HÀNG LOẠT ({items.length} LÔ)
+                </h2>
+                <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-300 whitespace-nowrap">
+                  Quyền: {roleLabel(role as Role)}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Cập nhật đồng bộ các thông số và tài liệu cho toàn bộ lô được chọn • <span className="font-medium text-slate-700">{totalPieces} chi tiết • {totalWeight} kg</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <span className={`px-2 py-0.5 text-[10px] font-bold ${roleBadge(role as Role)}`}>
-              Quyền: {roleLabel(role as Role)}
-            </span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xs p-1 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-base transition cursor-pointer"
+            title="Đóng (Esc)"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* 2. Split Body (60% Left - 40% Right) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-hidden divide-y md:divide-y-0 md:divide-x divide-border">
-          {/* CỘT TRÁI (60%): Field Picker & Dynamic Editors */}
-          <div className="md:col-span-7 flex flex-col overflow-y-auto p-4 space-y-4 max-h-[calc(88vh-120px)]">
-            {/* Search & Category Tabs */}
-            <div className="space-y-2">
-              <div className="relative">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Tìm thông số cần sửa: Độ cứng, Hạn trả, Chứng chỉ..."
-                  value={fieldSearch}
-                  onChange={(e) => setFieldSearch(e.target.value)}
-                  className="w-full h-7 rounded-xs border border-border bg-background pl-8 pr-2 text-xs font-mono placeholder:text-muted-foreground/60 outline-none focus:border-primary"
-                />
-              </div>
-
-              {/* 5 Category Tabs */}
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
-                {(
-                  [
-                    { id: 'all', label: 'Tất cả' },
-                    { id: 'technical', label: 'Kỹ thuật' },
-                    { id: 'commercial', label: 'Thương mại' },
-                    { id: 'vendor_qc', label: 'Phản hồi QC' },
-                    { id: 'documents', label: 'Tài liệu (Upload)' },
-                  ] as { id: BatchCategory; label: string }[]
-                ).map((tab) => (
+        {/* 2. Modal Body: Split 2 Columns 7/5 (58% Trái - 42% Phải) */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 min-h-0">
+          {/* CỘT TRÁI (7/12 ~ 58%): BỘ CHỌN TRƯỜNG THEO RBAC & KHUNG NHẬP LIỆU ĐỘNG */}
+          <div className="lg:col-span-7 flex flex-col min-h-0 bg-white">
+            {/* Sticky Field Picker Header */}
+            <div className="p-4 border-b border-slate-200 bg-slate-50/70 space-y-2.5 shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap">
+                  1. Chọn thông số cần cập nhật đồng bộ
+                </label>
+                <div className="flex items-center gap-2">
                   <button
-                    key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-2.5 py-1 rounded-xs font-mono text-[11px] whitespace-nowrap transition-colors cursor-pointer border ${
-                      activeTab === tab.id
-                        ? 'bg-primary text-primary-foreground border-primary font-bold shadow-2xs'
-                        : 'bg-secondary/40 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground'
-                    }`}
+                    onClick={() => {
+                      setSelectedFieldKeys(new Set());
+                      setFieldValues({});
+                    }}
+                    className="text-[11px] text-rose-600 hover:text-rose-700 font-medium cursor-pointer whitespace-nowrap"
                   >
-                    {tab.label}
+                    Bỏ chọn hết trường
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
 
-            {/* Interactive Pill Chips */}
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold mb-1.5">
-                Chọn thông số cần chỉnh sửa:
-              </p>
-              <div className="flex flex-wrap gap-1.5">
+              {/* Search + Category Filter Tabs (Single clean row, no line wrap) */}
+              <div className="flex flex-nowrap items-center gap-2">
+                <div className="relative w-56 sm:w-64 shrink-0">
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm nhanh thông số..."
+                    value={fieldSearch}
+                    onChange={(e) => setFieldSearch(e.target.value)}
+                    className="w-full pl-7 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
+                  />
+                </div>
+
+                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-[11px] shrink-0">
+                  {(
+                    [
+                      { id: 'all', label: 'Tất cả' },
+                      { id: 'documents', label: '📎 Tài liệu (4)' },
+                      { id: 'technical', label: 'Kỹ thuật' },
+                      { id: 'commercial', label: 'PO & Giá' },
+                      { id: 'vendor_qc', label: 'NCC Ghi' },
+                    ] as { id: BatchCategory; label: string }[]
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-2.5 py-1 rounded-md transition cursor-pointer font-medium whitespace-nowrap ${activeTab === tab.id
+                          ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* RBAC Interactive Field Chips Container */}
+              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pt-0.5 pr-1">
                 {filteredFields.map((field) => {
                   const isSelected = selectedFieldKeys.has(field.key as string);
                   const isAllowed = isFieldEditableByRole(field.key as string, role);
+
+                  if (!isAllowed) {
+                    return (
+                      <button
+                        key={field.key as string}
+                        type="button"
+                        disabled
+                        title="Vai trò của bạn không có quyền sửa thông số này"
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed flex items-center gap-1 opacity-75"
+                      >
+                        <Lock size={11} className="shrink-0" />
+                        <span>{field.label}</span>
+                      </button>
+                    );
+                  }
+
+                  if (isSelected) {
+                    return (
+                      <button
+                        key={field.key as string}
+                        type="button"
+                        onClick={() => toggleField(field.key as string)}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-900 bg-[#111827] text-white shadow-sm flex items-center gap-1 transition cursor-pointer"
+                      >
+                        <Check size={12} className="shrink-0" />
+                        <span>{field.label}</span>
+                      </button>
+                    );
+                  }
 
                   return (
                     <button
                       key={field.key as string}
                       type="button"
-                      disabled={!isAllowed}
                       onClick={() => toggleField(field.key as string)}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-xs font-mono text-[11px] border transition-all cursor-pointer ${
-                        !isAllowed
-                          ? 'opacity-40 bg-muted/40 text-muted-foreground border-border cursor-not-allowed'
-                          : isSelected
-                          ? 'bg-primary text-primary-foreground border-primary font-bold shadow-xs'
-                          : 'bg-background text-foreground border-border hover:bg-secondary/70 hover:border-primary/50'
-                      }`}
-                      title={!isAllowed ? 'Vai trò của bạn không có quyền sửa thông số này' : undefined}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-slate-300 bg-white text-slate-700 hover:border-slate-900 hover:text-slate-900 flex items-center gap-1 transition cursor-pointer"
                     >
-                      {!isAllowed ? (
-                        <Lock size={10} className="shrink-0" />
-                      ) : isSelected ? (
-                        <Check size={11} className="shrink-0" />
-                      ) : (
-                        <Plus size={11} className="shrink-0 text-muted-foreground" />
-                      )}
+                      <Plus size={11} className="shrink-0 text-slate-400" />
                       <span>{field.label}</span>
                     </button>
                   );
@@ -596,14 +647,284 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
               </div>
             </div>
 
-            {/* Active Field Editors */}
-            {selectedFieldKeys.size > 0 && (
-              <div className="space-y-3 pt-2 border-t border-border/80">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold">
-                  Khung nhập liệu đang mở ({selectedFieldKeys.size}):
-                </p>
+            {/* Scrollable Active Field Editors + Batch Document Uploader */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-white">
+              {selectedFieldKeys.size === 0 && activeTab !== 'documents' ? (
+                <div className="border border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50/50">
+                  <div className="text-base font-semibold text-slate-700">Chưa chọn thông số nào để cập nhật</div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Hãy bấm vào các thẻ thông số phía trên (VD: <strong>+ CHỨNG CHỈ QT</strong>, <strong>+ ĐỘ CỨNG</strong>, <strong>+ HẠN TRẢ</strong>) để mở khung nhập liệu đồng bộ.
+                  </p>
+                </div>
+              ) : null}
 
-                {Array.from(selectedFieldKeys).map((key) => {
+              {/* Special: Batch Document Upload Card (Viền đôi Slate 900 nổi bật) */}
+              {(activeTab === 'documents' ||
+                selectedFieldKeys.has('ncc_file1') ||
+                selectedFieldKeys.has('ncc_giando') ||
+                selectedFieldKeys.has('doc_po') ||
+                selectedFieldKeys.has('doc_quote')) && (
+                  <div className="border-2 border-slate-900 rounded-xl p-4 bg-white shadow-sm space-y-3.5">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold uppercase shrink-0">
+                          UPLOAD HÀNG LOẠT
+                        </span>
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-900 whitespace-nowrap">
+                          ĐÍNH KÈM TÀI LIỆU / CHỨNG CHỈ (KẾ THỪA HÌNH 6)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = new Set(selectedFieldKeys);
+                          next.delete('ncc_file1');
+                          next.delete('ncc_giando');
+                          next.delete('doc_po');
+                          next.delete('doc_quote');
+                          setSelectedFieldKeys(next);
+                        }}
+                        className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
+                        title="Đóng khung Upload"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Step A: Chọn cột tài liệu đích (Multi-target pills) */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-600 block">
+                        A. Chọn cột tài liệu cần cập nhật (có thể chọn nhiều cột cùng lúc):
+                      </label>
+                      <div className="flex flex-wrap sm:flex-nowrap gap-1.5">
+                        {[
+                          { key: 'ncc_file1', label: 'Chứng chỉ QT (CO/CQ)' },
+                          { key: 'ncc_giando', label: 'Giản đồ nhiệt' },
+                          { key: 'ncc_thongtinkhac1', label: 'File PO / Đơn hàng' },
+                          { key: 'ncc_thongtinkhac2', label: 'Báo giá NCC' },
+                        ].map((col) => {
+                          const selected = targetDocColumns.has(col.key);
+                          return (
+                            <button
+                              key={col.key}
+                              type="button"
+                              onClick={() => toggleDocColumn(col.key)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${selected
+                                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                                }`}
+                            >
+                              <span>{selected ? '☑' : '☐'}</span>
+                              <span>{col.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Step B: Phương thức phân bổ & Step C: Chế độ ghi */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div className="text-[10.5px] font-bold uppercase text-slate-500">B. Phương thức phân bổ tệp</div>
+                        <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
+                          <button
+                            type="button"
+                            onClick={() => setAssignmentStrategy('shared')}
+                            className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${assignmentStrategy === 'shared' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                          >
+                            Đồng bộ ({activeLotIds.size} lô)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAssignmentStrategy('smart')}
+                            className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${assignmentStrategy === 'smart' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                          >
+                            Tự khớp Mã hàng
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-tight">
+                          {assignmentStrategy === 'shared'
+                            ? 'Gắn cùng 1 bộ tệp/link cho toàn bộ các lô được chọn.'
+                            : 'Đọc tên file (VD: 9690-C17_QT.pdf) để gắn tự động vào đúng lô.'}
+                        </p>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div className="text-[10.5px] font-bold uppercase text-slate-500">C. Chế độ ghi dữ liệu</div>
+                        <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
+                          <button
+                            type="button"
+                            onClick={() => setWritePolicy('append')}
+                            className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${writePolicy === 'append' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                          >
+                            Cộng nối (Append)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWritePolicy('replace')}
+                            className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${writePolicy === 'replace' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                          >
+                            Ghi đè (Replace)
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-tight">
+                          {writePolicy === 'append'
+                            ? 'An toàn: Giữ nguyên tệp cũ và cộng nối thêm tệp mới vào danh sách.'
+                            : 'Cảnh báo: Xóa danh sách tệp cũ ở cột đã chọn và thay hoàn toàn bằng tệp mới.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step D: Unified Dropzone To Rộng Thoáng */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragOver(true);
+                      }}
+                      onDragLeave={() => setIsDragOver(false)}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${isDragOver
+                          ? 'border-slate-900 bg-slate-100'
+                          : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100/80 hover:border-slate-800'
+                        }`}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) Array.from(e.target.files).forEach(handleProcessFile);
+                        }}
+                      />
+                      <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-800">
+                        <span className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                          ↑
+                        </span>
+                        <span>Kéo thả nhiều tệp vào đây, hoặc <span className="underline">chọn tệp từ máy tính</span></span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Hỗ trợ PDF, Ảnh, Excel (Khuyến nghị &lt;50KB hoặc dán nhiều Link Google Drive / OneDrive bên dưới)
+                      </p>
+                    </div>
+
+                    {/* Multi-URL Cloud Paste Bar */}
+                    <form onSubmit={handleAddMultiUrls} className="flex flex-col sm:flex-row gap-2">
+                      <label htmlFor={urlInputId} className="sr-only">URL tài liệu</label>
+                      <input
+                        id={urlInputId}
+                        type="text"
+                        placeholder="Hoặc dán Link URL (Google Drive / OneDrive / Cloud)..."
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                        className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!urlInput.trim()}
+                        className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold whitespace-nowrap transition cursor-pointer disabled:opacity-40"
+                      >
+                        + Thêm Link
+                      </button>
+                    </form>
+
+                    {/* Quick Simulation Buttons */}
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap">
+                        DANH SÁCH TỆP CHỜ GẮN ({stagedFiles.length + stagedUrls.length})
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssignmentStrategy('smart');
+                            const dummyUrls: AttachmentItem[] = [
+                              { id: 'sim-1', name: '9690-C17_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/9690-C17', type: 'pdf', size: '34 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
+                              { id: 'sim-2', name: '2439-P2_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/2439-P2', type: 'pdf', size: '31 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
+                              { id: 'sim-3', name: '9967-G4_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/9967-G4', type: 'pdf', size: '45 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
+                              { id: 'sim-4', name: '1414-J39_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/1414-J39', type: 'pdf', size: '29 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
+                              { id: 'sim-5', name: '9764-V1_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/9764-V1', type: 'pdf', size: '38 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' }
+                            ];
+                            setStagedUrls(dummyUrls);
+                            playAudioCue('success');
+                            toast.success('Đã tải 5 file mẫu khớp Mã hàng theo chuẩn prototype!');
+                          }}
+                          className="px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-[10.5px] font-semibold whitespace-nowrap cursor-pointer"
+                        >
+                          ⚡ Thử kéo thả 5 file theo Mã hàng
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssignmentStrategy('shared');
+                            const sharedUrls: AttachmentItem[] = [
+                              { id: 'sh-1', name: 'Chung_Chi_Nhiet_Luyen_Yamaichi_Me08.pdf', url: 'https://drive.google.com/file/d/1A2B3C_Yamaichi_BatchCert/view', type: 'pdf', size: '44 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
+                              { id: 'sh-2', name: 'drive.google.com/folder/Lo-2810-Pin-DAC', url: 'https://drive.google.com/drive/folders/Lo-2810-Pin-DAC', type: 'link', size: 'Google Drive', uploadedAt: new Date().toISOString(), source: 'gdrive' }
+                            ];
+                            setStagedUrls(sharedUrls);
+                            playAudioCue('success');
+                            toast.success('Đã chuyển sang bộ tệp dùng chung cho toàn bộ lô!');
+                          }}
+                          className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 text-[10.5px] font-medium whitespace-nowrap cursor-pointer"
+                        >
+                          ⚡ Thử bộ file dùng chung
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Staged file list */}
+                    {(stagedFiles.length > 0 || stagedUrls.length > 0) && (
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        {stagedFiles.map((f, i) => (
+                          <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white transition">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-sm">📄</span>
+                              <span className="text-xs font-semibold text-slate-900 truncate">{f.name}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setStagedFiles(stagedFiles.filter((_, idx) => idx !== i))}
+                              className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        ))}
+                        {stagedUrls.map((u, i) => (
+                          <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white transition">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-sm">🔗</span>
+                              <div className="min-w-0">
+                                <span className="text-xs font-semibold text-slate-900 truncate block">{u.name}</span>
+                                <span className="text-[10px] text-slate-500 font-mono">[{u.source}] {u.size || 'Link Cloud'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <a href={u.url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-slate-900 text-xs">↗</a>
+                              <button
+                                type="button"
+                                onClick={() => setStagedUrls(stagedUrls.filter((_, idx) => idx !== i))}
+                                className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
+                              >
+                                🗑
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Standard Dynamic Editors */}
+              {Array.from(selectedFieldKeys)
+                .filter(k => k !== 'ncc_file1' && k !== 'ncc_giando' && k !== 'doc_po' && k !== 'doc_quote')
+                .map((key) => {
                   const def = BATCH_FIELDS_CONFIG.find((f) => f.key === key);
                   if (!def) return null;
                   const currentDistribution = calculateFieldDistribution(items, key as keyof QTItem);
@@ -611,13 +932,25 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                   return (
                     <div
                       key={key}
-                      className="rounded-xs border border-border bg-card p-3 space-y-1.5 shadow-2xs"
+                      className="border border-slate-200 rounded-xl p-3.5 bg-white shadow-sm space-y-2"
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold font-mono text-foreground">{def.label}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[240px]" title={currentDistribution}>
-                          Hiện tại: {currentDistribution}
-                        </span>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2 h-2 rounded-full bg-slate-900 shrink-0"></span>
+                          <span className="text-xs font-bold uppercase tracking-wide text-slate-900 whitespace-nowrap">{def.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[11px] text-slate-500 truncate max-w-[360px]" title={`Hiện tại: ${currentDistribution}`}>
+                            Hiện tại: <strong className="text-slate-700">{currentDistribution}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleField(key)}
+                            className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer shrink-0"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
 
                       {def.type === 'select' ? (
@@ -626,9 +959,9 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           onChange={(e) =>
                             setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))
                           }
-                          className="w-full h-7 rounded-xs border border-border bg-background px-2 text-xs font-mono text-foreground outline-none focus:border-primary"
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-slate-900 font-medium text-slate-900"
                         >
-                          <option value="">-- Giữ nguyên hoặc chọn giá trị mới --</option>
+                          <option value="">-- Chọn giá trị cập nhật đồng bộ --</option>
                           {def.options?.map((opt) => (
                             <option key={opt} value={opt}>
                               {opt || '(Trống)'}
@@ -642,7 +975,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           onChange={(e) =>
                             setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))
                           }
-                          className="w-full h-7 rounded-xs border border-border bg-background px-2 text-xs font-mono text-foreground outline-none focus:border-primary"
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-slate-900 font-medium text-slate-900"
                         />
                       ) : (
                         <input
@@ -655,254 +988,65 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                               [key]: def.type === 'number' ? Number(e.target.value) : e.target.value,
                             }))
                           }
-                          className="w-full h-7 rounded-xs border border-border bg-background px-2 text-xs font-mono text-foreground outline-none focus:border-primary"
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-slate-900 font-medium text-slate-900"
                         />
                       )}
                     </div>
                   );
                 })}
-              </div>
-            )}
-
-            {/* Special: Batch Document Upload Card */}
-            {(activeTab === 'documents' ||
-              selectedFieldKeys.has('ncc_file1') ||
-              selectedFieldKeys.has('ncc_giando') ||
-              selectedFieldKeys.has('doc_po') ||
-              selectedFieldKeys.has('doc_quote')) && (
-              <div className="rounded-xs border-2 border-primary/40 bg-secondary/15 p-3.5 space-y-3">
-                <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                  <span className="font-mono text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Upload size={14} className="text-primary" />
-                    TẢI LÊN TÀI LIỆU HÀNG LOẠT
-                  </span>
-                  <span className="text-[10px] font-mono text-muted-foreground">
-                    Kéo thả nhiều file hoặc dán link Cloud
-                  </span>
-                </div>
-
-                {/* 1. Chọn cột tài liệu đích */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase font-bold block">
-                    1. Cột tài liệu đích:
-                  </span>
-                  <div className="flex flex-wrap gap-2 text-xs font-mono">
-                    {[
-                      { key: 'ncc_file1', label: 'Chứng chỉ QT (ncc_file1)' },
-                      { key: 'ncc_giando', label: 'Giản đồ nhiệt (ncc_giando)' },
-                      { key: 'ncc_thongtinkhac1', label: 'File PO / Đơn hàng' },
-                      { key: 'ncc_thongtinkhac2', label: 'Báo giá NCC' },
-                    ].map((col) => (
-                      <label key={col.key} className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={targetDocColumns.has(col.key)}
-                          onChange={() => toggleDocColumn(col.key)}
-                          className="accent-primary rounded-xs"
-                        />
-                        <span className="text-xs">{col.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Chiến lược phân bổ tệp */}
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                  <div>
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">
-                      2. Phân bổ tệp:
-                    </span>
-                    <div className="flex rounded-xs border border-border overflow-hidden p-0.5 bg-background">
-                      <button
-                        type="button"
-                        onClick={() => setAssignmentStrategy('shared')}
-                        className={`flex-1 py-1 text-center text-[10px] font-bold rounded-xs cursor-pointer ${
-                          assignmentStrategy === 'shared' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        Gắn đồng bộ (Shared)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAssignmentStrategy('smart')}
-                        className={`flex-1 py-1 text-center text-[10px] font-bold rounded-xs cursor-pointer ${
-                          assignmentStrategy === 'smart' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        Smart Match (Mã hàng)
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 3. Chính sách ghi dữ liệu */}
-                  <div>
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">
-                      3. Chính sách ghi:
-                    </span>
-                    <div className="flex rounded-xs border border-border overflow-hidden p-0.5 bg-background">
-                      <button
-                        type="button"
-                        onClick={() => setWritePolicy('append')}
-                        className={`flex-1 py-1 text-center text-[10px] font-bold rounded-xs cursor-pointer ${
-                          writePolicy === 'append' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        Cộng nối (Append)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setWritePolicy('replace')}
-                        className={`flex-1 py-1 text-center text-[10px] font-bold rounded-xs cursor-pointer ${
-                          writePolicy === 'replace' ? 'bg-amber-600 text-white' : 'text-muted-foreground'
-                        }`}
-                      >
-                        Ghi đè (Replace)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dropzone */}
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragOver(true);
-                  }}
-                  onDragLeave={() => setIsDragOver(false)}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xs border-2 border-dashed transition-all cursor-pointer ${
-                    isDragOver
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border/80 hover:border-primary/50 bg-background/50'
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files) Array.from(e.target.files).forEach(handleProcessFile);
-                    }}
-                  />
-                  <Upload size={16} className="text-primary/70 mb-1" />
-                  <p className="text-xs font-mono font-medium text-foreground">
-                    Kéo thả nhiều file vào đây (PDF &lt;50KB, Ảnh tự nén &lt;45KB)
-                  </p>
-                </div>
-
-                {/* Multi-URL Input */}
-                <form onSubmit={handleAddMultiUrls} className="space-y-1.5">
-                  <div className="flex gap-1.5">
-                    <label htmlFor={urlInputId} className="sr-only">URL tài liệu</label>
-                    <input
-                      id={urlInputId}
-                      type="text"
-                      placeholder="Dán hàng loạt link Google Drive / OneDrive (cách bởi dấu phẩy/xuống dòng)..."
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      className="flex-1 h-7 rounded-xs border border-border bg-background px-2 text-xs font-mono placeholder:text-muted-foreground/60 outline-none focus:border-primary"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!urlInput.trim()}
-                      className="h-7 px-3 rounded-xs border border-border bg-secondary hover:bg-secondary/80 font-mono text-xs font-bold text-foreground transition-colors disabled:opacity-40 cursor-pointer shrink-0"
-                    >
-                      Thêm Link
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Ghi chú ngắn (tùy chọn)..."
-                    value={urlNote}
-                    onChange={(e) => setUrlNote(e.target.value)}
-                    className="w-full h-6 rounded-xs border border-border/70 bg-background/70 px-2 text-[11px] font-sans placeholder:text-muted-foreground/50 outline-none focus:border-primary"
-                  />
-                </form>
-
-                {/* Staged files & Smart Match trigger */}
-                {(stagedFiles.length > 0 || stagedUrls.length > 0) && (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-foreground">
-                        Tệp chờ tải ({stagedFiles.length + stagedUrls.length})
-                      </span>
-                      {assignmentStrategy === 'smart' && (
-                        <button
-                          type="button"
-                          onClick={handleSmartMatch}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs bg-primary text-primary-foreground text-[10px] font-bold cursor-pointer hover:bg-primary/90"
-                        >
-                          <Sparkles size={11} />
-                          Chạy Smart Match
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                      {stagedFiles.map((f, i) => (
-                        <span
-                          key={i}
-                          className="px-1.5 py-0.5 rounded-xs bg-muted font-mono text-[10px] text-foreground border border-border truncate max-w-[200px]"
-                        >
-                          {f.name}
-                        </span>
-                      ))}
-                      {stagedUrls.map((u, i) => (
-                        <span
-                          key={i}
-                          className="px-1.5 py-0.5 rounded-xs bg-sky-500/10 text-sky-600 dark:text-sky-400 font-mono text-[10px] border border-sky-500/30 truncate max-w-[200px]"
-                        >
-                          [{u.source}] {u.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
           </div>
 
-          {/* CỘT PHẢI (40%): Live Impact Preview & Interactive Lots List */}
-          <div className="md:col-span-5 flex flex-col overflow-hidden p-4 space-y-3 bg-muted/10 max-h-[calc(88vh-120px)]">
-            {/* Header controls: Search & Quick Selection buttons */}
-            <div className="space-y-2 shrink-0">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="font-bold text-foreground">
-                  Danh sách lô áp dụng ({activeLotIds.size}/{items.length})
+          {/* CỘT PHẢI (5/12 ~ 42%): DANH SÁCH LÔ ÁP DỤNG & LIVE DIFF PREVIEW (KHÔNG AUDIT TRAIL) */}
+          <div className="lg:col-span-5 flex flex-col min-h-0 bg-slate-50/50">
+            <div className="p-4 border-b border-slate-200 bg-white space-y-2.5 shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 whitespace-nowrap">
+                    2. Danh sách lô áp dụng & Xem trước (Live Diff)
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap">
+                    Có thể bỏ tích từng lô ngoại lệ ngay bên dưới trước khi xác nhận
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-[11px] font-semibold whitespace-nowrap shrink-0">
+                  {activeLotIds.size} / {items.length} lô
                 </span>
+              </div>
+
+              {/* Filter & Search inside lots */}
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Lọc mã hàng, mã đơn trong danh sách..."
+                    value={lotSearch}
+                    onChange={(e) => setLotSearch(e.target.value)}
+                    className="w-full pl-7 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
+                  />
+                </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setActiveLotIds(new Set(items.map((i) => i.ID_Key)))}
-                    className="px-1.5 py-0.5 text-[10px] font-mono rounded-xs border border-border bg-secondary hover:bg-secondary/80 text-foreground cursor-pointer"
+                    className="px-2 py-1 rounded bg-white text-slate-900 font-semibold border border-slate-200 text-[11px] shadow-xs cursor-pointer hover:bg-slate-50"
                   >
                     Tất cả
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveLotIds(new Set())}
-                    className="px-1.5 py-0.5 text-[10px] font-mono rounded-xs border border-border bg-secondary hover:bg-secondary/80 text-foreground cursor-pointer"
+                    className="px-2 py-1 rounded text-slate-600 hover:text-slate-900 border border-slate-200 text-[11px] cursor-pointer hover:bg-slate-50"
                   >
                     Bỏ chọn
                   </button>
                 </div>
               </div>
-
-              <div className="relative">
-                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Lọc lô theo mã hàng / đơn hàng..."
-                  value={lotSearch}
-                  onChange={(e) => setLotSearch(e.target.value)}
-                  className="w-full h-6 rounded-xs border border-border bg-background pl-7 pr-2 text-xs font-mono placeholder:text-muted-foreground/60 outline-none focus:border-primary"
-                />
-              </div>
             </div>
 
-            {/* Interactive Lots List with Live Diff */}
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {/* Full-height Scrollable Lot List with Real-time Diff Badges */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {items
                 .filter((item) => {
                   if (!lotSearch.trim()) return true;
@@ -921,14 +1065,13 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                   return (
                     <div
                       key={lot.ID_Key}
-                      className={`p-2.5 rounded-xs border transition-colors ${
-                        isChecked
-                          ? 'border-border bg-card shadow-2xs'
-                          : 'border-border/40 bg-muted/20 opacity-60'
-                      }`}
+                      className={`p-2.5 rounded-lg border transition ${isChecked
+                          ? 'bg-white border-slate-200 shadow-sm'
+                          : 'bg-slate-100/60 border-slate-200 opacity-60'
+                        }`}
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer min-w-0">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -938,35 +1081,34 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                               else next.delete(lot.ID_Key);
                               setActiveLotIds(next);
                             }}
-                            className="accent-primary rounded-xs shrink-0"
+                            className="w-3.5 h-3.5 accent-slate-900 rounded cursor-pointer shrink-0"
                           />
-                          <div className="overflow-hidden flex-1 min-w-0">
-                            <span className="font-mono font-bold text-foreground block truncate">
-                              {lot.ma_hang || lot.ID_Key}
-                            </span>
-                            <span className="font-mono text-[10px] text-muted-foreground block truncate">
-                              {lot.so_dat_hang || '—'} • {lot.phong_sx || 'Xưởng'} • {lot.TrangThai || 'Trạng thái'}
-                            </span>
-                          </div>
+                          <span className="font-mono text-[11px] font-bold text-slate-800">{lot.ID_Key}</span>
+                          <span className="font-bold text-xs text-slate-900">{lot.ma_hang}</span>
+                          {lot.phong_sx && (
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">{lot.phong_sx}</span>
+                          )}
                         </label>
+                        <span className="text-[10.5px] font-medium text-slate-500 shrink-0">{lot.TrangThai || '—'}</span>
                       </div>
 
                       {/* Live Diff Badges */}
                       {isChecked && (
-                        <div className="mt-1.5 pt-1.5 border-t border-border/60">
+                        <div className="mt-1.5 pl-5 flex flex-wrap gap-1">
                           {diffs.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {diffs.map((d, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-primary/10 border border-primary/20 font-mono text-[10px] text-primary"
-                                >
-                                  <b>{d.label}:</b> {d.from} <ArrowRight size={10} /> {d.to}
-                                </span>
-                              ))}
-                            </div>
+                            diffs.map((d, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-[10px]"
+                              >
+                                <span className="text-slate-500">{d.label}:</span>
+                                <span className="line-through text-slate-400">{d.from}</span>
+                                <span>→</span>
+                                <strong className="text-slate-900">{d.to}</strong>
+                              </span>
+                            ))
                           ) : (
-                            <span className="font-mono text-[10px] text-muted-foreground/60 italic">
+                            <span className="text-[10px] text-slate-400 italic">
                               — Chưa có thông số thay đổi
                             </span>
                           )}
@@ -979,35 +1121,35 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
           </div>
         </div>
 
-        {/* 3. Sticky Footer */}
-        <div className="border-t border-border px-5 py-3 bg-muted/30 flex items-center justify-between shrink-0">
-          <div className="font-mono text-xs text-muted-foreground">
-            Sẵn sàng cập nhật{' '}
-            <b className="text-foreground">{selectedFieldKeys.size}</b> thông số &{' '}
-            <b className="text-foreground">{stagedFiles.length + stagedUrls.length}</b> tài liệu cho{' '}
-            <b className="text-primary">{candidatePatchMap.size}</b>/{items.length} lô
+        {/* 3. Modal Sticky Footer */}
+        <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>
+              Đang chọn cập nhật <strong className="text-slate-900">{selectedFieldKeys.size} thông số/tài liệu</strong> đồng bộ cho <strong className="text-slate-900">{activeLotIds.size} lô</strong> (Không yêu cầu Audit Trail).
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="h-7 px-3 rounded-xs border border-border bg-secondary hover:bg-secondary/80 font-mono text-xs font-semibold text-foreground transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition cursor-pointer"
             >
-              Hủy (Esc)
+              Hủy
             </button>
             <button
               type="button"
               disabled={activeLotIds.size === 0 || totalModificationsCount === 0}
               onClick={handleConfirmSubmit}
-              className="h-7 px-4 rounded-xs bg-primary hover:bg-primary/90 font-mono text-xs font-bold text-primary-foreground transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 shadow-xs"
+              className="px-5 py-2 rounded-lg bg-[#111827] hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Check size={13} />
-              Xác nhận cập nhật ({candidatePatchMap.size} lô)
+              <Check size={14} />
+              <span>Xác nhận ({candidatePatchMap.size} lô)</span>
             </button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };

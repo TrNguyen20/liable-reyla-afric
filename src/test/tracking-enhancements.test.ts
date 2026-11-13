@@ -133,7 +133,7 @@ describe('Tracking Grid Enhancements & Bug Fixes Suite', () => {
       expect(trackingTsx).toContain("≥");
       expect(trackingTsx).toContain("≤");
 
-      // 2. Quốc gia
+      // 2. NƯỚC
       expect(trackingTsx).toContain("key: 'countries'");
       expect(trackingTsx).toContain("t('tracking.columns.country')");
 
