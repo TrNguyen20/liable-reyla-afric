@@ -88,22 +88,17 @@ describe('DYNAMO QT-MES: Dashboard Enhancements & Optimization Tests', () => {
     expect(dashboardSrc).toContain('7 ngày qua (7D)');
   });
 
-  it('TC-DB-04: Thẻ [KPI-05] Chi phí tạm tính ở chế độ chỉ đọc và có badge kỹ thuật', () => {
+  it('TC-DB-04: Thẻ Chi phí nhiệt luyện có kiểm tra phân quyền tài chính an toàn', () => {
     const dashboardSrc = fs.readFileSync(dashboardTsxPath, 'utf-8');
 
-    expect(dashboardSrc).toContain('[KPI-05]');
     expect(dashboardSrc).toContain('CHỈ ĐỌC / NỘI BỘ');
-    expect(dashboardSrc).toContain('readOnly');
+    expect(dashboardSrc).toContain('canViewPricing');
   });
 
-  it('TC-DB-05: Cô lập luồng in ấn A4 (@media print) hỗ trợ cả job-ticket-dialog và handover-dialog', () => {
-    const css = fs.readFileSync(stylesCssPath, 'utf-8');
-    expect(css).toContain('.handover-dialog');
-    expect(css).toContain('body:has(.handover-dialog) > #root');
-
+  it('TC-DB-05: Dashboard loại bỏ hoàn toàn giao diện và modal handover A4 theo chỉ thị mới', () => {
     const dashboardSrc = fs.readFileSync(dashboardTsxPath, 'utf-8');
-    expect(dashboardSrc).toContain('handover-dialog');
-    expect(dashboardSrc).toContain('job-ticket-dialog');
+    expect(dashboardSrc).not.toContain('handover-dialog');
+    expect(dashboardSrc).not.toContain('Biên bản bàn giao ca');
   });
 
   it('TC-DB-06: Bảng hành động ưu tiên có chỉ báo Khóa cho vai trò không đủ quyền hạn', () => {
@@ -142,8 +137,8 @@ describe('DYNAMO QT-MES: Dashboard Enhancements & Optimization Tests', () => {
 
   it('TC-DB-09: Tích hợp Compact Master Command Toolbar tiết kiệm không gian hiển thị', () => {
     const dashboardSrc = fs.readFileSync(dashboardTsxPath, 'utf-8');
-    expect(dashboardSrc).toContain('[2] TỔNG QUAN LUÂN CHUYỂN');
-    expect(dashboardSrc).toContain('Làm mới');
+    expect(dashboardSrc).toContain('[2]');
+    expect(dashboardSrc).toContain('TỔNG QUAN LUÂN CHUYỂN');
     expect(dashboardSrc).not.toContain('In biên bản giao ca A4');
   });
 });

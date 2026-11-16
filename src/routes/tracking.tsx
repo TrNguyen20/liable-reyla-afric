@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { AttachmentCell } from '@/components/tracking/attachment-field';
 import { DateCell } from '@/components/tracking/date-cell';
 import { BatchOperationsModal } from '@/components/tracking/batch-operations-modal';
+import { CountryCellBadge } from '@/components/common/vietnam-flag';
 import { useDynamo } from '@/components/dynamo-shell';
 import { useTranslation } from '@/i18n';
 import { playAudioCue } from '@/lib/audio-cues';
@@ -3204,7 +3205,7 @@ function Tracking() {
                         {/* 4. NƯỚC */}
                         {isColVisible('quoc_gia') && (
                           <td className={`whitespace-nowrap px-2 ${padY} text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.quoc_gia}px` }}>
-                            {r.quoc_gia || 'Vietnam'}
+                            <CountryCellBadge country={r.quoc_gia} showText={true} />
                           </td>
                         )}
 

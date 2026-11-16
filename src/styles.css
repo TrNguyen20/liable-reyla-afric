@@ -459,3 +459,25 @@
 .animate-slide-up {
   animation: slideUpFade 0.18s ease-out forwards;
 }
+
+/* Subtle Flag Wave Animation for Industrial MES Grid */
+@keyframes flagWave {
+  0%, 100% {
+    transform: perspective(200px) rotateY(0deg) skewY(0deg);
+  }
+  25% {
+    transform: perspective(200px) rotateY(5deg) skewY(1deg) translateY(-0.5px);
+  }
+  50% {
+    transform: perspective(200px) rotateY(0deg) skewY(-0.5deg);
+  }
+  75% {
+    transform: perspective(200px) rotateY(-5deg) skewY(-1deg) translateY(0.5px);
+  }
+}
+
+.animate-flag-wave {
+  transform-origin: left center;
+  animation: flagWave 3.2s ease-in-out infinite;
+  will-change: transform;
+}
