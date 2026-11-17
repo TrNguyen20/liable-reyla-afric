@@ -58,20 +58,28 @@ export function ShopfloorTelemetry() {
     let waiting = 0;
     let atVendor = 0;
     let stocked = 0;
-    let kg = 0;
+    let kg = 0; // Hàng đang tại Vendor (ngoài xưởng)
     let pcs = 0;
+    let waitingKg = 0; // Hàng chờ xuất xưởng (nội bộ)
+    let waitingPcs = 0;
     const wsMap: Record<string, number> = { PIN: 0, INSERT: 0, MOLD: 0 };
 
     for (let i = 0; i < filtered.length; i++) {
       const r = filtered[i];
       if (!r) continue;
-      if (r.TrangThai === "Chờ xuất xưởng") waiting++;
-      else if (r.TrangThai === "Đang tại Vendor") atVendor++;
-      else if (r.TrangThai === "Đã nhập kho") stocked++;
-
-      if (isOpen(r)) {
+      if (r.TrangThai === "Chờ xuất xưởng") {
+        waiting++;
+        if (r.don_vi_tinh === "Kg") waitingKg += r.kg_Lot;
+        else waitingPcs += r.so_luong;
+      } else if (r.TrangThai === "Đang tại Vendor") {
+        atVendor++;
         if (r.don_vi_tinh === "Kg") kg += r.kg_Lot;
         else pcs += r.so_luong;
+      } else if (r.TrangThai === "Đã nhập kho") {
+        stocked++;
+      }
+
+      if (isOpen(r)) {
         const count = wsMap[r.phong_sx];
         if (count !== undefined) wsMap[r.phong_sx] = count + 1;
       }
@@ -86,6 +94,8 @@ export function ShopfloorTelemetry() {
       open: waiting + atVendor,
       kg,
       pcs,
+      waitingKg,
+      waitingPcs,
       waiting,
       atVendor,
       stocked,
@@ -146,6 +156,11 @@ export function ShopfloorTelemetry() {
               {t("telemetry.ribbon.externalShort")}{" "}
               <b className="text-foreground">{number(m.kg, 1)}</b> kg /{" "}
               <b className="text-foreground">{number(m.pcs)}</b> pcs
+              {m.waitingKg > 0 && (
+                <span className="text-muted-foreground/80 ml-1.5 font-normal">
+                  (Chờ xuất: {number(m.waitingKg, 1)} kg)
+                </span>
+              )}
             </span>
             <span className="text-border/70">|</span>
             <span>
@@ -214,9 +229,16 @@ export function ShopfloorTelemetry() {
 
         {/* Cột 2: Khối lượng hàng ngoài xưởng */}
         <div className="px-4 py-2">
-          <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-            {t("telemetry.externalHeatTreatment")}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+              {t("telemetry.externalHeatTreatment")}
+            </p>
+            {m.waitingKg > 0 && (
+              <span className="font-mono text-[9px] text-muted-foreground/80 tabular-nums">
+                Chờ xuất: {number(m.waitingKg, 1)} kg
+              </span>
+            )}
+          </div>
           <p className="font-mono font-bold tabular-nums text-foreground">
             {number(m.kg, 1)}{" "}
             <span className="text-[11px] font-normal text-muted-foreground">kg</span>{" "}

@@ -86,6 +86,17 @@ const statusMap: Record<string, Status> = {
   "Đang tại Vendor": "Đang tại Vendor",
   "Kiểm tra QC": "Kiểm tra QC",
   "Đã nhập kho": "Đã nhập kho",
+  "Nhập kho": "Đã nhập kho",
+  "Hoàn tất": "Đã nhập kho",
+  "Đã hoàn thành": "Đã nhập kho",
+  "Đã giao": "Đã nhập kho",
+  "Đã nhận": "Đã nhập kho",
+  "DONE": "Đã nhập kho",
+  "Done": "Đã nhập kho",
+  "COMPLETED": "Đã nhập kho",
+  "OK": "Đã nhập kho",
+  "QC PASS": "Đã nhập kho",
+  "Đã về": "Đã nhập kho",
 };
 
 export type MapResult = {
@@ -169,9 +180,16 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
       "YAMAICHI") as Vendor;
     const cty_QT = cty_qt;
 
-    const trang_thai = (r["trang_thai"] ?? r["TrangThai"] ?? "").trim();
-    const TrangThai: Status = statusMap[trang_thai] ?? "Đang tại Vendor";
-    if (trang_thai && !statusMap[trang_thai]) unknownStatus.push(`${id_nhiet_qt}: "${trang_thai}"`);
+    const rawTrangThai = (
+      r["trang_thai"] ??
+      r["TrangThai"] ??
+      r["trangthai"] ??
+      r["TRANG_THAI"] ??
+      r["Trạng thái"] ??
+      r["status"] ??
+      ""
+    ).trim();
+    const trang_thai = rawTrangThai;
 
     const ten_file_dat_hang = (r["ten_file_dat_hang"] ?? "").trim() || undefined;
 
@@ -195,7 +213,34 @@ export function mapRows(rows: Record<string, string>[]): MapResult {
     const han_tra_est = !srcDue;
     if (!srcDue) estimatedDue++;
 
-    const ngay_nhan = toIsoDate(r["ncc_ngay_tra_qt"] ?? r["ngay_nhan_QT"]);
+    const rawNhan =
+      r["ngay_nhan"] ??
+      r["ngay_nhan_QT"] ??
+      r["Ngày nhận"] ??
+      r["NGAY_NHAN"] ??
+      r["ngay_tra_thuc_te"];
+    const ngay_nhan = toIsoDate(rawNhan);
+
+    // Resolve unified status
+    let TrangThai: Status = "Đang tại Vendor";
+    if (trang_thai && statusMap[trang_thai]) {
+      TrangThai = statusMap[trang_thai];
+    } else if (ngay_nhan) {
+      TrangThai = "Đã nhập kho";
+    } else if (trang_thai) {
+      // Chuỗi lạ không nằm trong statusMap
+      unknownStatus.push(`${id_nhiet_qt}: "${trang_thai}"`);
+      TrangThai = "Đang tại Vendor";
+    } else {
+      // Không có trang_thai trong cột nguồn
+      if (ncc_ket_qua_qc || ncc_ket_qua_hrc) {
+        TrangThai = "Kiểm tra QC";
+      } else if (ncc_ngay_qt || ngay_gui_qt) {
+        TrangThai = "Đang tại Vendor";
+      } else {
+        TrangThai = "Chờ xuất xưởng";
+      }
+    }
     if (
       ((r["ngay_gui_qt"] ?? r["ngay_gui_QT"]) &&
         !toIsoDate(r["ngay_gui_qt"] ?? r["ngay_gui_QT"])) ||

@@ -575,7 +575,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
       {bare ? (
         children
       ) : (
-        <div className="min-h-screen md:h-screen md:max-h-[100dvh] md:overflow-hidden bg-background text-foreground flex flex-col">
+        <div className="h-screen max-h-[100dvh] overflow-hidden bg-background text-foreground flex flex-col">
           {!isOnline && (
             <div className="shrink-0 flex items-center justify-center gap-2 border-b border-warning/60 bg-warning/20 px-4 py-1.5 text-center font-mono text-xs font-bold text-warning">
               <WifiOff size={13} />
@@ -608,7 +608,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
                 {/* Inline Nav Tabs with Segmented Rail Styling */}
                 <nav
-                  className="flex items-center gap-0.5 rounded-xs border border-border/70 bg-secondary/35 p-0.5 overflow-x-auto"
+                  className="flex items-center gap-0.5 rounded-xs border border-border/70 bg-secondary/35 p-0.5 overflow-x-auto scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   aria-label={t("nav.ariaLabel") || "Thanh điều hướng chính"}
                 >
                   {visibleNav.map((n) => {
