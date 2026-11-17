@@ -3570,7 +3570,7 @@ function Tracking() {
                             <AttachmentCell
                               field="ten_file_dat_hang"
                               title={t('tracking.columns.orderPdf') || 'FILE PO'}
-                              lotCode={r.id_ma_hang || r.ma_hang}
+                              lotCode={r.ma_hang || r.id_ma_hang}
                               workshop={r.phong_sx}
                               material={r.vat_lieu}
                               value={r.ten_file_dat_hang}
@@ -3734,9 +3734,10 @@ function Tracking() {
                             <AttachmentCell
                               field="ncc_giando"
                               title={t('tracking.columns.vendorHeatDiagram') || 'Giản đồ nhiệt'}
-                              lotCode={r.id_ma_hang || r.ma_hang}
+                              lotCode={r.ma_hang || r.id_ma_hang}
                               workshop={r.phong_sx}
                               material={r.vat_lieu}
+                              requiredHardness={r.do_cung}
                               value={r.ncc_giando}
                               canEdit={canEdit}
                               onChange={(newVal) => {
@@ -4006,7 +4007,7 @@ function Tracking() {
                             <AttachmentCell
                               field="ncc_file1"
                               title={t('tracking.columns.vendorQcCert') || 'CHỨNG CHỈ QT'}
-                              lotCode={r.id_ma_hang || r.ma_hang}
+                              lotCode={r.ma_hang || r.id_ma_hang}
                               workshop={r.phong_sx}
                               material={r.vat_lieu}
                               value={r.ncc_file1}

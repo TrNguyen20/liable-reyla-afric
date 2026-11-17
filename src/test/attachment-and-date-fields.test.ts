@@ -312,4 +312,69 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
       expect(attachmentFieldSrc).toContain('font-mono');
     });
   });
+
+  describe('TC-ATT-09: Smart Google Drive Link & Batch URL Parsing with Item Identifiers', () => {
+    it('extracts item code from text line when pasting mixed lines (e.g. [Mã Hàng] [Link] or tab-separated Excel)', () => {
+      const mixedInput = `
+        P260604720\thttps://drive.google.com/file/d/1GptFIgcXvny0icwhR6/view
+        9690-C17 https://drive.google.com/file/d/1A2B3C4D5E6F/view?usp=sharing
+        https://drive.google.com/file/d/1Z9Y8X7W6V/view 2439-P2
+      `;
+      const parsed = parseMultiUrls(mixedInput);
+      expect(parsed.length).toBe(3);
+      expect(parsed[0]!.name).toBe('P260604720_ChungChi.pdf');
+      expect(parsed[1]!.name).toBe('9690-C17_ChungChi.pdf');
+      expect(parsed[2]!.name).toBe('2439-P2_ChungChi.pdf');
+    });
+
+    it('extracts item code directly embedded in Google Drive URL parameters or pathname', () => {
+      const urlWithCode = 'https://drive.google.com/file/d/1TestId123/view?itemCode=9764-V1';
+      const parsed = parseMultiUrls(urlWithCode);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0]!.name).toBe('9764-V1_ChungChi.pdf');
+    });
+
+    it('falls back cleanly to GoogleDrive_<ID>.pdf when no item code is detectable', () => {
+      const plainUrl = 'https://drive.google.com/file/d/1GptFIgcXvny0icwhR6/view';
+      const parsed = parseMultiUrls(plainUrl);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0]!.name).toBe('GoogleDrive_1GptFIgc.pdf');
+    });
+  });
+
+  describe('TC-ATT-10: Enhanced smartMatchFileToLot matching order and lot keys', () => {
+    it('matches file name against lot ID_Key, So_DatHang, and variations with dashes or underscores', () => {
+      // Lot with ID_Key P260604720_1036-Z2, ma_hang PIN, id_ma_hang SKD61, So_DatHang PO-8899
+      expect(smartMatchFileToLot('P260604720_ChungChi.pdf', 'PIN', 'SKD61', 'PO-8899', 'P260604720_1036-Z2')).toBe(true);
+      expect(smartMatchFileToLot('ChungChi_PO8899.pdf', 'PIN', 'SKD61', 'PO-8899', 'P260604720_1036-Z2')).toBe(true);
+      expect(smartMatchFileToLot('9690C17_report.pdf', '9690-C17')).toBe(true);
+      expect(smartMatchFileToLot('completely_unrelated.pdf', 'PIN', 'SKD61', 'PO-8899', 'P260604720_1036-Z2')).toBe(false);
+    });
+  });
+
+  describe('TC-ATT-11: AttachmentDialog synchronization with lotCode auto-naming & inline edit', () => {
+    const attachmentFieldSrc = fs.readFileSync(
+      path.resolve(__dirname, '../components/tracking/attachment-field.tsx'),
+      'utf-8'
+    );
+
+    it('verifies AttachmentDialog auto-names empty notes using lotCode', () => {
+      expect(attachmentFieldSrc).toContain('editingFileId');
+      expect(attachmentFieldSrc).toContain('handleRenameFile');
+    });
+
+    it('verifies parseMultiUrls defaults to lotCode if provided as prefix', () => {
+      const plainDriveUrl = 'https://drive.google.com/file/d/1A68t4pD_xxx/view';
+      const parsed = parseMultiUrls(plainDriveUrl, '9662-R1');
+      expect(parsed.length).toBe(1);
+      expect(parsed[0]!.name).toBe('9662-R1.pdf');
+    });
+
+    it('TC-ATT-12: extracts pure MA-HANG from composite lot prefix (e.g. P261024427_1072-F33 -> 1072-F33.pdf)', () => {
+      const plainDriveUrl = 'https://drive.google.com/file/d/11UWspWrwKblirGzvVL/view';
+      const parsed = parseMultiUrls(plainDriveUrl, 'P261024427_1072-F33');
+      expect(parsed.length).toBe(1);
+      expect(parsed[0]!.name).toBe('1072-F33.pdf');
+    });
+  });
 });

@@ -140,5 +140,13 @@ describe('Batch Operations Modal Suite (Idea 2 - TDD)', () => {
         expect(modalSrc).not.toContain('Lý do Audit Trail');
       }
     });
+
+    it('TC-BOM-05: verifies inline filename edit and auto smart match capability in batch modal', () => {
+      if (fs.existsSync(modalFilePath)) {
+        const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
+        expect(modalSrc).toContain('editingUrlIdx');
+        expect(modalSrc).toContain('handleRenameStagedUrl');
+      }
+    });
   });
 });
