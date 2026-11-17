@@ -18,10 +18,17 @@ import {
   ZoomOut,
   RotateCw,
   RefreshCw,
+  PenLine,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from '@/components/ui/hover-card';
 import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
+import { HeatCycleModal, HeatTreatmentCycle } from '@/components/technical-charts';
 
 export type AttachmentType = 'pdf' | 'image' | 'excel' | 'doc' | 'link';
 export type CloudSource = 'gdrive' | 'onedrive' | 'sharepoint' | 'generic';
@@ -101,6 +108,36 @@ export function extractFileName(url: string, defaultPrefix = 'tệp_đính_kèm'
 
     // Thông minh: Nếu là link Google Drive, không lấy tên cụt là 'view' hay 'edit'
     if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) {
+      // 0. Nếu defaultPrefix được truyền vào là một mã hàng cụ thể (không phải prefix chung chung như tệp_đính_kèm/Liên kết/Tài liệu)
+      const isGenericPrefix = !defaultPrefix || 
+        defaultPrefix === 'tệp_đính_kèm' || 
+        defaultPrefix === 'Liên kết' || 
+        defaultPrefix === 'Tài liệu' ||
+        defaultPrefix === 'link';
+      if (!isGenericPrefix) {
+        let cleanPrefix = defaultPrefix.trim().replace(/\.pdf$/i, '');
+        // Tự động bóc tách chỉ giữ lại Mã Hàng nếu prefix là mã gộp dạng P261024427_1072-F33
+        if (cleanPrefix.includes('_')) {
+          const parts = cleanPrefix.split('_');
+          const lastPart = parts[parts.length - 1];
+          if (lastPart && lastPart.length >= 2) {
+            cleanPrefix = lastPart;
+          }
+        }
+        return `${cleanPrefix}.pdf`;
+      }
+
+      // 1. Kiểm tra xem query parameters có mang mã hàng / tên gợi nhớ không
+      const itemCodeParam = parsed.searchParams.get('itemCode') || 
+                            parsed.searchParams.get('ma_hang') || 
+                            parsed.searchParams.get('code') || 
+                            parsed.searchParams.get('title') ||
+                            parsed.searchParams.get('name');
+      if (itemCodeParam && itemCodeParam.trim()) {
+        const cleanCode = itemCodeParam.trim().replace(/\.pdf$/i, '');
+        return `${cleanCode}_ChungChi.pdf`;
+      }
+
       const match = parsed.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
       if (match && match[1]) {
         return `GoogleDrive_${match[1].slice(0, 8)}.pdf`;
@@ -148,7 +185,7 @@ export function middleTruncate(name: string, maxLength = 26): string {
 }
 
 /** Parses raw cell string (single URL, comma/newline separated, or JSON array) */
-export function parseAttachments(raw: string | null | undefined): AttachmentItem[] {
+export function parseAttachments(raw: string | null | undefined, defaultPrefix?: string): AttachmentItem[] {
   if (!raw || !raw.trim()) return [];
   const trimmed = raw.trim();
 
@@ -161,7 +198,7 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
           .filter((item) => item && typeof item === 'object' && item.url)
           .map((item, idx) => ({
             id: String(item.id || `att-${idx}-${Date.now()}`),
-            name: String(item.name || extractFileName(item.url)),
+            name: String(item.name || extractFileName(item.url, defaultPrefix)),
             url: String(item.url),
             type: item.type || inferFileType(item.url, item.name),
             source: item.source || detectCloudSource(item.url),
@@ -181,7 +218,7 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
     return [
       {
         id: 'att-data-1',
-        name: extractFileName(trimmed),
+        name: extractFileName(trimmed, defaultPrefix),
         url: trimmed,
         type: inferFileType(trimmed),
         source: 'generic',
@@ -198,7 +235,7 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
   if (lines.length > 1) {
     return lines.map((url, idx) => ({
       id: `att-${idx}-${idx * 17}`,
-      name: extractFileName(url),
+      name: extractFileName(url, defaultPrefix),
       url,
       type: inferFileType(url),
       source: detectCloudSource(url),
@@ -209,7 +246,7 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
   return [
     {
       id: 'att-single-1',
-      name: extractFileName(trimmed),
+      name: extractFileName(trimmed, defaultPrefix),
       url: trimmed,
       type: inferFileType(trimmed),
       source: detectCloudSource(trimmed),
@@ -220,24 +257,56 @@ export function parseAttachments(raw: string | null | undefined): AttachmentItem
 /** Parses multi-line or comma separated URLs into structured AttachmentItems */
 export function parseMultiUrls(rawText: string, defaultPrefix = 'Liên kết'): AttachmentItem[] {
   if (!rawText || !rawText.trim()) return [];
-  const lines = rawText
-    .split(/[\n,;]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+
+  // Tách theo dòng trước để bảo toàn từng dòng có thể chứa cặp [Mã Hàng] [Link]
+  const rawLines = rawText.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  const candidateEntries: { url: string; lineHint?: string }[] = [];
+
+  const urlRegex = /(https?:\/\/[^\s,;]+)/g;
+
+  for (const line of rawLines) {
+    const urlsInLine = line.match(urlRegex);
+    if (urlsInLine && urlsInLine.length > 0) {
+      for (const u of urlsInLine) {
+        // Lấy phần text còn lại trong dòng trừ link ra để tìm gợi ý mã hàng
+        const remainingText = line.replace(u, '').trim();
+        candidateEntries.push({ url: u, lineHint: remainingText });
+      }
+    } else {
+      // Trường hợp dán danh sách URL phân tách bằng phẩy hoặc chấm phẩy trên cùng 1 dòng
+      const parts = line.split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+      for (const p of parts) {
+        if (/^https?:\/\//i.test(p)) {
+          candidateEntries.push({ url: p });
+        }
+      }
+    }
+  }
 
   const validUrls: AttachmentItem[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const candidate = lines[i];
-    if (!candidate) continue;
+  for (let i = 0; i < candidateEntries.length; i++) {
+    const entry = candidateEntries[i];
+    if (!entry) continue;
     try {
-      new URL(candidate);
-      const cloud = detectCloudSource(candidate);
-      const name = extractFileName(candidate, defaultPrefix);
+      new URL(entry.url);
+      const cloud = detectCloudSource(entry.url);
+
+      // Nếu có lineHint chứa mã nhận diện (VD: P260604720, 9690-C17, 2439-P2)
+      let customName = '';
+      if (entry.lineHint) {
+        const cleanHint = entry.lineHint.replace(/[\t\r\n:,]+/g, ' ').trim();
+        const codeToken = cleanHint.split(/\s+/).find((t) => /^[A-Za-z0-9_-]{3,}$/.test(t));
+        if (codeToken) {
+          customName = `${codeToken}_ChungChi.pdf`;
+        }
+      }
+
+      const name = customName || extractFileName(entry.url, defaultPrefix);
       validUrls.push({
         id: `url-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
         name,
-        url: candidate,
-        type: inferFileType(candidate),
+        url: entry.url,
+        type: inferFileType(entry.url),
         source: cloud,
         size:
           cloud === 'gdrive'
@@ -256,11 +325,13 @@ export function parseMultiUrls(rawText: string, defaultPrefix = 'Liên kết'): 
   return validUrls;
 }
 
-/** Matches file name to lot code or part drawing code */
+/** Matches file name to lot code, part drawing code, order number or lot key */
 export function smartMatchFileToLot(
   fileName: string,
   lotCode?: string,
-  partCode?: string
+  partCode?: string,
+  orderNumber?: string,
+  lotKey?: string
 ): boolean {
   if (!fileName) return false;
   const cleanStr = (s: string) =>
@@ -272,17 +343,26 @@ export function smartMatchFileToLot(
   const cleanFile = cleanStr(fileName);
   if (!cleanFile) return false;
 
-  if (lotCode) {
-    const cleanLot = cleanStr(lotCode);
-    if (cleanLot && (cleanFile.includes(cleanLot) || cleanLot.includes(cleanFile))) {
-      return true;
+  // Thu thập các token con từ lotKey (VD: P260604720_1036-Z2 -> P260604720, 1036-Z2, 1036, Z2)
+  const lotKeyTokens: string[] = [];
+  if (lotKey) {
+    const rawTokens = lotKey.split(/[^a-zA-Z0-9]+/);
+    for (const t of rawTokens) {
+      if (t && t.length >= 3) {
+        lotKeyTokens.push(t);
+      }
     }
   }
 
-  if (partCode) {
-    const cleanPart = cleanStr(partCode);
-    if (cleanPart && (cleanFile.includes(cleanPart) || cleanPart.includes(cleanFile))) {
-      return true;
+  const candidates = [lotCode, partCode, orderNumber, lotKey, ...lotKeyTokens];
+  for (const cand of candidates) {
+    if (cand) {
+      const cleanCand = cleanStr(cand);
+      if (cleanCand && cleanCand.length >= 3) {
+        if (cleanFile.includes(cleanCand) || cleanCand.includes(cleanFile)) {
+          return true;
+        }
+      }
     }
   }
 
@@ -446,6 +526,7 @@ export interface AttachmentCellProps {
   lotCode?: string;
   workshop?: string;
   material?: string;
+  requiredHardness?: string;
   canEdit?: boolean;
   field: 'ncc_giando' | 'ncc_file1' | string;
 }
@@ -457,15 +538,17 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
   lotCode = '',
   workshop,
   material,
+  requiredHardness,
   canEdit = true,
   field,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const items = parseAttachments(value);
+  const isHeatCycleField = field === 'ncc_giando';
+  const items = isHeatCycleField ? [] : parseAttachments(value, lotCode);
 
   const handleOpenDialog = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!canEdit && items.length === 0) return;
+    if (!canEdit && !value && items.length === 0) return;
     setIsDialogOpen(true);
   };
 
@@ -476,10 +559,87 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
     }
   };
 
+  const handleSaveHeatCycle = (newShorthand: string) => {
+    if (onChange) {
+      onChange(newShorthand);
+    }
+  };
+
   return (
     <>
       <div className="flex h-6 max-w-full items-center select-none overflow-hidden">
-        {items.length === 0 ? (
+        {isHeatCycleField ? (
+          value && value.trim() ? (
+            <HoverCard openDelay={120} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleOpenDialog}
+                  title="Bấm để xem hoặc chỉnh sửa thông số chu trình nhiệt luyện"
+                  className="inline-flex items-center justify-center h-6 px-1.5 py-0.5 rounded-xs bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-2xs transition cursor-pointer active:scale-95 select-none"
+                >
+                  {/* Mini SVG Graphic - hoàn toàn thuần vector nét than chì, không còn chữ/tag QT */}
+                  <div className="w-[74px] h-[18px] flex items-center justify-center pointer-events-none">
+                    <HeatTreatmentCycle
+                      shorthand={value}
+                      variant="mini"
+                      width={74}
+                      height={18}
+                      showFrame={false}
+                    />
+                  </div>
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent
+                side="top"
+                align="center"
+                sideOffset={6}
+                className="z-50 w-[400px] rounded-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-2.5 shadow-xl text-slate-900 dark:text-slate-100 outline-none"
+              >
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1 mb-2">
+                  <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                    CHU TRÌNH NHIỆT LUYỆN
+                  </span>
+                  {lotCode && (
+                    <span className="font-mono text-[9.5px] font-semibold text-slate-500 dark:text-slate-400">
+                      {lotCode}
+                    </span>
+                  )}
+                </div>
+                <div className="bg-white p-1 rounded-xs border border-slate-200 dark:border-slate-800 flex justify-center">
+                  <HeatTreatmentCycle
+                    shorthand={value}
+                    width={370}
+                    height={76}
+                    showFrame={true}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between font-mono text-[9.5px]">
+                  <span className="text-slate-600 dark:text-slate-300 truncate max-w-[280px]" title={value}>
+                    {value}
+                  </span>
+                  <span className="text-slate-400 text-[9px] shrink-0">
+                    Bấm để hiệu chỉnh
+                  </span>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          ) : (
+            <button
+              type="button"
+              onClick={handleOpenDialog}
+              disabled={!canEdit}
+              title="Chưa có biểu đồ chu trình nhiệt luyện - Bấm để nạp thông số"
+              className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all ${
+                canEdit
+                  ? 'border-slate-200 dark:border-slate-700 bg-secondary/50 hover:bg-secondary text-slate-700 dark:text-slate-300 hover:border-amber-500/50 cursor-pointer active:scale-95'
+                  : 'border-slate-200/50 dark:border-slate-800 bg-secondary/20 text-muted-foreground/50 opacity-50 cursor-not-allowed'
+              } select-none`}
+            >
+              <span>+ Giản đồ</span>
+            </button>
+          )
+        ) : items.length === 0 ? (
           canEdit ? (
             <button
               type="button"
@@ -512,18 +672,32 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
       </div>
 
       {isDialogOpen && (
-        <AttachmentDialog
-          isOpen={isDialogOpen}
-          onClose={() => setIsDialogOpen(false)}
-          title={title}
-          lotCode={lotCode}
-          workshop={workshop}
-          material={material}
-          items={items}
-          onSave={handleSave}
-          canEdit={canEdit}
-          field={field}
-        />
+        isHeatCycleField ? (
+          <HeatCycleModal
+            isOpen={isDialogOpen}
+            onClose={() => setIsDialogOpen(false)}
+            lotCode={lotCode}
+            workshop={workshop}
+            material={material}
+            requiredHardness={requiredHardness}
+            value={value}
+            onSave={handleSaveHeatCycle}
+            canEdit={canEdit}
+          />
+        ) : (
+          <AttachmentDialog
+            isOpen={isDialogOpen}
+            onClose={() => setIsDialogOpen(false)}
+            title={title}
+            lotCode={lotCode}
+            workshop={workshop}
+            material={material}
+            items={items}
+            onSave={handleSave}
+            canEdit={canEdit}
+            field={field}
+          />
+        )
       )}
     </>
   );
@@ -569,6 +743,8 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
   const [imgZoom, setImgZoom] = useState(1);
   const [imgRotation, setImgRotation] = useState(0);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingFileId, setEditingFileId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState('');
   const confirmTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputId = useId();
@@ -644,7 +820,9 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
     const raw = pastedUrl.trim();
     if (!raw) return;
 
-    const parsedItems = parseMultiUrls(raw, urlNote.trim() || 'Tài liệu');
+    // Nếu để trống tên gợi nhớ, ưu tiên lấy theo Mã Hàng của lô (lotCode)
+    const effectivePrefix = urlNote.trim() || lotCode || 'Tài liệu';
+    const parsedItems = parseMultiUrls(raw, effectivePrefix);
     if (parsedItems.length === 0) {
       toast.error('Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)');
       return;
@@ -657,6 +835,21 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
     setUrlNote('');
     playAudioCue('success');
     toast.success(`Đã thêm ${parsedItems.length} liên kết tài liệu`);
+  };
+
+  const handleRenameFile = (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      setEditingFileId(null);
+      return;
+    }
+    const finalName = trimmed.toLowerCase().endsWith('.pdf') ? trimmed : `${trimmed}.pdf`;
+    const updated = fileList.map((f) => (f.id === id ? { ...f, name: finalName } : f));
+    setFileList(updated);
+    onSave(updated);
+    setEditingFileId(null);
+    playAudioCue('success');
+    toast.success(`Đã đổi tên tệp thành: ${finalName}`);
   };
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {
@@ -814,12 +1007,73 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                       key={file.id}
                       className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white hover:border-slate-300 shadow-sm transition"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2 flex-1">
                         {renderFileIcon(file.type, file.source)}
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-slate-900 truncate" title={file.name}>
-                            {middleTruncate(file.name, 28)}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          {editingFileId === file.id ? (
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleRenameFile(file.id, editingNameValue);
+                              }}
+                              className="flex items-center gap-1.5 py-0.5"
+                            >
+                              <input
+                                type="text"
+                                autoFocus
+                                value={editingNameValue}
+                                onChange={(e) => setEditingNameValue(e.target.value)}
+                                onBlur={() => handleRenameFile(file.id, editingNameValue)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') setEditingFileId(null);
+                                }}
+                                placeholder="Nhập tên tệp (VD: 9662-R1)..."
+                                className="h-6 px-2 text-xs font-mono font-bold border border-slate-900 rounded bg-white text-slate-900 focus:outline-none flex-1 max-w-[240px]"
+                              />
+                              <button
+                                type="submit"
+                                className="h-6 px-2 rounded bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingFileId(null)}
+                                className="h-6 px-1.5 text-slate-400 hover:text-slate-600 text-xs"
+                              >
+                                ✕
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="flex items-center gap-1.5 group/name">
+                              <p
+                                onClick={() => {
+                                  if (!canEdit) return;
+                                  setEditingFileId(file.id);
+                                  setEditingNameValue(file.name.replace(/\.pdf$/i, ''));
+                                }}
+                                className={`text-xs font-semibold text-slate-900 truncate block ${
+                                  canEdit ? 'hover:text-blue-700 hover:underline cursor-pointer' : ''
+                                }`}
+                                title={canEdit ? 'Click để sửa tên tệp hoặc mã hàng' : file.name}
+                              >
+                                {middleTruncate(file.name, 28)}
+                              </p>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingFileId(file.id);
+                                    setEditingNameValue(file.name.replace(/\.pdf$/i, ''));
+                                  }}
+                                  title="Click để sửa tên tệp hoặc mã hàng"
+                                  className="p-0.5 text-slate-400 hover:text-slate-900 opacity-60 group-hover/name:opacity-100 transition cursor-pointer"
+                                >
+                                  <PenLine size={12} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-[10.5px] text-slate-500 font-mono">
                             {file.size && <span>{file.size}</span>}
                             {file.source && file.source !== 'generic' && (

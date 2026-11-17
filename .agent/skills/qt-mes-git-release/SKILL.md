@@ -130,7 +130,7 @@ Giai đoạn này do **Người dùng chủ động thực hiện trên GitHub U
 
 ### GIAI ĐOẠN 3: Cập Nhật main Tại Local & Đánh Dấu Tag Phiên Bản Quốc Tế (SemVer)
 
-Thông báo người dùng thực thi Giai đoạn 2 đã được hoàn tất giai đoạn, song song đó, Agent sinh luôn khối lệnh Terminal để người dùng copy-paste thực thi như Giai đoạn 1 trên cùng 1 phản hồi:
+Song song  Giai đoạn 2, Agent sinh luôn khối lệnh Terminal để người dùng copy-paste thực thi như Giai đoạn 1 trên cùng 1 phản hồi:
 
 #### Bước 3.1: Xác định phiên bản theo chuẩn SemVer 2.0.0
 - Quy ước: `v<MAJOR>.<MINOR>.<PATCH>`

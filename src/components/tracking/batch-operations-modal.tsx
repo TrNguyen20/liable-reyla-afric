@@ -227,6 +227,8 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [urlNote, setUrlNote] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
+  const [editingUrlIdx, setEditingUrlIdx] = useState<number | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputId = useId();
 
@@ -335,21 +337,24 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
   };
 
   // Run Smart Match and auto-uncheck non-matching lots
-  const handleSmartMatch = () => {
-    if (stagedFiles.length === 0 && stagedUrls.length === 0) {
+  const handleSmartMatch = (overrideFiles?: { name: string }[], overrideUrls?: AttachmentItem[]) => {
+    const filesToMatch = overrideFiles || stagedFiles;
+    const urlsToMatch = overrideUrls || stagedUrls;
+
+    if (filesToMatch.length === 0 && urlsToMatch.length === 0) {
       toast.warning('Vui lòng tải lên tệp hoặc dán liên kết trước khi kích hoạt Smart Match');
       return;
     }
 
     const matchedIds = new Set<string>();
     const allFileNames = [
-      ...stagedFiles.map((f) => f.name),
-      ...stagedUrls.map((u) => u.name),
+      ...filesToMatch.map((f) => f.name),
+      ...urlsToMatch.map((u) => u.name),
     ];
 
     for (const lot of items) {
       const isMatched = allFileNames.some((fileName) =>
-        smartMatchFileToLot(fileName, lot.ma_hang, lot.id_ma_hang)
+        smartMatchFileToLot(fileName, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
       );
       if (isMatched) {
         matchedIds.add(lot.ID_Key);
@@ -357,8 +362,25 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     }
 
     setActiveLotIds(matchedIds);
+    setAssignmentStrategy('smart');
     playAudioCue('success');
     toast.info(`Smart Match hoàn tất: Khớp ${matchedIds.size}/${items.length} lô. Các lô không khớp đã được tự động bỏ tích.`);
+  };
+
+  // Sửa nhanh tên tệp/link và tự động chạy Smart Match
+  const handleRenameStagedUrl = (idx: number, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      setEditingUrlIdx(null);
+      return;
+    }
+    const finalName = trimmed.toLowerCase().endsWith('.pdf') ? trimmed : `${trimmed}.pdf`;
+    const nextUrls = stagedUrls.map((u, i) => (i === idx ? { ...u, name: finalName } : u));
+    setStagedUrls(nextUrls);
+    setEditingUrlIdx(null);
+    toast.success(`Đã đổi tên thành: ${finalName}`);
+    // Tự động kích hoạt Smart Match theo tên mới ngay lập tức
+    handleSmartMatch(stagedFiles, nextUrls);
   };
 
   // Compute final patch per lot
@@ -405,10 +427,10 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
           }
           lotAttachments.push(...stagedUrls);
         } else {
-          // Smart Match: attach only files matching this lot's ma_hang / id_ma_hang
+          // Smart Match: attach only files matching this lot's ma_hang / id_ma_hang / So_DatHang / ID_Key
           for (let idx = 0; idx < stagedFiles.length; idx++) {
             const f = stagedFiles[idx];
-            if (f && f.dataUri && smartMatchFileToLot(f.name, lot.ma_hang, lot.id_ma_hang)) {
+            if (f && f.dataUri && smartMatchFileToLot(f.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)) {
               lotAttachments.push({
                 id: `staged-match-${lot.ID_Key}-${idx}`,
                 name: f.name,
@@ -421,7 +443,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
             }
           }
           for (const u of stagedUrls) {
-            if (smartMatchFileToLot(u.name, lot.ma_hang, lot.id_ma_hang)) {
+            if (smartMatchFileToLot(u.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)) {
               lotAttachments.push(u);
             }
           }
@@ -877,45 +899,136 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Staged file list */}
+                    {/* Staged file list with Smart Match Status Indicator */}
                     {(stagedFiles.length > 0 || stagedUrls.length > 0) && (
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                        {stagedFiles.map((f, i) => (
-                          <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white transition">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-sm">📄</span>
-                              <span className="text-xs font-semibold text-slate-900 truncate">{f.name}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setStagedFiles(stagedFiles.filter((_, idx) => idx !== i))}
-                              className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
-                            >
-                              🗑
-                            </button>
-                          </div>
-                        ))}
-                        {stagedUrls.map((u, i) => (
-                          <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white transition">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-sm">🔗</span>
-                              <div className="min-w-0">
-                                <span className="text-xs font-semibold text-slate-900 truncate block">{u.name}</span>
-                                <span className="text-[10px] text-slate-500 font-mono">[{u.source}] {u.size || 'Link Cloud'}</span>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {stagedFiles.map((f, i) => {
+                          const matchedLots = items.filter((lot) =>
+                            smartMatchFileToLot(f.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
+                          );
+                          const isMatched = matchedLots.length > 0;
+
+                          return (
+                            <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white transition">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm">📄</span>
+                                <div className="min-w-0">
+                                  <span className="text-xs font-semibold text-slate-900 truncate block">{f.name}</span>
+                                  {assignmentStrategy === 'smart' && (
+                                    <span className={`text-[10px] font-mono px-1 py-0.2 rounded-xs inline-block ${
+                                      isMatched ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold' : 'text-amber-700 bg-amber-50 border border-amber-200'
+                                    }`}>
+                                      {isMatched ? `✓ Khớp ${matchedLots.length} lô (${matchedLots.map(l => l.ma_hang).slice(0, 2).join(', ')})` : '⚠ Chưa khớp mã lô nào'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <a href={u.url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-slate-900 text-xs">↗</a>
                               <button
                                 type="button"
-                                onClick={() => setStagedUrls(stagedUrls.filter((_, idx) => idx !== i))}
+                                onClick={() => setStagedFiles(stagedFiles.filter((_, idx) => idx !== i))}
                                 className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
                               >
                                 🗑
                               </button>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
+                        {stagedUrls.map((u, i) => {
+                          const matchedLots = items.filter((lot) =>
+                            smartMatchFileToLot(u.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
+                          );
+                          const isMatched = matchedLots.length > 0;
+                          const isEditingThis = editingUrlIdx === i;
+
+                          return (
+                            <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white transition">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className="text-sm">🔗</span>
+                                <div className="min-w-0 flex-1">
+                                  {isEditingThis ? (
+                                    <form
+                                      onSubmit={(e) => {
+                                        e.preventDefault();
+                                        handleRenameStagedUrl(i, editingNameValue);
+                                      }}
+                                      className="flex items-center gap-1.5 py-0.5"
+                                    >
+                                      <input
+                                        type="text"
+                                        autoFocus
+                                        value={editingNameValue}
+                                        onChange={(e) => setEditingNameValue(e.target.value)}
+                                        onBlur={() => handleRenameStagedUrl(i, editingNameValue)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Escape') setEditingUrlIdx(null);
+                                        }}
+                                        placeholder="Nhập mã hàng (VD: 9662-R1)..."
+                                        className="h-6 px-2 text-xs font-mono font-bold border border-slate-900 rounded bg-white text-slate-900 focus:outline-none flex-1 max-w-[220px]"
+                                      />
+                                      <button
+                                        type="submit"
+                                        className="h-6 px-2 rounded bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
+                                      >
+                                        Lưu & Khớp
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingUrlIdx(null)}
+                                        className="h-6 px-1.5 text-slate-400 hover:text-slate-600 text-xs"
+                                      >
+                                        ✕
+                                      </button>
+                                    </form>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5 group/name">
+                                      <span
+                                        onClick={() => {
+                                          setEditingUrlIdx(i);
+                                          setEditingNameValue(u.name.replace(/\.pdf$/i, ''));
+                                        }}
+                                        title="Click để đổi tên hoặc gán mã hàng (VD: 9662-R1)"
+                                        className="text-xs font-semibold text-slate-900 truncate block hover:text-blue-700 hover:underline cursor-pointer"
+                                      >
+                                        {u.name}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingUrlIdx(i);
+                                          setEditingNameValue(u.name.replace(/\.pdf$/i, ''));
+                                        }}
+                                        title="Click để đổi tên hoặc gán mã hàng (VD: 9662-R1)"
+                                        className="p-0.5 text-slate-400 hover:text-slate-900 opacity-60 group-hover/name:opacity-100 transition cursor-pointer"
+                                      >
+                                        <PenLine size={12} />
+                                      </button>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] text-slate-500 font-mono">[{u.source}] {u.size || 'Link Cloud'}</span>
+                                    {assignmentStrategy === 'smart' && (
+                                      <span className={`text-[10px] font-mono px-1 py-0.2 rounded-xs inline-block ${
+                                        isMatched ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold' : 'text-amber-700 bg-amber-50 border border-amber-200'
+                                      }`}>
+                                        {isMatched ? `✓ Khớp ${matchedLots.length} lô (${matchedLots.map(l => l.ma_hang).slice(0, 2).join(', ')})` : '⚠ Chưa khớp mã lô nào (Click tên để sửa mã)'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a href={u.url} target="_blank" rel="noreferrer" className="p-1 text-slate-400 hover:text-slate-900 text-xs">↗</a>
+                                <button
+                                  type="button"
+                                  onClick={() => setStagedUrls(stagedUrls.filter((_, idx) => idx !== i))}
+                                  className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
+                                >
+                                  🗑
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

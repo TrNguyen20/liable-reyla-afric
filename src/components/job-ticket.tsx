@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import logo from "@/assets/dynamo-logo.png";
 import { useTranslation } from "@/i18n";
 import { formatDate, formatTime } from "@/i18n/formatters";
+import { HeatTreatmentCycle } from "@/components/technical-charts";
 
 // Code 39 Barcode SVG Generator (100% Vector, Pure Math, Crisp Print)
 const CODE39_MAP: Record<string, string> = {
@@ -373,15 +374,21 @@ export function SingleA4TicketContent({
         </div>
       </div>
 
-      {/* Section II: Chỉ dẫn kỹ thuật & quy cách đóng gói */}
-      <div className="mt-2.5 border border-black p-2.5 text-[9.5px]">
-        <h4 className="font-bold text-black uppercase tracking-wide">{t("ticket.sec2Title")}</h4>
-        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-zinc-700">
-          <li>{t("ticket.notes.surface")}</li>
-          <li>{t("ticket.notes.collision")}</li>
-          <li>{t("ticket.notes.deformation")}</li>
-          <li>{t("ticket.notes.coupon")}</li>
-        </ul>
+      {/* Section II: BIỂU ĐỒ CHU TRÌNH NHIỆT LUYỆN */}
+      <div className="mt-2.5 border border-black p-0 text-[9.5px]">
+        <div className="bg-zinc-100 px-2.5 py-1 border-b border-black">
+          <h4 className="font-bold text-black uppercase tracking-wide">
+            {t("ticket.sec2Title") || "II. BIỂU ĐỒ CHU TRÌNH NHIỆT LUYỆN"}
+          </h4>
+        </div>
+        <div className="w-full flex justify-center bg-white p-0">
+          <HeatTreatmentCycle
+            shorthand={item.ncc_giando}
+            width="100%"
+            height={98}
+            showFrame={false}
+          />
+        </div>
       </div>
 
       {/* Section III: Bảng đo kiểm QC */}
