@@ -90,3 +90,12 @@ Người dùng có thể yêu cầu chỉ định nhanh subagent thông qua ngô
 > 3. **TDD Enforcement**: Write failing tests first, verify, then write implementation.
 > 4. **Systematic Debugging**: Form hypotheses and find root cause; never apply random patches.
 <!-- SUPERPOWERS:END -->
+
+<!-- WORKTREE_MERGE_PROTOCOL:BEGIN -->
+> [!IMPORTANT]
+> ### 🌿 WORKTREE TO MAIN MERGE PROTOCOL (`qt-mes-worktree-merg2main`)
+> Khi người dùng yêu cầu kéo/merge thay đổi từ git worktree về mã nguồn main hoặc đồng bộ sang thư mục chính:
+> 1. **BẮT BUỘC Kích hoạt skill**: [`qt-mes-worktree-merg2main`](./.agent/skills/qt-mes-worktree-merg2main/SKILL.md).
+> 2. **Tự động nhận diện & hỏi lại xác nhận**: Dùng `git worktree list` nhận diện thư mục main (mặc định: `D:\NTT-2025\KAIZEN\m.Clone-github (internet)\liable-reyla-afric`), BẮT BUỘC hỏi lại người dùng để nạp thêm hoặc xác nhận đường dẫn chính xác.
+> 3. **Sinh One-liner an toàn**: Luôn cung cấp 1 dòng lệnh duy nhất (gộp commit tại worktree $\rightarrow$ cd thư mục main $\rightarrow$ pull main $\rightarrow$ merge branch $\rightarrow$ push GitHub).
+<!-- WORKTREE_MERGE_PROTOCOL:END -->
