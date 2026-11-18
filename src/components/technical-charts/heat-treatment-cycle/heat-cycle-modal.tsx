@@ -21,7 +21,7 @@ export interface HeatCyclePreset {
 export const HEAT_CYCLE_PRESETS: HeatCyclePreset[] = [
   {
     id: 'dac-std',
-    name: 'DAC / SKD61 (46-48 HRC)',
+    name: 'DAC / SKD61',
     material: 'SKD61 / DAC',
     hardness: '46-48 HRC',
     shorthand: 'Q: 1020°C / 2H | T1: 540°C / 5H | T2: 593°C / 5H',
@@ -29,7 +29,7 @@ export const HEAT_CYCLE_PRESETS: HeatCyclePreset[] = [
   },
   {
     id: 'dac-tough',
-    name: 'DAC Đỉnh dẻo (44-46 HRC)',
+    name: 'DAC Đỉnh dẻo',
     material: 'DAC',
     hardness: '44-46 HRC',
     shorthand: 'Q: 1020°C / 2H | T1: 600°C / 5H | T2: 585°C / 5H',
@@ -37,7 +37,7 @@ export const HEAT_CYCLE_PRESETS: HeatCyclePreset[] = [
   },
   {
     id: 'dac-hard',
-    name: 'DAC-P Cứng (48-49 HRC)',
+    name: 'DAC-P Cứng',
     material: 'DAC-P',
     hardness: '48-49 HRC',
     shorthand: 'Q: 1020°C / 2H | T1: 540°C / 5H | T2: 585°C / 5H',
@@ -45,7 +45,7 @@ export const HEAT_CYCLE_PRESETS: HeatCyclePreset[] = [
   },
   {
     id: 'dha-world',
-    name: 'DHA-WORLD (48-50 HRC)',
+    name: 'DHA-WORLD',
     material: 'DHA-WORLD',
     hardness: '48-50 HRC',
     shorthand: 'Q: 1020°C / 2H | T1: 575°C / 5H | T2: 540°C / 5H',
@@ -53,7 +53,7 @@ export const HEAT_CYCLE_PRESETS: HeatCyclePreset[] = [
   },
   {
     id: 'skd61-soft',
-    name: 'SKD61 Mềm (39-41 HRC)',
+    name: 'SKD61 Mềm',
     material: 'SKD61',
     hardness: '39-41 HRC',
     shorthand: 'Q: 1020°C / 2H | T1: 540°C / 5H | T2: 620°C / 5H',
@@ -228,9 +228,8 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                 return (
                   <div
                     key={stg.stage}
-                    className={`p-2 rounded-lg border bg-white space-y-1.5 transition ${
-                      isFilled ? 'border-slate-800 shadow-2xs' : 'border-slate-200'
-                    }`}
+                    className={`p-2 rounded-lg border bg-white space-y-1.5 transition ${isFilled ? 'border-slate-800 shadow-2xs' : 'border-slate-200'
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[11.5px] font-bold font-mono text-slate-900">
