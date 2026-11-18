@@ -72,8 +72,8 @@ export function StatusDot({ status }: { status: string }) {
     status === 'Đã nhập kho'
       ? 'bg-primary'
       : status === 'Đang tại Vendor'
-      ? 'bg-amber-500'
-      : 'bg-muted-foreground';
+        ? 'bg-amber-500'
+        : 'bg-muted-foreground';
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-mono font-medium text-foreground">
       <span className={`size-1.5 rounded-full ${color}`} />
@@ -175,24 +175,76 @@ function Dashboard() {
   const allTimeKg = useMemo(() => filtered.filter((r) => r.don_vi_tinh === 'Kg').reduce((sum, r) => sum + (r.kg_Lot || r.kg_lot || 0), 0), [filtered]);
   const allTimePcs = useMemo(() => filtered.filter((r) => r.don_vi_tinh === 'pcs').reduce((sum, r) => sum + (r.so_luong || 0), 0), [filtered]);
 
-  // 2. PERIOD METRICS (Filtered by period dropdown)
-  const openLots = rows.filter(isOpen);
-  const openKg = openLots.filter((r) => r.don_vi_tinh === 'Kg').reduce((sum, r) => sum + (r.kg_Lot || r.kg_lot || 0), 0);
-  const openPcs = openLots.filter((r) => r.don_vi_tinh === 'pcs').reduce((sum, r) => sum + (r.so_luong || 0), 0);
+  // 2. PERIOD METRICS (Filtered by period dropdown - Memoized Single-Pass O(N))
+  const periodMetrics = useMemo(() => {
+    let openKg = 0;
+    let openPcs = 0;
+    let inTransitKg = 0;
+    let periodCost = 0;
+    let costAtRisk = 0;
 
-  const inTransitLots = rows.filter((r) => logisticsOf(r) === 'Đang tại Vendor');
-  const inTransitKg = inTransitLots.filter((r) => r.don_vi_tinh === 'Kg').reduce((sum, r) => sum + (r.kg_Lot || r.kg_lot || 0), 0);
+    const openLots: QTItem[] = [];
+    const inTransitLots: QTItem[] = [];
+    const overdueLots: QTItem[] = [];
 
-  const overdueLots = rows.filter(isOverdue).sort((a, b) => daysOver(b) - daysOver(a));
-  const maxDelay = overdueLots.length > 0 ? daysOver(overdueLots[0]!) : 0;
-  const criticalOverdueLots = overdueLots.filter((r) => daysOver(r) > 7);
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]!;
+      const cost = r.thanh_tien || 0;
+      periodCost += cost;
 
-  const otdStat = onTimeRate(rows);
-  const periodCost = rows.reduce((sum, r) => sum + (r.thanh_tien || 0), 0);
-  const costAtRisk = overdueLots.reduce((sum, r) => sum + (r.thanh_tien || 0), 0);
+      if (isOpen(r)) {
+        openLots.push(r);
+        if (r.don_vi_tinh === 'Kg') openKg += (r.kg_Lot || r.kg_lot || 0);
+        else if (r.don_vi_tinh === 'pcs') openPcs += (r.so_luong || 0);
+      }
 
-  // Period expenditure share compared to all-time
-  const periodSharePercent = allTimeCost > 0 ? Math.round((periodCost / allTimeCost) * 100) : 100;
+      if (logisticsOf(r) === 'Đang tại Vendor') {
+        inTransitLots.push(r);
+        if (r.don_vi_tinh === 'Kg') inTransitKg += (r.kg_Lot || r.kg_lot || 0);
+      }
+
+      if (isOverdue(r)) {
+        overdueLots.push(r);
+        costAtRisk += cost;
+      }
+    }
+
+    overdueLots.sort((a, b) => daysOver(b) - daysOver(a));
+    const maxDelay = overdueLots.length > 0 ? daysOver(overdueLots[0]!) : 0;
+    const criticalOverdueLots = overdueLots.filter((r) => daysOver(r) > 7);
+    const otdStat = onTimeRate(rows);
+    const periodSharePercent = allTimeCost > 0 ? Math.round((periodCost / allTimeCost) * 100) : 100;
+
+    return {
+      openLots,
+      openKg,
+      openPcs,
+      inTransitLots,
+      inTransitKg,
+      overdueLots,
+      maxDelay,
+      criticalOverdueLots,
+      otdStat,
+      periodCost,
+      costAtRisk,
+      periodSharePercent,
+    };
+  }, [rows, allTimeCost]);
+
+  const {
+    openLots,
+    openKg,
+    openPcs,
+    inTransitLots,
+    inTransitKg,
+    overdueLots,
+    maxDelay,
+    criticalOverdueLots,
+    otdStat,
+    periodCost,
+    costAtRisk,
+    periodSharePercent,
+  } = periodMetrics;
 
   // 3. METALLURGY ANALYTICS (Senior DA Engine)
   const metallurgy = useMemo(() => computeMetallurgyAnalytics(rows), [rows]);
@@ -660,9 +712,8 @@ function Dashboard() {
 
         {/* KPI 4: QUÁ HẠN & MỨC ĐỘ TRỄ MAX (OVERDUE & SLA) */}
         <div
-          className={`rounded-xs border p-2.5 shadow-2xs flex flex-col justify-between ${
-            overdueLots.length > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
-          }`}
+          className={`rounded-xs border p-2.5 shadow-2xs flex flex-col justify-between ${overdueLots.length > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
+            }`}
         >
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-destructive">QUÁ HẠN (SLA)</span>
@@ -696,9 +747,8 @@ function Dashboard() {
             </div>
             {otdTrend.delta !== 0 && (
               <span
-                className={`font-mono text-[10px] font-bold flex items-center ${
-                  otdTrend.delta > 0 ? 'text-emerald-500' : 'text-destructive'
-                }`}
+                className={`font-mono text-[10px] font-bold flex items-center ${otdTrend.delta > 0 ? 'text-emerald-500' : 'text-destructive'
+                  }`}
               >
                 {otdTrend.delta > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
                 {otdTrend.delta > 0 ? `+${otdTrend.delta}%` : `${otdTrend.delta}%`}
@@ -761,33 +811,29 @@ function Dashboard() {
             <div className="flex items-center gap-0.5 bg-secondary/60 p-0.5 rounded-xs border border-border">
               <button
                 onClick={() => setTechTab('otd')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                  techTab === 'otd' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${techTab === 'otd' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 OTD 4 Tuần
               </button>
               <button
                 onClick={() => setTechTab('aging')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                  techTab === 'aging' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${techTab === 'aging' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 Aging Tiers
               </button>
               <button
                 onClick={() => setTechTab('workload')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                  techTab === 'workload' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${techTab === 'workload' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 Tải Trọng Xưởng
               </button>
               <button
                 onClick={() => setTechTab('metallurgy')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors flex items-center gap-1 ${
-                  techTab === 'metallurgy' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors flex items-center gap-1 ${techTab === 'metallurgy' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 <Cpu size={10} />
                 <span>Luyện Kim & FPY</span>
@@ -935,9 +981,8 @@ function Dashboard() {
                   {/* Metric 3: Delta HRC Deviation */}
                   <div className="rounded-xs border border-border/70 bg-background/60 p-2 text-center">
                     <div className="font-mono text-[9px] text-muted-foreground uppercase">ĐỘ LỆCH CHUẨN HRC</div>
-                    <div className={`font-mono text-base font-black my-0.5 ${
-                      (metallurgy.avgHrcDelta ?? 0) === 0 ? 'text-emerald-500' : 'text-amber-500'
-                    }`}>
+                    <div className={`font-mono text-base font-black my-0.5 ${(metallurgy.avgHrcDelta ?? 0) === 0 ? 'text-emerald-500' : 'text-amber-500'
+                      }`}>
                       {metallurgy.avgHrcDelta !== null ? `${metallurgy.avgHrcDelta > 0 ? '+' : ''}${metallurgy.avgHrcDelta} HRC` : '0 HRC'}
                     </div>
                     <div className="font-mono text-[9px] text-muted-foreground">
@@ -1024,25 +1069,22 @@ function Dashboard() {
             <div className="flex items-center gap-0.5 bg-secondary/60 p-0.5 rounded-xs border border-border">
               <button
                 onClick={() => setFinTab('trajectory')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                  finTab === 'trajectory' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${finTab === 'trajectory' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 Cơ Cấu Chi Phí
               </button>
               <button
                 onClick={() => setFinTab('risk')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                  finTab === 'risk' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${finTab === 'risk' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 Rủi Ro Đọng Vốn
               </button>
               <button
                 onClick={() => setFinTab('unit_cost')}
-                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                  finTab === 'unit_cost' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${finTab === 'unit_cost' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 Đơn Giá Kg/Pcs
               </button>
@@ -1152,25 +1194,22 @@ function Dashboard() {
           <div className="flex items-center gap-1 bg-secondary/60 p-0.5 rounded-xs border border-border">
             <button
               onClick={() => setMatrixTab('vendor')}
-              className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                matrixTab === 'vendor' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${matrixTab === 'vendor' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               Theo Đối Tác (Vendor)
             </button>
             <button
               onClick={() => setMatrixTab('workshop')}
-              className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                matrixTab === 'workshop' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${matrixTab === 'workshop' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               Theo Phân Xưởng
             </button>
             <button
               onClick={() => setMatrixTab('orders')}
-              className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${
-                matrixTab === 'orders' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`px-2.5 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors ${matrixTab === 'orders' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               Top Đơn Hàng Rủi Ro
             </button>
@@ -1202,9 +1241,8 @@ function Dashboard() {
                     <td className="py-1.5 px-2 text-right tabular-nums text-muted-foreground">{number(v.lots)}</td>
                     <td className="py-1.5 px-2 text-right tabular-nums text-muted-foreground">{number(v.kg)} Kg</td>
                     <td
-                      className={`py-1.5 px-2 text-right tabular-nums font-bold ${
-                        v.overdue > 0 ? 'text-destructive' : 'text-emerald-500'
-                      }`}
+                      className={`py-1.5 px-2 text-right tabular-nums font-bold ${v.overdue > 0 ? 'text-destructive' : 'text-emerald-500'
+                        }`}
                     >
                       {v.overdue}
                     </td>
@@ -1214,9 +1252,8 @@ function Dashboard() {
                     {hasPricing && <td className="py-1.5 px-2 text-right tabular-nums text-foreground">{money(v.cost)}</td>}
                     {hasPricing && (
                       <td
-                        className={`py-1.5 px-2 text-right tabular-nums font-bold ${
-                          v.risk > 0 ? 'text-destructive' : 'text-muted-foreground'
-                        }`}
+                        className={`py-1.5 px-2 text-right tabular-nums font-bold ${v.risk > 0 ? 'text-destructive' : 'text-muted-foreground'
+                          }`}
                       >
                         {v.risk > 0 ? money(v.risk) : '0'}
                       </td>
@@ -1260,9 +1297,8 @@ function Dashboard() {
                     <td className="py-1.5 px-2 text-right tabular-nums text-muted-foreground">{number(ws.kg)} Kg</td>
                     <td className="py-1.5 px-2 text-right tabular-nums text-muted-foreground">{number(ws.pcs)} Pcs</td>
                     <td
-                      className={`py-1.5 px-2 text-right tabular-nums font-bold ${
-                        ws.overdue > 0 ? 'text-destructive' : 'text-emerald-500'
-                      }`}
+                      className={`py-1.5 px-2 text-right tabular-nums font-bold ${ws.overdue > 0 ? 'text-destructive' : 'text-emerald-500'
+                        }`}
                     >
                       {ws.overdue}
                     </td>
@@ -1418,9 +1454,8 @@ function Dashboard() {
                 setBottleneckTab('all');
                 setBottleneckPage(0);
               }}
-              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${
-                bottleneckTab === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${bottleneckTab === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               Tất Cả ({number(allBottleneckItems.length)})
             </button>
@@ -1429,11 +1464,10 @@ function Dashboard() {
                 setBottleneckTab('overdue');
                 setBottleneckPage(0);
               }}
-              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${
-                bottleneckTab === 'overdue'
+              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${bottleneckTab === 'overdue'
                   ? 'bg-destructive text-destructive-foreground'
                   : 'text-muted-foreground hover:text-destructive'
-              }`}
+                }`}
             >
               Quá Hạn ({number(overdueLots.length)})
             </button>
@@ -1442,11 +1476,10 @@ function Dashboard() {
                 setBottleneckTab('due_soon');
                 setBottleneckPage(0);
               }}
-              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${
-                bottleneckTab === 'due_soon'
+              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${bottleneckTab === 'due_soon'
                   ? 'bg-amber-500 text-amber-950 font-black'
                   : 'text-muted-foreground hover:text-amber-500'
-              }`}
+                }`}
             >
               Cận Hạn 48h ({number(soonLots.length)})
             </button>
@@ -1455,11 +1488,10 @@ function Dashboard() {
                 setBottleneckTab('missing_due');
                 setBottleneckPage(0);
               }}
-              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${
-                bottleneckTab === 'missing_due'
+              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${bottleneckTab === 'missing_due'
                   ? 'bg-warning text-warning-foreground font-black'
                   : 'text-muted-foreground hover:text-warning'
-              }`}
+                }`}
             >
               Thiếu Hạn Trả ({number(missingDueLots.length)})
             </button>
@@ -1468,11 +1500,10 @@ function Dashboard() {
                 setBottleneckTab('sync_error');
                 setBottleneckPage(0);
               }}
-              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${
-                bottleneckTab === 'sync_error'
+              className={`px-2 py-0.5 font-mono text-[10px] font-bold rounded-xs transition-colors cursor-pointer ${bottleneckTab === 'sync_error'
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               Lỗi Sheet ({number(syncErrLots.length)})
             </button>
@@ -1506,18 +1537,16 @@ function Dashboard() {
               <button
                 onClick={() => setBottleneckView('table')}
                 title="Xem dạng bảng chi tiết"
-                className={`p-1 rounded-xs transition-colors cursor-pointer ${
-                  bottleneckView === 'table' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`p-1 rounded-xs transition-colors cursor-pointer ${bottleneckView === 'table' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 <List size={12} />
               </button>
               <button
                 onClick={() => setBottleneckView('grid')}
                 title="Xem dạng thẻ bento"
-                className={`p-1 rounded-xs transition-colors cursor-pointer ${
-                  bottleneckView === 'grid' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`p-1 rounded-xs transition-colors cursor-pointer ${bottleneckView === 'grid' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 <LayoutGrid size={12} />
               </button>
@@ -1570,13 +1599,12 @@ function Dashboard() {
                       </td>
                       <td className="py-1.5 px-2 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs font-bold text-[10px] ${
-                            severity === 'crit'
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs font-bold text-[10px] ${severity === 'crit'
                               ? 'bg-destructive/15 text-destructive border border-destructive/30'
                               : severity === 'warn'
-                              ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                              : 'bg-secondary text-muted-foreground border border-border'
-                          }`}
+                                ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                : 'bg-secondary text-muted-foreground border border-border'
+                            }`}
                         >
                           <AlertTriangle size={10} />
                           {reason}
@@ -1617,13 +1645,12 @@ function Dashboard() {
                     <div className="flex items-center justify-between font-mono text-[10px]">
                       <span className="font-bold text-foreground">{item.ID_Key}</span>
                       <span
-                        className={`px-1 py-0.2 rounded-xs font-bold ${
-                          severity === 'crit'
+                        className={`px-1 py-0.2 rounded-xs font-bold ${severity === 'crit'
                             ? 'bg-destructive/15 text-destructive border border-destructive/30'
                             : severity === 'warn'
-                            ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                            : 'bg-secondary text-muted-foreground'
-                        }`}
+                              ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                              : 'bg-secondary text-muted-foreground'
+                          }`}
                       >
                         {reason}
                       </span>

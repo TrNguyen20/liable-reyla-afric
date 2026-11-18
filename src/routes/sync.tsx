@@ -222,9 +222,26 @@ function Sync() {
   }, [autoRefreshInterval, sheetUrl]);
 
   const activeData = stagedRows.length ? stagedRows : dataset;
-  const totalKg = activeData.reduce((a, i) => a + i.kg_Lot, 0);
-  const uniqueOrders = new Set(activeData.map((i) => i.So_DatHang)).size;
-  const cacheSizeMb = (JSON.stringify(dataset).length / (1024 * 1024)).toFixed(1);
+
+  const { totalKg, uniqueOrders } = useMemo(() => {
+    let kg = 0;
+    const orders = new Set<string>();
+    for (let i = 0; i < activeData.length; i++) {
+      const item = activeData[i]!;
+      kg += item.kg_Lot || item.kg_lot || 0;
+      if (item.So_DatHang) orders.add(item.So_DatHang);
+    }
+    return { totalKg: kg, uniqueOrders: orders.size };
+  }, [activeData]);
+
+  const cacheSizeMb = useMemo(() => {
+    if (!dataset.length) return '0.0';
+    try {
+      return (JSON.stringify(dataset).length / (1024 * 1024)).toFixed(1);
+    } catch {
+      return '0.0';
+    }
+  }, [dataset]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col justify-start space-y-3">
@@ -377,16 +394,14 @@ function Sync() {
                   </span>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1 rounded-xs px-1.5 py-0.5 font-mono text-[9px] font-bold ${
-                    isWebhookSaved
+                  className={`inline-flex items-center gap-1 rounded-xs px-1.5 py-0.5 font-mono text-[9px] font-bold ${isWebhookSaved
                       ? 'border border-run/30 bg-run/10 text-run'
                       : 'border border-border bg-muted/40 text-muted-foreground'
-                  }`}
+                    }`}
                 >
                   <span
-                    className={`size-1.5 rounded-full ${
-                      isWebhookSaved ? 'bg-run animate-pulse' : 'bg-muted-foreground'
-                    }`}
+                    className={`size-1.5 rounded-full ${isWebhookSaved ? 'bg-run animate-pulse' : 'bg-muted-foreground'
+                      }`}
                   />
                   {isWebhookSaved ? (t('sync.webhook.statusConnected') || 'KẾT NỐI SẴN SÀNG') : (t('sync.webhook.statusNotConfigured') || 'CHƯA CẤU HÌNH')}
                 </span>
@@ -435,11 +450,10 @@ function Sync() {
 
               {testResult && (
                 <div
-                  className={`flex items-start gap-2 rounded-xs p-2.5 text-xs border ${
-                    testResult.ok
+                  className={`flex items-start gap-2 rounded-xs p-2.5 text-xs border ${testResult.ok
                       ? 'border-run/30 bg-run/10 text-run font-medium'
                       : 'border-destructive/30 bg-destructive/10 text-destructive'
-                  }`}
+                    }`}
                 >
                   {testResult.ok ? (
                     <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
@@ -500,8 +514,7 @@ function Sync() {
                   </h2>
                   <p className="text-[11px] text-muted-foreground">
                     {stagedRows.length > 0
-                      ? (t('sync.status.rowsLoaded', { count: number(stagedRows.length) }) || `Sẵn sàng nạp ${number(stagedRows.length)} lô hàng mới từ Google Sheets${
-                          stats && stats.duplicates.length > 0 ? ` (bỏ qua ${stats.duplicates.length} dòng trùng)` : ''
+                      ? (t('sync.status.rowsLoaded', { count: number(stagedRows.length) }) || `Sẵn sàng nạp ${number(stagedRows.length)} lô hàng mới từ Google Sheets${stats && stats.duplicates.length > 0 ? ` (bỏ qua ${stats.duplicates.length} dòng trùng)` : ''
                         }`)
                       : (t('sync.status.idle') || `Đang chạy nguồn dữ liệu hiện hành (${number(dataset.length)} lô)`)}
                   </p>
@@ -578,11 +591,10 @@ function Sync() {
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <label
-                  className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${
-                    mode === 'replace'
+                  className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${mode === 'replace'
                       ? 'border-primary bg-primary/10 text-primary font-bold'
                       : 'border-border bg-card text-muted-foreground hover:bg-secondary'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -600,11 +612,10 @@ function Sync() {
                 </label>
 
                 <label
-                  className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${
-                    mode === 'merge'
+                  className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${mode === 'merge'
                       ? 'border-primary bg-primary/10 text-primary font-bold'
                       : 'border-border bg-card text-muted-foreground hover:bg-secondary'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"

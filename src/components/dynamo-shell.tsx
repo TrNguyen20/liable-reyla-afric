@@ -135,11 +135,11 @@ const LedClock = memo(function LedClock({ locale = "vi" }: { locale?: Locale }) 
     locale === "ja"
       ? `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, "0")}月${String(now.getDate()).padStart(2, "0")}日`
       : now.toLocaleDateString(locale === "en" ? "en-US" : "vi-VN", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
   const timeLabel = now.toLocaleTimeString(
     locale === "ja" ? "ja-JP" : locale === "en" ? "en-US" : "vi-VN",
     { hour12: false },
@@ -247,7 +247,7 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
         if (isManual) {
           toast.success(
             t("common.toasts.refreshSuccess", { count: r.items.length, elapsed }) ||
-              `Đã làm mới ${r.items.length} lô từ hệ thống (${elapsed}ms)`,
+            `Đã làm mới ${r.items.length} lô từ hệ thống (${elapsed}ms)`,
           );
           playAudioCue("success");
         }
@@ -461,15 +461,32 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
   useEffect(() => {
     if (bare) return;
 
-    // Polling định kỳ mỗi 1.8s
-    const interval = setInterval(() => {
-      void pollDeltas();
-    }, 1800);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let isDisposed = false;
 
-    // Kích hoạt đồng bộ ngay lập tức khi người dùng chuyển sang tab (visibilitychange / focus)
+    // Adaptive Polling:
+    // Tab đang mở (visible): thăm dò định kỳ 3.0s
+    // Tab chạy ngầm (hidden/minimized): dãn chu kỳ thành 30s để tiết kiệm tài nguyên
+    const scheduleNextPoll = (delayMs: number) => {
+      if (isDisposed) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          await pollDeltas();
+        } finally {
+          const isHidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+          scheduleNextPoll(isHidden ? 30000 : 3000);
+        }
+      }, delayMs);
+    };
+
+    scheduleNextPoll(3000);
+
+    // Kích hoạt đồng bộ tức thì (< 5ms) ngay khi người dùng chuyển lại tab
     const onVisibilityChange = () => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
         void pollDeltas();
+        scheduleNextPoll(3000);
       }
     };
 
@@ -477,7 +494,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      isDisposed = true;
+      if (timer) clearTimeout(timer);
       window.removeEventListener("focus", onVisibilityChange);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
@@ -514,11 +532,19 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return scoped.filter(
-      (i) =>
-        (workshop === "Tất cả" || i.phong_sx === workshop) &&
-        (!q || `${i.So_DatHang} ${i.ma_hang} ${i.ID_Key} ${i.vat_lieu}`.toLowerCase().includes(q)),
-    );
+    const isAll = workshop === "Tất cả";
+    if (!q && isAll) return scoped;
+
+    return scoped.filter((i) => {
+      if (!isAll && i.phong_sx !== workshop) return false;
+      if (!q) return true;
+      return (
+        i.ID_Key.toLowerCase().includes(q) ||
+        i.ma_hang.toLowerCase().includes(q) ||
+        i.So_DatHang.toLowerCase().includes(q) ||
+        (Boolean(i.vat_lieu) && i.vat_lieu.toLowerCase().includes(q))
+      );
+    });
   }, [scoped, workshop, search]);
 
   const current = nav.find((n) => n.to === location.pathname);
@@ -621,11 +647,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         key={n.to}
                         to={n.to}
                         title={`${label} (${shortcutText})`}
-                        className={`flex h-7.5 items-center gap-1.5 rounded-xs px-2.5 text-[11px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${
-                          isActive
-                            ? "bg-slate-900 text-white border border-slate-800 shadow-sm font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
-                            : "text-muted-foreground hover:bg-card hover:text-foreground border border-transparent"
-                        }`}
+                        className={`flex h-7.5 items-center gap-1.5 rounded-xs px-2.5 text-[11px] font-bold tracking-wide transition-all whitespace-nowrap active:scale-98 ${isActive
+                          ? "bg-slate-900 text-white border border-slate-800 shadow-sm font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
+                          : "text-muted-foreground hover:bg-card hover:text-foreground border border-transparent"
+                          }`}
                       >
                         <n.icon
                           size={13.5}
@@ -633,11 +658,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         />
                         <span>{label}</span>
                         <span
-                          className={`font-mono text-[9px] tabular-nums rounded-xs px-1 py-0.2 hidden sm:inline-block ${
-                            isActive
-                              ? "bg-slate-800 text-emerald-300 border border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300 font-bold"
-                              : "bg-muted/60 text-muted-foreground/80"
-                          }`}
+                          className={`font-mono text-[9px] tabular-nums rounded-xs px-1 py-0.2 hidden sm:inline-block ${isActive
+                            ? "bg-slate-800 text-emerald-300 border border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300 font-bold"
+                            : "bg-muted/60 text-muted-foreground/80"
+                            }`}
                         >
                           [{n.shortcut}]
                         </span>
@@ -652,11 +676,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                 {/* Role Impersonation Switcher (Chỉ cho Admin) */}
                 {role === "admin" && (
                   <div
-                    className={`flex h-7 items-center gap-1 rounded-xs border px-1.5 text-xs transition-colors ${
-                      impersonatedRole
-                        ? "border-warning bg-warning/15 text-warning font-bold"
-                        : "border-border/80 bg-secondary/70 text-foreground"
-                    }`}
+                    className={`flex h-7 items-center gap-1 rounded-xs border px-1.5 text-xs transition-colors ${impersonatedRole
+                      ? "border-warning bg-warning/15 text-warning font-bold"
+                      : "border-border/80 bg-secondary/70 text-foreground"
+                      }`}
                     title={
                       t("common.rolesExtended.switcherTooltip") ||
                       "Chuyển đổi góc nhìn kiểm tra phân quyền"
@@ -673,10 +696,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                         toast.info(
                           val === "admin"
                             ? t("common.rolesExtended.revertToast") ||
-                                "Đã quay lại góc nhìn Admin thực tế"
+                            "Đã quay lại góc nhìn Admin thực tế"
                             : t("common.rolesExtended.impersonateToast", {
-                                role: roleLabel(val as Role),
-                              }) || `Đang giả lập góc nhìn: ${roleLabel(val as Role)}`,
+                              role: roleLabel(val as Role),
+                            }) || `Đang giả lập góc nhìn: ${roleLabel(val as Role)}`,
                         );
                       }}
                       className="bg-transparent text-[10px] font-bold text-foreground outline-none cursor-pointer"
@@ -735,11 +758,10 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
                           setLocale(item.code);
                           playAudioCue("beep");
                         }}
-                        className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                          isCurrent
-                            ? "bg-slate-900 text-emerald-300 border border-slate-800 shadow-2xs font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                        }`}
+                        className={`h-6 px-1.5 text-[10px] font-mono font-bold tracking-wider rounded-xs transition-all cursor-pointer ${isCurrent
+                          ? "bg-slate-900 text-emerald-300 border border-slate-800 shadow-2xs font-black dark:bg-slate-100 dark:text-slate-950 dark:border-white"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                          }`}
                         title={`${item.label} (${item.nativeName})`}
                       >
                         {item.shortLabel}
@@ -811,9 +833,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
           {/* Main Page Content */}
           <main
             // prettier-ignore
-            className={`w-full flex-1 min-h-0 flex flex-col px-2.5 py-1.5 md:px-4 md:py-2 ${
-              isTracking ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto'
-            }`}
+            className={`w-full flex-1 min-h-0 flex flex-col px-2.5 py-1.5 md:px-4 md:py-2 ${isTracking ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto'
+              }`}
           >
             {!ready ? (
               <div className="flex min-h-[400px] items-center justify-center text-sm font-medium text-muted-foreground">
@@ -838,9 +859,8 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
           {/* Footer */}
           <footer
-            className={`flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-2 text-[10px] text-muted-foreground xl:px-6 shrink-0 ${
-              isCockpitRoute ? "md:hidden" : ""
-            }`}
+            className={`flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card/40 px-4 py-2 text-[10px] text-muted-foreground xl:px-6 shrink-0 ${isCockpitRoute ? "md:hidden" : ""
+              }`}
           >
             <span>
               {t("common.footer.copyright") ||

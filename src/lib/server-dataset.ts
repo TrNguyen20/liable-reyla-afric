@@ -116,7 +116,9 @@ export function setServerDatasetVersion(newVersion: number, delta?: DeltaRecord)
  */
 async function syncRemoteVersion(): Promise<number> {
   const now = Date.now();
-  if (now - store.lastRemoteCheck < 1500) {
+  // Giới hạn tối đa 1 lần truy vấn Apps Script mỗi 15 giây (TTL Cache) để triệt tiêu nguy cơ nghẽn Quota Google
+  const REMOTE_SYNC_THROTTLE_MS = 15000;
+  if (now - store.lastRemoteCheck < REMOTE_SYNC_THROTTLE_MS) {
     return store.version;
   }
   store.lastRemoteCheck = now;
