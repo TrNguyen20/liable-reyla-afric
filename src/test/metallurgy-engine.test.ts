@@ -78,7 +78,7 @@ describe('Metallurgy Analytics Engine', () => {
     const result = computeMetallurgyAnalytics(mockItems as QTItem[]);
     expect(result.totalLots).toBe(3);
     expect(result.measuredLots).toBe(2);
-    expect(result.fpy.passed).toBe(2); // LOT-1 PASS, LOT-3 stocked=false, LOT-2 FAIL
+    expect(result.fpy.passed).toBe(1); // Chỉ có LOT-1 đạt PASS (LOT-3 chưa có dữ liệu nghiệm thu)
     expect(result.fpy.failed).toBe(1);
     expect(result.hrcDistribution.inRange).toBe(1);
     expect(result.hrcDistribution.under).toBe(1);

@@ -1,6 +1,7 @@
 // Invariant statuses: WAIT, TRANSIT, STOCKED, PASS, FAIL, PENDING
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback, memo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { JobTicketButton, BatchJobTicketModal } from '@/components/job-ticket';
 import { LotUpdateButton } from '@/components/lot-update-dialog';
 import { auditFor, failedSyncIds, appendAudit } from '@/lib/dynamo-workflow';
@@ -830,15 +831,19 @@ function Tracking() {
     const startX = e.clientX;
     const startWidth = colWidths[colKey] ?? DEFAULT_COL_WIDTHS[colKey];
     const minW = MIN_COL_WIDTHS[colKey];
+    let rafId: number | null = null;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      // HARD CLAMP: stops precisely at the minimum width needed by the column content
-      const newWidth = Math.max(minW, Math.round(startWidth + deltaX));
-      setColWidths((prev) => ({ ...prev, [colKey]: newWidth }));
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const deltaX = moveEvent.clientX - startX;
+        const newWidth = Math.max(minW, Math.round(startWidth + deltaX));
+        setColWidths((prev) => ({ ...prev, [colKey]: newWidth }));
+      });
     };
 
     const onMouseUp = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       document.body.classList.remove('select-none', 'cursor-col-resize');
@@ -1749,8 +1754,27 @@ function Tracking() {
     toast.info(t('tracking.actions.allFiltersCleared') || 'Đã xóa toàn bộ bộ lọc trên bảng.');
   };
 
+  // 1. Phân trang dữ liệu trước
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const tableRows = rows.slice(tablePage * pageSize, tablePage * pageSize + pageSize);
+
+  // 2. Cấu hình ảo hóa danh sách dựa trên tableRows đã phân trang
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 34, // Chiều cao chuẩn 34px Wireframe
+    overscan: 12,           // Buffer 12 hàng để cuộn cực mượt
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalVirtualHeight = rowVirtualizer.getTotalSize();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0]?.start ?? 0 : 0;
+  const paddingBottom =
+    virtualItems.length > 0
+      ? totalVirtualHeight - (virtualItems[virtualItems.length - 1]?.end ?? 0)
+      : 0;
 
   const handleAutoFitColumn = (colKey: ColumnKey) => {
     let maxChars = 8;
@@ -2395,15 +2419,15 @@ function Tracking() {
                         ? isActive
                           ? 'Góc nhìn tùy chỉnh (Nhấp để mở lại cấu hình ẩn/hiện cột)'
                           : hasCustomConfig
-                          ? 'Chuyển sang góc nhìn tùy chỉnh (Nhấp lần nữa để sửa cột)'
-                          : 'Chưa có cấu hình tùy chỉnh — Nhấp để thiết lập ẩn/hiện cột'
+                            ? 'Chuyển sang góc nhìn tùy chỉnh (Nhấp lần nữa để sửa cột)'
+                            : 'Chưa có cấu hình tùy chỉnh — Nhấp để thiết lập ẩn/hiện cột'
                         : spec.description
                     }
                     className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${isActive
                       ? 'bg-card text-foreground shadow-2xs font-bold border border-border/60'
                       : isCustom && !hasCustomConfig
-                      ? 'text-muted-foreground/50 hover:text-foreground hover:bg-secondary/40'
-                      : 'text-muted-foreground hover:text-foreground'
+                        ? 'text-muted-foreground/50 hover:text-foreground hover:bg-secondary/40'
+                        : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <span>{spec.shortLabel}</span>
@@ -2536,26 +2560,12 @@ function Tracking() {
 
         {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
         <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-slate-200 dark:border-border bg-card shadow-2xs">
-          <div className={`flex-1 min-h-0 overflow-auto transition-all ${selectedLots.size > 0 ? 'pb-24' : ''}`}>
-            <table
-              className="text-left font-['Be_Vietnam_Pro',sans-serif] text-[11.5px] border-collapse"
-              style={{
-                tableLayout: 'fixed',
-                width: '100%',
-                minWidth: `${totalTableWidth}px`,
-              }}
-            >
-              <colgroup>
-                {ACTIVE_GRID_COLUMNS.filter((key) => isColVisible(key)).map((key) => (
-                  <col
-                    key={key}
-                    style={{
-                      width: `${colWidths[key] ?? DEFAULT_COL_WIDTHS[key] ?? 100}px`,
-                      minWidth: `${MIN_COL_WIDTHS[key] ?? 60}px`,
-                    }}
-                  />
-                ))}
-              </colgroup>
+          <div
+            ref={tableContainerRef}
+            className="flex-1 overflow-auto border border-slate-200 dark:border-border relative"
+            style={{ maxHeight: isTableFullscreen ? 'calc(100vh - 120px)' : 'calc(100vh - 220px)' }}
+          >
+            <table className="w-full border-collapse text-xs select-text font-mono" style={{ width: `${totalTableWidth}px`, minWidth: '100%' }}>
               <thead
                 className="sticky top-0 z-40 bg-secondary font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-slate-200 dark:border-border shadow-xs"
                 style={{ position: 'sticky', top: 0, zIndex: 40 }}
@@ -3273,19 +3283,26 @@ function Tracking() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {tableRows.length ? (
-                  tableRows.map((r) => {
+                {paddingTop > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingTop}px` }} colSpan={visibleColumnCount} />
+                  </tr>
+                )}
+                {virtualItems.length > 0 ? (
+                  virtualItems.map((virtualRow) => {
+                    const r = tableRows[virtualRow.index];
+                    if (!r) return null;
                     const isSelected = selectedLots.has(r.ID_Key);
                     const padY = 'py-1';
 
                     return (
                       <tr
                         key={r.ID_Key}
-                        className={`group h-[34px] transition-colors border-b border-slate-200 dark:border-slate-800 ${
-                          isSelected
-                            ? 'bg-primary/10 hover:bg-primary/20'
-                            : 'odd:bg-card even:bg-secondary/25 hover:bg-secondary/70'
-                        }`}
+                        data-index={virtualRow.index}
+                        className={`group h-[34px] transition-colors border-b border-slate-200 dark:border-slate-800 ${isSelected
+                          ? 'bg-primary/10 hover:bg-primary/20'
+                          : 'odd:bg-card even:bg-secondary/25 hover:bg-secondary/70'
+                          }`}
                       >
                         {/* 0. Checkbox */}
                         <td
@@ -3974,13 +3991,12 @@ function Tracking() {
                                     const val = e.target.value;
                                     updateSingleCellField(r, 'ncc_ket_qua_qc', val);
                                   }}
-                                  className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${
-                                    !r.ncc_ket_qua_qc
-                                      ? 'text-muted-foreground/50'
-                                      : r.ncc_ket_qua_qc === 'PASS'
+                                  className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${!r.ncc_ket_qua_qc
+                                    ? 'text-muted-foreground/50'
+                                    : r.ncc_ket_qua_qc === 'PASS'
                                       ? 'font-bold text-emerald-600 dark:text-emerald-400'
                                       : 'font-bold text-destructive'
-                                  }`}
+                                    }`}
                                   title="Chọn nghiệm thu QC của NCC"
                                 >
                                   <option value="" disabled hidden>
@@ -4065,9 +4081,8 @@ function Tracking() {
                                     const val = e.target.value;
                                     updateSingleCellField(r, 'ncc_tatus', val);
                                   }}
-                                  className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${
-                                    !r.ncc_tatus ? 'text-muted-foreground/50' : 'font-semibold text-foreground'
-                                  }`}
+                                  className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${!r.ncc_tatus ? 'text-muted-foreground/50' : 'font-semibold text-foreground'
+                                    }`}
                                   title="Chọn tiến độ xử lý của NCC"
                                 >
                                   <option value="" disabled hidden>
@@ -4221,17 +4236,14 @@ function Tracking() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={visibleColumnCount} className="px-4 py-16 text-center text-xs text-muted-foreground">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xs bg-muted/60 border border-border/80 text-muted-foreground mb-3">
-                        <PackageOpen size={24} className="opacity-80 text-foreground" />
-                      </div>
-                      <p className="font-bold text-foreground text-sm">
-                        {t('common.notFound.title') || 'Không tìm thấy lô hàng nào phù hợp với bộ lọc'}
-                      </p>
-                      <p className="mt-1 text-xs">
-                        Thử điều chỉnh hoặc xóa bớt các tiêu chí lọc ở thanh công cụ.
-                      </p>
+                    <td colSpan={visibleColumnCount} className="py-12 text-center text-muted-foreground font-mono">
+                      Không có dữ liệu phù hợp
                     </td>
+                  </tr>
+                )}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingBottom}px` }} colSpan={visibleColumnCount} />
                   </tr>
                 )}
               </tbody>

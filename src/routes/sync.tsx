@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { fetchScopedSheet, type ScopedSheetResult } from '@/lib/sheet.functions';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeftRight,
@@ -395,8 +395,8 @@ function Sync() {
                 </div>
                 <span
                   className={`inline-flex items-center gap-1 rounded-xs px-1.5 py-0.5 font-mono text-[9px] font-bold ${isWebhookSaved
-                      ? 'border border-run/30 bg-run/10 text-run'
-                      : 'border border-border bg-muted/40 text-muted-foreground'
+                    ? 'border border-run/30 bg-run/10 text-run'
+                    : 'border border-border bg-muted/40 text-muted-foreground'
                     }`}
                 >
                   <span
@@ -451,8 +451,8 @@ function Sync() {
               {testResult && (
                 <div
                   className={`flex items-start gap-2 rounded-xs p-2.5 text-xs border ${testResult.ok
-                      ? 'border-run/30 bg-run/10 text-run font-medium'
-                      : 'border-destructive/30 bg-destructive/10 text-destructive'
+                    ? 'border-run/30 bg-run/10 text-run font-medium'
+                    : 'border-destructive/30 bg-destructive/10 text-destructive'
                     }`}
                 >
                   {testResult.ok ? (
@@ -592,8 +592,8 @@ function Sync() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <label
                   className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${mode === 'replace'
-                      ? 'border-primary bg-primary/10 text-primary font-bold'
-                      : 'border-border bg-card text-muted-foreground hover:bg-secondary'
+                    ? 'border-primary bg-primary/10 text-primary font-bold'
+                    : 'border-border bg-card text-muted-foreground hover:bg-secondary'
                     }`}
                 >
                   <input
@@ -613,8 +613,8 @@ function Sync() {
 
                 <label
                   className={`flex items-start gap-2 rounded-xs border p-2 cursor-pointer transition-colors ${mode === 'merge'
-                      ? 'border-primary bg-primary/10 text-primary font-bold'
-                      : 'border-border bg-card text-muted-foreground hover:bg-secondary'
+                    ? 'border-primary bg-primary/10 text-primary font-bold'
+                    : 'border-border bg-card text-muted-foreground hover:bg-secondary'
                     }`}
                 >
                   <input
