@@ -15,7 +15,7 @@ export const COLUMN_GROUPS: { key: ColumnDefinition['group']; label: string }[] 
   { key: 'IDENT', label: '📌 Cố định & Nhận diện' },
   { key: 'TECH', label: '⚙️ Kỹ thuật & Kích thước' },
   { key: 'COMM', label: '🏷️ Đơn giá & PO' },
-  { key: 'VENDOR', label: '🖋️ Nhà cung cấp & QC (12 cột)' },
+  { key: 'VENDOR', label: '🖋️ Nhà cung cấp & QC' },
   { key: 'DOCS', label: '📎 Hồ sơ & Phiếu A4' },
 ];
 
@@ -380,10 +380,7 @@ export function ColumnConfigModal({
         {/* Footer Actions */}
         <div className="flex flex-wrap items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-secondary/30 gap-2 shrink-0">
           <div className="text-xs font-mono text-slate-500 dark:text-muted-foreground flex items-center gap-1.5">
-            <span>💾 Cấu hình được lưu tự động vào trình duyệt thiết bị này</span>
-            <span className="hidden xl:inline text-slate-400 font-normal">
-              ({STORAGE_CUSTOM_COLUMNS_KEY})
-            </span>
+            <span>💾 Lưu tự động vào trình duyệt</span>
           </div>
           <div className="flex items-center gap-2">
             <button
