@@ -1216,7 +1216,10 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
             setImgRotation(0);
           }}
         >
-          <DialogContent className="max-w-3xl w-[95vw] rounded-xl border border-slate-200 bg-white p-4 shadow-2xl font-sans flex flex-col max-h-[90vh]">
+          <DialogContent
+            className="max-w-3xl w-[95vw] rounded-xl sm:rounded-xl border border-slate-200 bg-white p-4 shadow-2xl font-sans flex flex-col max-h-[90vh] overflow-hidden"
+            style={{ borderRadius: '12px' }}
+          >
             <DialogTitle className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5 text-xs font-bold text-slate-900">
               <div className="flex items-center gap-2 min-w-0">
                 {renderFileTypeBadge(previewFile.type, previewFile.source)}

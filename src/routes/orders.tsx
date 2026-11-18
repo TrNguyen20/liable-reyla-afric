@@ -615,7 +615,7 @@ function Orders() {
                           <StatusDot status={i.TrangThai} />
                         </td>
                         <td className={`px-3.5 ${padY}`}>
-                          <JobTicketButton item={i} role={role} variant="icon" />
+                          <JobTicketButton item={i} role={role} variant="icon" siblingItems={filteredRows} />
                         </td>
                         <td className={`px-3.5 ${padY}`}>
                           <LotUpdateButton item={i} variant="icon" />

@@ -16,7 +16,9 @@
 > 👉 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) — **Graphite Wireframe UI Specification (v2.5.0)**.
 >
 > **Mandatory Directives for AI Agents:**
-> 1. **Minimal 2px Corners**: Use `rounded-xs` (`rounded-[2px]`) or `rounded-sm` (max 4px). NEVER introduce `rounded-lg`, `rounded-xl`, `rounded-2xl`, or consumer-style pill buttons (`rounded-full` is restricted only to micro LED status dots).
+> 1. **Minimal 2px Corners vs. Floating Windows Specification (v2.7.0)**:
+>    - **Static Page Elements** (Table, rows, cells, inputs, toolbar buttons, grid headers): Strictly use `rounded-xs` (`rounded-[2px]`) or `rounded-sm` (max 4px). NEVER introduce `rounded-lg` or `rounded-xl` into static page flow.
+>    - **Floating Pop-up Windows & Dialogs** (All modals, file managers, ticket printing, column customization, lot updates, batch actions): MUST strictly adopt the modern industrial floating window standard: `rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-2xl`. Modal header/footers use rounded sub-elements (`rounded-lg`, pill badges).
 > 2. **Monospaced Data Grid**: All quantitative, order, lot, material, date, and status fields MUST use `font-mono tabular-nums`.
 > 3. **Industrial Wireframe Elements**: 1px sharp borders (`border-border`), high contrast cool graphite neutrals, industrial status tags (`WAIT`, `TRANSIT`, `STOCKED`, `PASS`, `FAIL`), and Andon/Run LED indicators (`fx-run-dot`).
 > 4. **Official Route Architecture**:
