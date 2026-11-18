@@ -1201,7 +1201,7 @@ function Dashboard() {
                       </td>
                       <td className="py-1.5 px-2 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1">
-                          <JobTicketButton item={r} />
+                          <JobTicketButton item={r} role={role} siblingItems={pagedBottlenecks.map(b => b.item)} />
                           {allowed ? (
                             <LotUpdateButton item={r} variant="icon" />
                           ) : (
@@ -1248,7 +1248,7 @@ function Dashboard() {
                   </div>
 
                   <div className="flex items-center justify-between border-t border-border/40 pt-1.5 font-mono text-[10px]">
-                    <JobTicketButton item={item} />
+                    <JobTicketButton item={item} role={role} siblingItems={pagedBottlenecks.map(b => b.item)} />
                     {allowed ? (
                       <LotUpdateButton item={item} variant="icon" />
                     ) : (

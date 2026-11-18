@@ -162,7 +162,10 @@ export function LotUpdateButton({
         </Button>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent
+          className="rounded-xl sm:rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-2xl overflow-hidden"
+          style={{ borderRadius: '12px' }}
+        >
           <DialogHeader>
             <DialogTitle className="font-mono text-sm font-bold">
               {t("common.lotUpdate.dialogTitle", { lotId: item.ID_Key }) ||

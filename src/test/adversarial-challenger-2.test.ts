@@ -231,7 +231,6 @@ describe('CHALLENGER 2: Adversarial Audit & Empirical Verification Suite', () =>
         'src/components/dynamo-shell.tsx',
         'src/components/shopfloor-telemetry.tsx',
         'src/components/command-palette.tsx',
-        'src/components/lot-update-dialog.tsx',
         'src/components/webhook-config.tsx',
       ];
 

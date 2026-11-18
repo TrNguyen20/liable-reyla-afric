@@ -35,10 +35,15 @@ import {
   Upload,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { AttachmentCell } from '@/components/tracking/attachment-field';
 import { DateCell } from '@/components/tracking/date-cell';
 import { BatchOperationsModal } from '@/components/tracking/batch-operations-modal';
+import { FileLightboxModal } from '@/components/tracking/file-lightbox-modal';
+import {
+  ColumnConfigModal,
+  STORAGE_CUSTOM_COLUMNS_KEY,
+  ALL_COLUMN_DEFINITIONS,
+} from '@/components/tracking/column-config-modal';
 import { CountryCellBadge } from '@/components/common/vietnam-flag';
 import { useDynamo } from '@/components/dynamo-shell';
 import { useTranslation } from '@/i18n';
@@ -198,7 +203,7 @@ export type ColumnKey =
   | 'han_tra'
   | 'ghi_chu';
 
-export type ColumnView = 'ALL' | 'DOCS' | 'TECH' | 'COMM' | 'VENDOR_QC';
+export type ColumnView = 'ALL' | 'DOCS' | 'TECH' | 'COMM' | 'VENDOR_QC' | 'CUSTOM';
 
 export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: string; description: string }> = {
   ALL: {
@@ -226,6 +231,11 @@ export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: 
     shortLabel: '🖋️ NCC Ghi',
     description: 'Hạn trả NCC, mã mẻ lò, giản đồ nhiệt, đo HRC, nghiệm thu QC, báo giá',
   },
+  CUSTOM: {
+    label: 'Hình 4: ⭐ Tùy chỉnh (Cá nhân)',
+    shortLabel: '⭐ Tùy chỉnh',
+    description: 'Cấu hình cột tùy biến theo nhu cầu cá nhân lưu trên trình duyệt',
+  },
 };
 
 export function isColumnVisibleInView(colKey: string, view: ColumnView): boolean {
@@ -233,7 +243,7 @@ export function isColumnVisibleInView(colKey: string, view: ColumnView): boolean
     return true;
   }
 
-  if (view === 'ALL') return true;
+  if (view === 'ALL' || view === 'CUSTOM') return true;
 
   if (view === 'DOCS') {
     return [
@@ -364,8 +374,8 @@ const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   doi_tuong_hang: 105,
   id_ma_hang: 165,
   so_luong: 70,
-  vat_lieu: 100,
-  do_cung: 100,
+  vat_lieu: 105,
+  do_cung: 110,
   kich_thuoc_sp: 125,
   kg_lot: 70,
   don_vi_tinh: 70,
@@ -373,8 +383,8 @@ const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   don_gia: 90,
   thanh_tien: 110,
   ty_gia: 60,
-  ngay_gui_qt: 105,
-  cty_qt: 110,
+  ngay_gui_qt: 115,
+  cty_qt: 115,
   trang_thai: 130,
   so_dat_hang: 140,
   ten_file_dat_hang: 100,
@@ -391,7 +401,7 @@ const DEFAULT_COL_WIDTHS: Record<ColumnKey, number> = {
   ncc_thongtinkhac1: 125,
   ncc_thongtinkhac2: 125,
   ncc_file1: 125,
-  ticket: 58,
+  ticket: 64,
   ID_Key: 130,
   So_DatHang: 120,
   kg_Lot: 70,
@@ -414,8 +424,8 @@ const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   doi_tuong_hang: 80,
   id_ma_hang: 110,
   so_luong: 60,
-  vat_lieu: 90,
-  do_cung: 90,
+  vat_lieu: 100,
+  do_cung: 100,
   kich_thuoc_sp: 90,
   kg_lot: 60,
   don_vi_tinh: 50,
@@ -423,9 +433,9 @@ const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   don_gia: 70,
   thanh_tien: 80,
   ty_gia: 50,
-  ngay_gui_qt: 90,
-  cty_qt: 90,
-  trang_thai: 90,
+  ngay_gui_qt: 110,
+  cty_qt: 105,
+  trang_thai: 115,
   so_dat_hang: 110,
   ten_file_dat_hang: 70,
   ghi_chu_khi_gui: 100,
@@ -441,7 +451,7 @@ const MIN_COL_WIDTHS: Record<ColumnKey, number> = {
   ncc_thongtinkhac1: 80,
   ncc_thongtinkhac2: 80,
   ncc_file1: 70,
-  ticket: 58,
+  ticket: 64,
   ID_Key: 110,
   So_DatHang: 110,
   kg_Lot: 60,
@@ -658,6 +668,7 @@ function HeaderFilterCell({
   width,
   onResize,
   onResetWidth,
+  onAutoFit,
   stickyLeft,
   isStickyLast = false,
   onDirectSort,
@@ -674,6 +685,7 @@ function HeaderFilterCell({
   width?: number;
   onResize?: (e: React.MouseEvent) => void;
   onResetWidth?: () => void;
+  onAutoFit?: () => void;
   stickyLeft?: number;
   isStickyLast?: boolean;
   onDirectSort?: (field: SortField) => void;
@@ -692,7 +704,7 @@ function HeaderFilterCell({
 
   return (
     <th
-      className={`whitespace-nowrap px-2 py-1 font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground select-none border-b border-slate-200 dark:border-border ${isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
+      className={`whitespace-nowrap px-1.5 py-1 font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground select-none border-b border-slate-200 dark:border-border ${isSticky ? 'sticky top-0 z-50 bg-secondary' : 'relative bg-secondary'
         } ${stickyClass} ${className} ${isStickyLast
           ? 'border-r border-slate-200 dark:border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)]'
           : 'border-r border-slate-200/60 dark:border-border/40'
@@ -746,13 +758,13 @@ function HeaderFilterCell({
               <button
                 type="button"
                 onClick={(e) => e.stopPropagation()}
-                className={`inline-flex size-7 shrink-0 items-center justify-center rounded-xs transition-all cursor-pointer touch-manipulation active:scale-95 ${isFiltered
-                  ? 'bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
+                className={`inline-flex w-5 h-5 shrink-0 items-center justify-center rounded-xs transition-all cursor-pointer touch-manipulation active:scale-95 opacity-40 group-hover/th:opacity-100 hover:opacity-100 ${isFiltered
+                  ? '!opacity-100 bg-primary text-primary-foreground font-black ring-2 ring-primary ring-offset-1 shadow-xs'
                   : 'text-muted-foreground/70 hover:bg-background/80 hover:text-foreground'
                   }`}
                 title={t('tracking.table.openFilter', { column: title }) || `Mở bộ lọc ${title}`}
               >
-                <Filter size={12} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
+                <Filter size={10} className={isFiltered ? 'stroke-[2.5]' : 'stroke-[1.8]'} />
               </button>
             </PopoverTrigger>
             <PopoverContent
@@ -773,10 +785,14 @@ function HeaderFilterCell({
           onMouseDown={onResize}
           onDoubleClick={(e) => {
             e.stopPropagation();
-            onResetWidth?.();
+            if (onAutoFit) {
+              onAutoFit();
+            } else {
+              onResetWidth?.();
+            }
           }}
           className="group/resizer absolute -right-2 top-0 bottom-0 w-4 cursor-col-resize select-none touch-none flex items-center justify-center z-30"
-          title={t('tracking.table.dragColumnTooltip') || 'Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để đặt lại mặc định)'}
+          title={t('tracking.table.dragColumnTooltip') || 'Kéo sang trái/phải để đổi độ rộng (Nhấp đúp để tự động căn độ rộng vừa nội dung)'}
         >
           <div className="w-[1.5px] h-3.5 rounded-full bg-border/80 group-hover/resizer:bg-primary group-hover/resizer:h-full group-hover/resizer:w-[2px] transition-all" />
         </div>
@@ -860,12 +876,26 @@ function Tracking() {
     playAudioCue('pop');
   };
 
-  // 4 Tab Góc Nhìn Cột (Column View Switcher - DNA Gemini 4 Argon)
+  // 5 Tab Góc Nhìn Cột + Tab Custom (Column View Switcher)
+  const [customVisibleCols, setCustomVisibleCols] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_CUSTOM_COLUMNS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch { }
+    }
+    return ALL_COLUMN_DEFINITIONS.map((c) => c.key);
+  });
+  const [columnConfigOpen, setColumnConfigOpen] = useState(false);
+
   const [colView, setColView] = useState<ColumnView>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = window.localStorage.getItem('dynamo-column-view');
-        if (saved && (saved === 'ALL' || saved === 'DOCS' || saved === 'TECH' || saved === 'COMM' || saved === 'VENDOR_QC')) {
+        if (saved && (saved === 'ALL' || saved === 'DOCS' || saved === 'TECH' || saved === 'COMM' || saved === 'VENDOR_QC' || saved === 'CUSTOM')) {
           return saved as ColumnView;
         }
       } catch { }
@@ -881,8 +911,16 @@ function Tracking() {
   };
 
   const isColVisible = useCallback(
-    (colKey: string) => isColumnVisibleInView(colKey, colView),
-    [colView]
+    (colKey: string) => {
+      if (colKey === 'checkbox' || colKey === 'ma_hang' || colKey === 'ticket') {
+        return true;
+      }
+      if (colView === 'CUSTOM') {
+        return customVisibleCols.includes(colKey);
+      }
+      return isColumnVisibleInView(colKey, colView);
+    },
+    [colView, customVisibleCols]
   );
 
   const totalTableWidth = useMemo(() => {
@@ -1714,6 +1752,32 @@ function Tracking() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const tableRows = rows.slice(tablePage * pageSize, tablePage * pageSize + pageSize);
 
+  const handleAutoFitColumn = (colKey: ColumnKey) => {
+    let maxChars = 8;
+    const def = ALL_COLUMN_DEFINITIONS.find((c) => c.key === colKey);
+    if (def) {
+      maxChars = Math.max(maxChars, def.label.length);
+    }
+    for (const r of tableRows) {
+      const rawVal = r[colKey as keyof QTItem];
+      if (rawVal !== undefined && rawVal !== null) {
+        const strVal = String(rawVal);
+        if (strVal.length > maxChars) maxChars = strVal.length;
+      }
+    }
+    const minW = MIN_COL_WIDTHS[colKey] ?? 60;
+    const calculatedWidth = Math.max(minW, Math.min(450, Math.round(maxChars * 7.8 + 24)));
+    setColWidths((prev) => {
+      const next = { ...prev, [colKey]: calculatedWidth };
+      try {
+        window.localStorage.setItem('dynamo-tracking-col-widths', JSON.stringify(next));
+      } catch { }
+      return next;
+    });
+    toast.success(`Đã tự động căn độ rộng cột: ${calculatedWidth}px`);
+    playAudioCue('pop');
+  };
+
   // Checkbox indeterminate ref & selection state indicators
   const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
   const isAllPageSelected = useMemo(
@@ -2255,13 +2319,14 @@ function Tracking() {
           : 'flex-1 min-h-0 w-full overflow-hidden'
           }`}
       >
-        {/* Unified Operational Action Bar - Master Craftsmanship Layout (Chiến lược 2) */}
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xs border border-border bg-card/90 px-3 py-1.5 shadow-2xs text-xs shrink-0">
-          {/* Cụm Trái: Route Identity, Local / View Actions & Search */}
+        {/* Unified Operational Action Bar - 1-Tier Compact Industrial Bar Layout */}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xs border border-border bg-card/90 px-3 py-1.5 shadow-2xs text-xs shrink-0 min-h-[36px]">
+          {/* Cụm Trái: Điều hướng Route, Tìm kiếm Toàn cục, 6 Góc nhìn Cột (luôn có CUSTOM) & Nút Tùy chỉnh cột */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground">
+            <span className="font-mono text-xs font-black tracking-wider uppercase text-foreground shrink-0">
               {t('nav.route1Title') || '[1] LUÂN CHUYỂN'}
             </span>
+
             {/* 1. Ô Global Search tích hợp phím tắt '/' */}
             <div className="relative inline-flex items-center">
               <Search size={13} className="absolute left-2.5 text-muted-foreground/70 pointer-events-none" />
@@ -2280,7 +2345,7 @@ function Tracking() {
                   }
                 }}
                 placeholder={t('tracking.toolbars.searchPlaceholder') || 'Tìm nhanh (nhấn /)...'}
-                className="h-8 w-52 sm:w-64 rounded-xs border border-input bg-card pl-8 pr-7 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 shadow-2xs focus:outline-hidden focus:border-primary/80 focus:ring-1 focus:ring-primary/40 transition-all"
+                className="h-7 w-44 sm:w-56 rounded-xs border border-input bg-card pl-8 pr-9 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 shadow-2xs focus:outline-hidden focus:border-primary/80 focus:ring-1 focus:ring-primary/40 transition-all truncate"
               />
               {globalSearch ? (
                 <button
@@ -2296,25 +2361,48 @@ function Tracking() {
                   <X size={12} />
                 </button>
               ) : (
-                <kbd className="hidden sm:inline-block absolute right-2 text-[9px] font-mono text-muted-foreground/60 border border-border/60 rounded-xs px-1 py-0.2 bg-muted/50">
+                <kbd className="hidden sm:inline-block pointer-events-none absolute right-2 text-[9px] font-mono text-muted-foreground/60 border border-border/60 rounded-xs px-1 py-0.2 bg-muted/50">
                   /
                 </kbd>
               )}
             </div>
 
-            {/* 1b. Column View Switcher (5 Tab Góc Nhìn Cột - DNA Gemini 4 Argon) */}
+            {/* 1b. Column View Switcher (5 Tab Preset + Tab CUSTOM luôn cố định) */}
             <div className="flex rounded-xs border border-border bg-secondary/50 p-0.5 text-xs">
-              {(['ALL', 'DOCS', 'TECH', 'COMM', 'VENDOR_QC'] as ColumnView[]).map((viewKey) => {
+              {(['ALL', 'DOCS', 'TECH', 'COMM', 'VENDOR_QC', 'CUSTOM'] as ColumnView[]).map((viewKey) => {
                 const spec = COLUMN_VIEW_SPECS[viewKey];
                 const isActive = colView === viewKey;
+                const isCustom = viewKey === 'CUSTOM';
+                const hasCustomConfig = customVisibleCols.length > 0 && typeof window !== 'undefined' && Boolean(window.localStorage.getItem(STORAGE_CUSTOM_COLUMNS_KEY));
+
                 return (
                   <button
                     key={viewKey}
                     type="button"
-                    onClick={() => handleSetColView(viewKey)}
-                    title={spec.description}
+                    onClick={() => {
+                      if (isCustom) {
+                        if (!hasCustomConfig || isActive) {
+                          setColumnConfigOpen(true);
+                        } else {
+                          handleSetColView('CUSTOM');
+                        }
+                      } else {
+                        handleSetColView(viewKey);
+                      }
+                    }}
+                    title={
+                      isCustom
+                        ? isActive
+                          ? 'Góc nhìn tùy chỉnh (Nhấp để mở lại cấu hình ẩn/hiện cột)'
+                          : hasCustomConfig
+                          ? 'Chuyển sang góc nhìn tùy chỉnh (Nhấp lần nữa để sửa cột)'
+                          : 'Chưa có cấu hình tùy chỉnh — Nhấp để thiết lập ẩn/hiện cột'
+                        : spec.description
+                    }
                     className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${isActive
                       ? 'bg-card text-foreground shadow-2xs font-bold border border-border/60'
+                      : isCustom && !hasCustomConfig
+                      ? 'text-muted-foreground/50 hover:text-foreground hover:bg-secondary/40'
                       : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
@@ -2323,24 +2411,27 @@ function Tracking() {
                 );
               })}
             </div>
+          </div>
 
+          {/* Cụm Phải: Thao tác bảng (Khôi phục cỡ cột, Xóa lọc) + Global Actions (Làm mới, Toàn màn hình, Xuất CSV) */}
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             {/* 2. Khôi phục cỡ cột */}
             <button
               type="button"
               onClick={handleResetAllColWidths}
-              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
+              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
               title={t('tracking.toolbars.resetColWidthsTooltip') || 'Khôi phục kích thước mặc định cho toàn bộ cột'}
             >
               <RotateCcw size={11} className="text-primary/80" />
-              <span className="hidden sm:inline">{t('tracking.toolbars.resetColWidths') || 'Khôi phục cỡ cột'}</span>
+              <span className="hidden md:inline">{t('tracking.toolbars.resetColWidths') || 'Khôi phục cỡ cột'}</span>
             </button>
 
-            {/* 4. Nút Xóa tất cả lọc (hiển thị ngay bên phải nút Khôi phục cỡ cột khi có bộ lọc hoặc tìm kiếm đang kích hoạt) */}
+            {/* 4. Nút Xóa tất cả lọc */}
             {(activeFilters.length > 0 || globalSearch.trim()) && (
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="inline-flex items-center gap-1.5 rounded-xs border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation animate-in fade-in"
+                className="inline-flex items-center gap-1 rounded-xs border border-destructive/40 bg-destructive/10 px-2 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/20 transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation animate-in fade-in"
                 title={t('tracking.actions.clearFilterTooltip') || 'Xóa toàn bộ các bộ lọc trên bảng'}
               >
                 <Trash2 size={11} />
@@ -2350,22 +2441,19 @@ function Tracking() {
                 </span>
               </button>
             )}
-          </div>
 
-          {/* Cụm Phải: Global / Primary Actions (Refresh, Zen Fullscreen, Export CSV Dropdown) */}
-          <div className="flex items-center gap-2 text-[11px]">
-            {/* Nút Làm Mới (Shift+R) - Đồng bộ từ Shell về Toolbar */}
+            {/* Nút Làm Mới (Shift+R) */}
             <button
               type="button"
               onClick={() => void pullLive(true)}
               disabled={loading}
               title={t('tracking.toolbars.refresh') || 'Làm mới dữ liệu từ Google Sheets (Phím tắt: Shift + R)'}
               aria-label={t('tracking.toolbars.refresh') || 'Làm mới dữ liệu từ Google Sheets'}
-              className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation disabled:opacity-60"
+              className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-card px-2 py-1 text-[11px] font-bold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation disabled:opacity-60"
             >
-              <RefreshCw size={12} className={loading ? 'animate-spin text-primary' : 'text-primary'} />
+              <RefreshCw size={11} className={loading ? 'animate-spin text-primary' : 'text-primary'} />
               <span>{loading ? (t('common.loading') || 'Đang tải…') : (t('common.refresh') || 'Làm mới')}</span>
-              <kbd className="hidden md:inline-block font-mono text-[9px] text-muted-foreground bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
+              <kbd className="hidden lg:inline-block font-mono text-[9px] text-muted-foreground bg-muted/80 px-1 py-0.2 rounded-xs border border-border/50">
                 Shift+R
               </kbd>
             </button>
@@ -2374,7 +2462,7 @@ function Tracking() {
             <button
               type="button"
               onClick={toggleTableFullscreen}
-              className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${isTableFullscreen
+              className={`inline-flex items-center gap-1 rounded-xs border px-2 py-1 text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-98 touch-manipulation ${isTableFullscreen
                 ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                 : 'border-border/80 bg-card text-foreground hover:bg-secondary hover:border-primary/40'
                 }`}
@@ -2385,13 +2473,13 @@ function Tracking() {
               }
             >
               {isTableFullscreen ? (
-                <Minimize2 size={12} className={isTableFullscreen ? 'text-primary-foreground' : 'text-primary/90'} />
+                <Minimize2 size={11} className={isTableFullscreen ? 'text-primary-foreground' : 'text-primary/90'} />
               ) : (
-                <Maximize2 size={12} className="text-primary/90" />
+                <Maximize2 size={11} className="text-primary/90" />
               )}
               <span>{isTableFullscreen ? (t('tracking.toolbars.minimize') || 'Thu nhỏ') : (t('tracking.toolbars.fullscreen') || 'Toàn màn hình')}</span>
               <kbd
-                className={`hidden sm:inline-block text-[9px] px-1 py-0.2 rounded font-mono border ${isTableFullscreen
+                className={`hidden lg:inline-block text-[9px] px-1 py-0.2 rounded font-mono border ${isTableFullscreen
                   ? 'bg-primary-foreground/20 border-primary-foreground/30 text-primary-foreground'
                   : 'bg-muted/70 border-border/60 text-muted-foreground'
                   }`}
@@ -2400,15 +2488,15 @@ function Tracking() {
               </kbd>
             </button>
 
-            {/* Nút Xuất CSV Dropdown đa năng (Chiến lược 2 & 4) */}
+            {/* Nút Xuất CSV Dropdown đa năng */}
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-xs border border-border/80 bg-card px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
+                  className="inline-flex items-center gap-1 rounded-xs border border-border/80 bg-card px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-98 touch-manipulation"
                   title={t('tracking.toolbars.exportCsvTooltip') || 'Tùy chọn xuất file CSV'}
                 >
-                  <Download size={12} className="text-primary/90" />
+                  <Download size={11} className="text-primary/90" />
                   <span>{t('tracking.toolbars.exportCsv') || 'Xuất CSV'}</span>
                   <ChevronDown size={11} className="text-muted-foreground" />
                 </button>
@@ -2448,7 +2536,7 @@ function Tracking() {
 
         {/* Data Table View (17 columns with Google Sheets Popover Filters in Header Cells) - TASK-004 */}
         <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-slate-200 dark:border-border bg-card shadow-2xs">
-          <div className="flex-1 min-h-0 overflow-auto">
+          <div className={`flex-1 min-h-0 overflow-auto transition-all ${selectedLots.size > 0 ? 'pb-24' : ''}`}>
             <table
               className="text-left font-['Be_Vietnam_Pro',sans-serif] text-[11.5px] border-collapse"
               style={{
@@ -2709,11 +2797,21 @@ function Tracking() {
                       field="vat_lieu"
                       sortCol={sortCol}
                       sortDir={sortDir}
+                      isFiltered={Boolean(filters.materials && filters.materials.length > 0)}
                       width={colWidths.vat_lieu}
                       onDirectSort={handleToggleSort}
                       onResize={(e) => handleResizeStart(e, 'vat_lieu')}
                       onResetWidth={() => handleResetWidth('vat_lieu')}
-                    />
+                      onAutoFit={() => handleAutoFitColumn('vat_lieu')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc VẬT LIỆU"
+                        values={allMaterials}
+                        selected={filters.materials}
+                        onChange={(selected) => setFilters((f) => ({ ...f, materials: selected }))}
+                        counts={counts.mat}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 10: Độ cứng */}
@@ -2723,11 +2821,49 @@ function Tracking() {
                       field="do_cung"
                       sortCol={sortCol}
                       sortDir={sortDir}
+                      isFiltered={Boolean(filters.hardnessSearch || filters.missingHardnessOnly)}
                       width={colWidths.do_cung}
                       onDirectSort={handleToggleSort}
                       onResize={(e) => handleResizeStart(e, 'do_cung')}
                       onResetWidth={() => handleResetWidth('do_cung')}
-                    />
+                      onAutoFit={() => handleAutoFitColumn('do_cung')}
+                    >
+                      <div className="space-y-2 p-1 text-xs font-sans">
+                        <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                          <span className="font-mono font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Lọc ĐỘ CỨNG (HRC)
+                          </span>
+                          {(filters.hardnessSearch || filters.missingHardnessOnly) && (
+                            <button
+                              type="button"
+                              onClick={() => setFilters((f) => ({ ...f, hardnessSearch: '', missingHardnessOnly: false }))}
+                              className="text-[10px] text-destructive hover:underline cursor-pointer font-semibold"
+                            >
+                              Xóa lọc
+                            </button>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground mb-1 block">Tìm theo mức độ cứng:</label>
+                          <input
+                            type="text"
+                            value={filters.hardnessSearch}
+                            onChange={(e) => setFilters((f) => ({ ...f, hardnessSearch: e.target.value }))}
+                            placeholder="VD: 58-62, 48..."
+                            className="w-full h-7 px-2 text-xs rounded-xs border border-border bg-background focus:outline-none focus:border-primary font-mono"
+                          />
+                        </div>
+                        <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={filters.missingHardnessOnly}
+                            onChange={(e) => setFilters((f) => ({ ...f, missingHardnessOnly: e.target.checked }))}
+                            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary accent-primary"
+                          />
+                          <span>Chỉ xem lô thiếu độ cứng</span>
+                        </label>
+                      </div>
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 11: Quy cách KT */}
@@ -2850,11 +2986,21 @@ function Tracking() {
                       field="cty_QT"
                       sortCol={sortCol}
                       sortDir={sortDir}
+                      isFiltered={Boolean(filters.vendors && filters.vendors.length > 0)}
                       width={colWidths.cty_qt}
                       onDirectSort={handleToggleSort}
                       onResize={(e) => handleResizeStart(e, 'cty_qt')}
                       onResetWidth={() => handleResetWidth('cty_qt')}
-                    />
+                      onAutoFit={() => handleAutoFitColumn('cty_qt')}
+                    >
+                      <DistinctValueFilterPopover
+                        title="Lọc ĐỐI TÁC"
+                        values={allVendors}
+                        selected={filters.vendors}
+                        onChange={(selected) => setFilters((f) => ({ ...f, vendors: selected }))}
+                        counts={counts.ven}
+                      />
+                    </HeaderFilterCell>
                   )}
 
                   {/* Column 20: TRẠNG THÁI */}
@@ -3111,7 +3257,7 @@ function Tracking() {
 
                   {/* Column 36: Phiếu A4 (Sticky top-0 right-0) */}
                   <th
-                    className="sticky top-0 right-0 z-50 whitespace-nowrap px-2 py-1 text-center bg-secondary font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground select-none border-l border-slate-200 dark:border-border/80 border-b border-slate-200 dark:border-border shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)]"
+                    className="sticky top-0 right-0 z-50 whitespace-nowrap px-2 py-1 text-center bg-secondary font-['Be_Vietnam_Pro',sans-serif] text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground select-none border-l border-slate-200 dark:border-border/80 border-b border-slate-200 dark:border-border shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.12)] dark:shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.35)]"
                     style={{
                       position: 'sticky',
                       top: 0,
@@ -3135,12 +3281,16 @@ function Tracking() {
                     return (
                       <tr
                         key={r.ID_Key}
-                        className={`group h-[34px] transition-colors border-b border-slate-200 dark:border-slate-800 ${isSelected ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-accent/40'}`}
+                        className={`group h-[34px] transition-colors border-b border-slate-200 dark:border-slate-800 ${
+                          isSelected
+                            ? 'bg-primary/10 hover:bg-primary/20'
+                            : 'odd:bg-card even:bg-secondary/25 hover:bg-secondary/70'
+                        }`}
                       >
                         {/* 0. Checkbox */}
                         <td
                           className={`sticky left-0 z-20 px-2 ${padY} text-center transition-colors border-r border-slate-200 dark:border-border/40 bg-card h-[34px] relative ${isSelected
-                            ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
+                            ? 'border-l-2 border-l-primary before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}
                           style={{
@@ -3165,7 +3315,7 @@ function Tracking() {
 
                         {/* 1. Mã hàng (Sticky left-[checkbox], click -> opens drawer) */}
                         <td
-                          className={`sticky z-20 whitespace-nowrap px-2 ${padY} transition-colors border-r border-slate-200 dark:border-border/80 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card h-[34px] relative overflow-hidden ${isSelected
+                          className={`sticky z-20 whitespace-nowrap px-2 ${padY} transition-colors border-r border-slate-200 dark:border-border/80 shadow-[6px_0_12px_-4px_rgba(0,0,0,0.12)] dark:shadow-[6px_0_12px_-4px_rgba(0,0,0,0.35)] bg-card h-[34px] relative overflow-hidden ${isSelected
                             ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}
@@ -3227,7 +3377,18 @@ function Tracking() {
 
                         {/* 7. Mã bản vẽ / phôi */}
                         {isColVisible('id_ma_hang') && (
-                          <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.id_ma_hang}px` }}>
+                          <td
+                            className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate cursor-pointer hover:text-foreground hover:underline`}
+                            style={{ maxWidth: `${colWidths.id_ma_hang}px` }}
+                            title={r.id_ma_hang ? `Mã bản vẽ: ${r.id_ma_hang} (Nhấp để sao chép)` : undefined}
+                            onClick={() => {
+                              if (r.id_ma_hang) {
+                                navigator.clipboard.writeText(r.id_ma_hang);
+                                toast.success(`Đã sao chép mã bản vẽ: ${r.id_ma_hang}`);
+                                playAudioCue('pop');
+                              }
+                            }}
+                          >
                             {r.id_ma_hang || '—'}
                           </td>
                         )}
@@ -3290,7 +3451,9 @@ function Tracking() {
                                 className="flex items-center justify-between gap-1 group/edit cursor-pointer"
                                 title={canEdit ? (t('tracking.inlineEdit.doubleClick.material') || 'Click đúp để sửa mác thép') : undefined}
                               >
-                                <span className="truncate">{r.vat_lieu || 'Chưa rõ'}</span>
+                                <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold text-[10.5px] bg-secondary/80 border border-border/80 text-foreground truncate">
+                                  {r.vat_lieu || 'Chưa rõ'}
+                                </span>
                                 {canEdit && (
                                   <button
                                     type="button"
@@ -3551,16 +3714,30 @@ function Tracking() {
                         {/* 20. TRẠNG THÁI */}
                         {isColVisible('trang_thai') && (
                           <td className={`whitespace-nowrap px-2 ${padY} truncate`} style={{ maxWidth: `${colWidths.trang_thai}px` }}>
-                            <span className="px-1.5 py-0.5 rounded-xs font-mono text-[10px] bg-secondary border border-border/60">
-                              {r.trang_thai || r.TrangThai}
-                            </span>
+                            {(() => {
+                              const st = (r.trang_thai || r.TrangThai || '').trim();
+                              if (!st || st === 'Đang tại Vendor' || st === '—' || st === '-') {
+                                return <span className="font-mono text-muted-foreground/60">—</span>;
+                              }
+                              return (
+                                <span className="px-1.5 py-0.5 rounded-xs font-mono text-[10px] bg-secondary border border-border/60">
+                                  {st}
+                                </span>
+                              );
+                            })()}
                           </td>
                         )}
 
                         {/* 21. Số đơn hàng */}
                         {isColVisible('so_dat_hang') && (
                           <td className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate`} style={{ maxWidth: `${colWidths.so_dat_hang}px` }}>
-                            {r.so_dat_hang || r.So_DatHang}
+                            {(() => {
+                              const po = (r.so_dat_hang || r.So_DatHang || '').trim();
+                              if (!po || po === 'CHƯA_CÓ_PO' || po === 'CHUA_CO_PO' || po === '—' || po === '-') {
+                                return <span className="font-mono text-muted-foreground/60">—</span>;
+                              }
+                              return po;
+                            })()}
                           </td>
                         )}
 
@@ -4022,7 +4199,7 @@ function Tracking() {
 
                         {/* 36. Phiếu A4 (Sticky Right Pin) */}
                         <td
-                          className={`sticky right-0 z-20 whitespace-nowrap px-2 ${padY} text-center transition-colors border-l border-slate-200 dark:border-border/80 shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.25)] bg-card h-[34px] relative ${isSelected
+                          className={`sticky right-0 z-20 whitespace-nowrap px-2 ${padY} text-center transition-colors border-l border-slate-200 dark:border-border/80 shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.12)] dark:shadow-[-6px_0_12px_-4px_rgba(0,0,0,0.35)] bg-card h-[34px] relative ${isSelected
                             ? 'before:absolute before:inset-0 before:bg-primary/15 before:pointer-events-none group-hover:before:bg-primary/20'
                             : 'group-hover:before:absolute group-hover:before:inset-0 group-hover:before:bg-accent/40 group-hover:before:pointer-events-none'
                             }`}
@@ -4036,7 +4213,7 @@ function Tracking() {
                           }}
                         >
                           <div className="relative z-10 flex items-center justify-center">
-                            <JobTicketButton item={r} role={role} variant="icon" />
+                            <JobTicketButton item={r} role={role} variant="icon" siblingItems={rows} />
                           </div>
                         </td>
                       </tr>
@@ -4071,7 +4248,7 @@ function Tracking() {
               </span>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground font-medium">{t('common.view') || 'Hiển thị'}:</span>
+                <span className="text-muted-foreground font-medium">Hiển thị:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => {
@@ -4082,7 +4259,7 @@ function Tracking() {
                 >
                   {PAGE_SIZES.map((n) => (
                     <option key={n} value={n}>
-                      {n} {t('common.units.items') || 'chi tiết'}
+                      {n} dòng
                     </option>
                   ))}
                 </select>
@@ -4278,38 +4455,29 @@ function Tracking() {
       )}
 
       {/* File Lightbox / Preview Modal for ncc_giando & ncc_file1 */}
-      {previewFile && (
-        <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-          <DialogContent className="max-w-3xl rounded-xs border border-border bg-card p-4">
-            <DialogTitle className="font-mono text-sm font-bold flex items-center justify-between border-b border-border pb-2">
-              <span>{previewFile.title}</span>
-              <a
-                href={previewFile.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-primary hover:underline font-sans"
-              >
-                [Mở tab mới]
-              </a>
-            </DialogTitle>
-            <div className="mt-3 max-h-[75vh] overflow-auto flex items-center justify-center bg-secondary/30 rounded-xs p-2">
-              {previewFile.type === 'image' ? (
-                <img
-                  src={previewFile.url}
-                  alt={previewFile.title}
-                  className="max-h-[70vh] max-w-full object-contain rounded-xs"
-                />
-              ) : (
-                <iframe
-                  src={previewFile.url}
-                  title={previewFile.title}
-                  className="w-full h-[65vh] rounded-xs border border-border"
-                />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <FileLightboxModal previewFile={previewFile} onClose={() => setPreviewFile(null)} />
+
+      {/* Column Customization Modal (Graphite Wireframe UI v2.6.0) */}
+      <ColumnConfigModal
+        open={columnConfigOpen}
+        onOpenChange={setColumnConfigOpen}
+        visibleCols={customVisibleCols}
+        onApply={(newCols) => {
+          setCustomVisibleCols(newCols);
+          setColView('CUSTOM');
+          handleSetColView('CUSTOM');
+          toast.success('Đã áp dụng cấu hình tùy chỉnh cột.');
+          playAudioCue('success');
+        }}
+        onReset={() => {
+          const defaultCols = ALL_COLUMN_DEFINITIONS.map((c) => c.key);
+          setCustomVisibleCols(defaultCols);
+          setColView('ALL');
+          handleSetColView('ALL');
+          toast.info('Đã khôi phục hiển thị cột mặc định.');
+          playAudioCue('pop');
+        }}
+      />
     </>
   );
 }
@@ -4815,7 +4983,7 @@ function LotDetailDrawer({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between border-t border-border pt-4 mt-6">
-          <JobTicketButton item={item} role={role as any} variant="button" />
+          <JobTicketButton item={item} role={role as any} variant="button" siblingItems={rows} />
           <button
             type="button"
             onClick={onClose}
