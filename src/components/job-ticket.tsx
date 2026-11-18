@@ -399,7 +399,7 @@ export function SingleA4TicketContent({
         </div>
         <div className="w-full flex justify-center bg-white p-0">
           <HeatTreatmentCycle
-            shorthand={item.ncc_giando}
+            {...(item.ncc_giando ? { shorthand: item.ncc_giando } : {})}
             width="100%"
             height={98}
             showFrame={false}
@@ -775,18 +775,22 @@ export function JobTicketButton({
   const handlePrevItem = React.useCallback(() => {
     if (siblingItems && hasPrev) {
       const prev = siblingItems[currentIndex - 1];
-      setActiveItem(prev);
-      onItemChange?.(prev);
-      if (!keepMemoForNext) setQuickMemo("");
+      if (prev) {
+        setActiveItem(prev);
+        onItemChange?.(prev);
+        if (!keepMemoForNext) setQuickMemo("");
+      }
     }
   }, [siblingItems, hasPrev, currentIndex, onItemChange, keepMemoForNext]);
 
   const handleNextItem = React.useCallback(() => {
     if (siblingItems && hasNext) {
       const next = siblingItems[currentIndex + 1];
-      setActiveItem(next);
-      onItemChange?.(next);
-      if (!keepMemoForNext) setQuickMemo("");
+      if (next) {
+        setActiveItem(next);
+        onItemChange?.(next);
+        if (!keepMemoForNext) setQuickMemo("");
+      }
     }
   }, [siblingItems, hasNext, currentIndex, onItemChange, keepMemoForNext]);
 

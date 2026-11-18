@@ -4457,6 +4457,7 @@ function Tracking() {
         <LotDetailDrawer
           item={detailLot}
           role={role}
+          siblingItems={rows}
           onClose={() => setDetailLot(null)}
           onUpdate={(patch) => {
             updateItem(detailLot.ID_Key, patch);
@@ -4498,11 +4499,13 @@ function Tracking() {
 function LotDetailDrawer({
   item,
   role,
+  siblingItems,
   onClose,
   onUpdate,
 }: {
   item: QTItem;
   role: string;
+  siblingItems: QTItem[];
   onClose: () => void;
   onUpdate: (patch: Partial<QTItem>) => void;
 }) {
@@ -4995,7 +4998,7 @@ function LotDetailDrawer({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between border-t border-border pt-4 mt-6">
-          <JobTicketButton item={item} role={role as any} variant="button" siblingItems={rows} />
+          <JobTicketButton item={item} role={role as import('@/lib/dynamo-auth').Role} variant="button" siblingItems={siblingItems} />
           <button
             type="button"
             onClick={onClose}

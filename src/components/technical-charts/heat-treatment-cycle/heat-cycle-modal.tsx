@@ -65,10 +65,10 @@ export interface HeatCycleModalProps {
   isOpen: boolean;
   onClose: () => void;
   lotCode: string;
-  workshop?: string;
-  material?: string;
-  requiredHardness?: string;
-  value?: string;
+  workshop?: string | undefined;
+  material?: string | undefined;
+  requiredHardness?: string | undefined;
+  value?: string | undefined;
   onSave: (shorthandValue: string) => void;
   canEdit?: boolean;
 }

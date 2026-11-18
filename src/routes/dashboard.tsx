@@ -417,10 +417,10 @@ function Dashboard() {
       const open = totalLots - stockedLots;
       if (open === 0) continue;
 
-      const overdueCount = lots.filter(isOverdue).length;
-      const soonCount = lots.filter(isDueSoon).length;
+      const overdueCount = lots.filter((lot) => isOverdue(lot)).length;
+      const soonCount = lots.filter((lot) => isDueSoon(lot)).length;
       const totalCost = lots.reduce((sum, r) => sum + (r.thanh_tien || 0), 0);
-      const riskCost = lots.filter(isOverdue).reduce((sum, r) => sum + (r.thanh_tien || 0), 0);
+      const riskCost = lots.filter((lot) => isOverdue(lot)).reduce((sum, r) => sum + (r.thanh_tien || 0), 0);
 
       const riskScore = overdueCount * 3 + soonCount * 1.5;
       if (riskScore > 0) {
@@ -445,7 +445,7 @@ function Dashboard() {
 
   // 10. BOTTLENECK COMMAND CENTER (Data Hygiene separated)
   const missingDueLots = rows.filter(isMissingDue);
-  const soonLots = rows.filter(isDueSoon);
+  const soonLots = rows.filter((lot) => isDueSoon(lot));
   const syncErrLots = rows.filter((r) => failed.has(r.ID_Key || r.id_nhiet_qt));
 
   // Critical operational bottlenecks (Excluding passive missing due date lots)

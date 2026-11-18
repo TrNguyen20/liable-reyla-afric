@@ -328,7 +328,7 @@ export const DashboardBottleneckCenter: React.FC<DashboardBottleneckCenterProps>
                     </td>
                     <td className="py-1.5 px-2 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
-                        <JobTicketButton item={r} />
+                        <JobTicketButton item={r} role={role as import('@/lib/dynamo-auth').Role} />
                         {allowed ? (
                           <LotUpdateButton item={r} variant="icon" />
                         ) : (
@@ -384,7 +384,7 @@ export const DashboardBottleneckCenter: React.FC<DashboardBottleneckCenterProps>
                 </div>
 
                 <div className="flex items-center justify-between border-t border-border/40 pt-1.5 font-mono text-[10px]">
-                  <JobTicketButton item={item} />
+                  <JobTicketButton item={item} role={role as import('@/lib/dynamo-auth').Role} />
                   {allowed ? (
                     <LotUpdateButton item={item} variant="icon" />
                   ) : (

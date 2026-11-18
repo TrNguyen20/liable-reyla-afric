@@ -523,10 +523,10 @@ export interface AttachmentCellProps {
   value: string | undefined;
   onChange?: (newVal: string) => void;
   title: string;
-  lotCode?: string;
-  workshop?: string;
-  material?: string;
-  requiredHardness?: string;
+  lotCode?: string | undefined;
+  workshop?: string | undefined;
+  material?: string | undefined;
+  requiredHardness?: string | undefined;
   canEdit?: boolean;
   field: 'ncc_giando' | 'ncc_file1' | string;
 }

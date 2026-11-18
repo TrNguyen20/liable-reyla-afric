@@ -5,11 +5,13 @@ import { CountryCellBadge } from '@/components/common/vietnam-flag';
 import { AttachmentCell } from '@/components/tracking/attachment-field';
 import { DateCell } from '@/components/tracking/date-cell';
 import { JobTicketButton } from '@/components/job-ticket';
+import type { Role } from '@/lib/dynamo-auth';
 import { date, dateTime, money, number } from '@/lib/dynamo-data';
 import { PenLine } from 'lucide-react';
 
 interface TrackingTableRowProps {
   item: QTItem;
+  role: Role;
   isSelected: boolean;
   isColVisible: (key: string) => boolean;
   colWidths: Record<ColumnKey, number>;
@@ -27,6 +29,7 @@ interface TrackingTableRowProps {
 
 export const TrackingTableRow = memo(function TrackingTableRow({
   item: r,
+  role,
   isSelected,
   isColVisible,
   colWidths,
@@ -291,7 +294,7 @@ export const TrackingTableRow = memo(function TrackingTableRow({
           maxWidth: `${colWidths.ticket}px`,
         }}
       >
-        <JobTicketButton item={r} />
+        <JobTicketButton item={r} role={role} />
       </td>
     </tr>
   );
