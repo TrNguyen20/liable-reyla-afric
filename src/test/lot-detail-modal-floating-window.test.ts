@@ -2,20 +2,20 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-describe('Lot Detail Modal Floating Window (v2.7.0) Specification Suite (TDD)', () => {
+describe('Lot Detail Modal Floating Window (v2.8.0) Specification Suite (TDD)', () => {
   const rootDir = path.resolve(__dirname, '../../');
   const trackingPath = path.join(rootDir, 'src/routes/tracking.tsx');
   const modalPath = path.join(rootDir, 'src/components/tracking/lot-detail-modal.tsx');
 
-  it('TC-LDM-01: LotDetailModal tồn tại ở src/components/tracking/lot-detail-modal.tsx và tuân thủ chuẩn Center Floating Pop-up Window (rounded-xl, max-w-5xl, shadow-2xl)', () => {
+  it('TC-LDM-01: LotDetailModal tồn tại ở src/components/tracking/lot-detail-modal.tsx và tuân thủ chuẩn Center Floating Pop-up Window (rounded-xl, max-w-5xl hoặc max-w-6xl, shadow-2xl)', () => {
     expect(fs.existsSync(modalPath), 'lot-detail-modal.tsx phải tồn tại').toBe(true);
     const modalCode = fs.readFileSync(modalPath, 'utf-8');
 
     // Tên component LotDetailModal
     expect(modalCode).toMatch(/function\s+LotDetailModal\s*\(/);
-    // Căn giữa màn hình và bo góc rounded-xl theo Floating Window v2.7.0
+    // Căn giữa màn hình và bo góc rounded-xl theo Floating Window v2.7.0/v2.8.0
     expect(modalCode).toMatch(/justify-center/);
-    expect(modalCode).toMatch(/max-w-5xl/);
+    expect(modalCode).toMatch(/max-w-(5xl|6xl)/);
     expect(modalCode).toMatch(/rounded-xl/);
     expect(modalCode).toMatch(/shadow-2xl/);
   });
@@ -35,32 +35,85 @@ describe('Lot Detail Modal Floating Window (v2.7.0) Specification Suite (TDD)', 
     expect(trackingCode).not.toContain('slide-in-from-right');
   });
 
-  it('TC-LDM-03: Cấu trúc 2 cột Bento Grid rộng rãi (md:grid-cols-12 với phân tách cột 5:7)', () => {
+  it('TC-LDM-03: Triệt tiêu hoàn toàn thẻ Logistics cũ và LotUpdateButton', () => {
     const modalCode = fs.readFileSync(modalPath, 'utf-8');
 
-    // Cấu trúc Bento 12 cột với 2 phân vùng 5:7
-    expect(modalCode).toMatch(/grid-cols-1\s+md:grid-cols-12/);
-    expect(modalCode).toMatch(/md:col-span-5/);
-    expect(modalCode).toMatch(/md:col-span-7/);
+    // Không còn import hay sử dụng LotUpdateButton
+    expect(modalCode).not.toContain('LotUpdateButton');
+    // Không còn thẻ LOGISTICS riêng biệt với nút Cập nhật
+    expect(modalCode).not.toContain('Cập nhật lô');
   });
 
-  it('TC-LDM-04: Footer tích hợp bộ điều hướng duyệt lô nhanh (Lô trước / Lô sau) và In phiếu A4', () => {
+  it('TC-LDM-04: Bố cục Bento Grid 4 Phân Vùng Khoa Học bao quát 36 cột Dynamo MES', () => {
     const modalCode = fs.readFileSync(modalPath, 'utf-8');
 
-    // Có nút hoặc hàm duyệt Lô trước / Lô sau
-    expect(modalCode).toMatch(/handlePrevLot|Lô trước/);
-    expect(modalCode).toMatch(/handleNextLot|Lô sau/);
-    // Tích hợp JobTicketButton
-    expect(modalCode).toMatch(/JobTicketButton[^>]+item/);
+    // 4 Phân vùng Bento Grid rõ rệt
+    // Vùng 1: Định danh & Phôi (ma_hang, id_ma_hang, ngay_tao, nguoi_tao, quoc_gia, phong_sx, doi_tuong_hang)
+    expect(modalCode).toMatch(/id_ma_hang/);
+    expect(modalCode).toMatch(/ngay_tao/);
+    expect(modalCode).toMatch(/quoc_gia/);
+    expect(modalCode).toMatch(/doi_tuong_hang/);
+
+    // Vùng 2: Thông số kỹ thuật & kích thước (vat_lieu, do_cung, kich_thuoc_sp, so_luong, kg_lot, don_vi_tinh, so_luong_tinh)
+    expect(modalCode).toMatch(/vat_lieu/);
+    expect(modalCode).toMatch(/do_cung/);
+    expect(modalCode).toMatch(/Kich_Thuoc_SP|kich_thuoc_sp/);
+    expect(modalCode).toMatch(/kg_Lot|kg_lot/);
+    expect(modalCode).toMatch(/don_vi_tinh/);
+
+    // Vùng 3: Tiến độ, Đơn giá & PO (so_dat_hang, cty_qt, ngay_gui_qt, don_gia, thanh_tien, ty_gia, ten_file_dat_hang, ghi_chu)
+    expect(modalCode).toMatch(/so_dat_hang|So_DatHang/);
+    expect(modalCode).toMatch(/cty_QT|cty_qt/);
+    expect(modalCode).toMatch(/ngay_gui_QT|ngay_gui_qt/);
+    expect(modalCode).toMatch(/don_gia/);
+    expect(modalCode).toMatch(/thanh_tien/);
+    expect(modalCode).toMatch(/ten_file_dat_hang/);
+
+    // Vùng 4: Cổng Nhà cung cấp & QC Đo kiểm (ncc_ngay_qt, ncc_ngay_tra_qt, ncc_id_lot_qt, ncc_ket_qua_hrc, ncc_ket_qua_qc, ncc_giando, ncc_file1...)
+    expect(modalCode).toMatch(/ncc_ngay_qt/);
+    expect(modalCode).toMatch(/ncc_ngay_tra_qt/);
+    expect(modalCode).toMatch(/ncc_id_lot_qt/);
+    expect(modalCode).toMatch(/ncc_ket_qua_hrc/);
+    expect(modalCode).toMatch(/ncc_ket_qua_qc/);
+    expect(modalCode).toMatch(/ncc_giando/);
+    expect(modalCode).toMatch(/ncc_file1/);
   });
 
-  it('TC-LDM-05: Bảo toàn chế độ chỉnh sửa phân nhóm, ô kích thước, và ghi nhận audit trail kèm âm thanh', () => {
+  it('TC-LDM-05: Click-to-Search Inline Mã hàng ở Header & Input nhảy nhanh số lô index/ID ở Footer', () => {
     const modalCode = fs.readFileSync(modalPath, 'utf-8');
 
-    // Xử lý chỉnh sửa
-    expect(modalCode).toMatch(/handleSave|isEditing/);
+    // Header có tính năng tìm kiếm / input cho mã hàng
+    expect(modalCode).toMatch(/searchItemCode|handleSearchItem|isSearchingItem/);
+    // Footer có input cho phép gõ số thứ tự hoặc ID lô để nhảy nhanh
+    expect(modalCode).toMatch(/jumpIndex|handleJumpLot|handleQuickJump/);
+  });
+
+  it('TC-LDM-06: Tích hợp Hover Preview (AttachmentHoverPreview) cho các tệp đính kèm', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Có component hoặc xử lý hover preview cho tệp
+    expect(modalCode).toMatch(/AttachmentHoverPreview|hoverPreview|HoverCard/);
+  });
+
+  it('TC-LDM-07: In-Place Bento Editing tuân thủ 7 Master Identifiers khóa 🔒 và RBAC pricing', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Chế độ chỉnh sửa tại chỗ
+    expect(modalCode).toMatch(/isEditing/);
+    expect(modalCode).toMatch(/handleSave/);
+    // Kiểm tra quyền đơn giá
+    expect(modalCode).toMatch(/canViewPricing/);
+    // 7 Master columns được bảo vệ hoặc có biểu tượng khóa
+    expect(modalCode).toMatch(/Lock|readOnly|disabled/);
+    // Ghi nhận audit trail và âm thanh
     expect(modalCode).toMatch(/appendAudit/);
     expect(modalCode).toMatch(/playAudioCue/);
-    expect(modalCode).toMatch(/Kich_Thuoc_SP/);
+  });
+
+  it('TC-LDM-08: Audit Trail thu gọn thành Collapsible Accordion tiết kiệm không gian', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Accordion hoặc toggle ẩn hiện cho Audit Trail
+    expect(modalCode).toMatch(/showAudit|auditOpen|Accordion|Collapsible/);
   });
 });

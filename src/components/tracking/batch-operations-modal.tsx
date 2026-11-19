@@ -80,7 +80,7 @@ export const BATCH_FIELDS_CONFIG: BatchFieldDefinition[] = [
   { key: 'ncc_thongtinkhac2', label: 'NCC Ghi chú 2 / Báo giá', category: 'vendor_qc', type: 'text' },
 
   // 4. Tài liệu & Chứng chỉ (Upload)
-  { key: 'ncc_file1', label: 'Chứng chỉ QT (CO/CQ)', category: 'documents', type: 'attachment', docField: 'ncc_file1' },
+  { key: 'ncc_file1', label: 'Chứng chỉ QT', category: 'documents', type: 'attachment', docField: 'ncc_file1' },
   { key: 'ncc_giando', label: 'Giản đồ nhiệt', category: 'documents', type: 'attachment', docField: 'ncc_giando' },
   { key: 'doc_po', label: 'File PO / Đơn hàng', category: 'documents', type: 'attachment', docField: 'ncc_thongtinkhac1' },
   { key: 'doc_quote', label: 'Báo giá NCC', category: 'documents', type: 'attachment', docField: 'ncc_thongtinkhac2' },
@@ -88,7 +88,7 @@ export const BATCH_FIELDS_CONFIG: BatchFieldDefinition[] = [
 
 /** Mapping between batch document chips and actual QTItem columns */
 export const DOC_FIELD_MAPPING: Record<string, { col: string; label: string }> = {
-  ncc_file1: { col: 'ncc_file1', label: 'Chứng chỉ QT (CO/CQ)' },
+  ncc_file1: { col: 'ncc_file1', label: 'Chứng chỉ QT' },
   ncc_giando: { col: 'ncc_giando', label: 'Giản đồ nhiệt' },
   doc_po: { col: 'ncc_thongtinkhac1', label: 'File PO / Đơn hàng' },
   doc_quote: { col: 'ncc_thongtinkhac2', label: 'Báo giá NCC' },
@@ -247,27 +247,12 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
         cols.add(info.col);
       }
     }
-    // Fallback: If on documents tab and nothing selected yet, default to ncc_file1
-    if (cols.size === 0 && activeTab === 'documents') {
-      cols.add('ncc_file1');
-    }
     return cols;
-  }, [selectedFieldKeys, activeTab]);
+  }, [selectedFieldKeys]);
 
-  // Tab switch handler: auto-selects default document field when entering documents tab
+  // Tab switch handler
   const handleTabChange = (tab: BatchCategory) => {
     setActiveTab(tab);
-    if (tab === 'documents') {
-      setSelectedFieldKeys((prev) => {
-        const hasAnyDoc = prev.has('ncc_file1') || prev.has('ncc_giando') || prev.has('doc_po') || prev.has('doc_quote');
-        if (!hasAnyDoc) {
-          const next = new Set(prev);
-          next.add('ncc_file1');
-          return next;
-        }
-        return prev;
-      });
-    }
   };
 
   // Summary telemetry for header
@@ -519,6 +504,10 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
       toast.warning('Vui lòng chọn ít nhất 1 lô để áp dụng');
       return;
     }
+    if ((stagedFiles.length > 0 || stagedUrls.length > 0) && activeDocColumns.size === 0) {
+      toast.warning('Bạn đã thêm tệp đính kèm nhưng chưa chọn cột nhận tệp. Vui lòng bấm chọn ít nhất 1 thẻ phía trên (VD: + Chứng chỉ QT, + Giản đồ nhiệt...).');
+      return;
+    }
     if (totalModificationsCount === 0) {
       toast.warning('Chưa có thông số nào được chỉnh sửa hoặc tệp nào được gán');
       return;
@@ -625,7 +614,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                   {(
                     [
                       { id: 'all', label: 'Tất cả' },
-                      { id: 'documents', label: '📎 Tài liệu (4)' },
+                      { id: 'documents', label: '📎 Tài liệu' },
                       { id: 'technical', label: 'Kỹ thuật' },
                       { id: 'commercial', label: 'PO & Giá' },
                       { id: 'vendor_qc', label: 'NCC Ghi' },
@@ -714,28 +703,15 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                 selectedFieldKeys.has('doc_po') ||
                 selectedFieldKeys.has('doc_quote')) && (
                   <div className="border border-slate-900 dark:border-slate-700 rounded-xl p-3.5 bg-white dark:bg-card shadow-sm space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                    {/* Hàng 1: Tiêu đề Card và Nút đóng */}
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold uppercase shrink-0">
                           UPLOAD HÀNG LOẠT
                         </span>
                         <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 whitespace-nowrap">
                           ĐÍNH KÈM TÀI LIỆU & CHỨNG CHỈ GIA CÔNG
                         </span>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                          <span>• Nhận tệp:</span>
-                          {Array.from(activeDocColumns).map((col) => {
-                            const info = Object.values(DOC_FIELD_MAPPING).find((m) => m.col === col);
-                            return (
-                              <span
-                                key={col}
-                                className="px-1.5 py-0.2 rounded bg-slate-900 text-white font-mono font-bold text-[10px]"
-                              >
-                                {info?.label || col}
-                              </span>
-                            );
-                          })}
-                        </div>
                       </div>
                       <button
                         type="button"
@@ -757,14 +733,38 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                       </button>
                     </div>
 
+                    {/* Hàng 2: Hàng độc lập hiển thị Cột nhận tệp */}
+                    <div className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap min-h-[34px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 shrink-0">
+                          Cột nhận tệp ({activeDocColumns.size}):
+                        </span>
+                        {activeDocColumns.size > 0 ? (
+                          Array.from(activeDocColumns).map((col) => {
+                            const info = Object.values(DOC_FIELD_MAPPING).find((m) => m.col === col);
+                            return (
+                              <span
+                                key={col}
+                                className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-[11px] flex items-center gap-1 shadow-xs"
+                              >
+                                <Check size={11} className="text-emerald-400 shrink-0" />
+                                <span>{info?.label || col}</span>
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium italic">
+                            Chưa chọn cột nhận tệp — Vui lòng bấm chọn thẻ phía trên (+ Chứng chỉ QT, + Giản đồ nhiệt...)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Step A: Phương thức phân bổ & Step B: Chế độ ghi dữ liệu */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
                       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                        <div className="text-[10.5px] font-bold uppercase text-slate-600 flex items-center justify-between">
-                          <span>A. Phương thức phân bổ tệp</span>
-                          <span className="font-mono text-[10px] text-slate-500 lowercase">
-                            {assignmentStrategy === 'shared' ? 'dùng chung' : 'smart-match'}
-                          </span>
+                        <div className="text-[10.5px] font-bold uppercase text-slate-700">
+                          A. Phương thức phân bổ tệp
                         </div>
                         <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
                           <button
@@ -787,16 +787,13 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         <p className="text-[10px] text-slate-500 leading-tight">
                           {assignmentStrategy === 'shared'
                             ? 'Gắn cùng 1 bộ tệp/link cho toàn bộ các lô được chọn.'
-                            : 'Đọc tên file (VD: 9690-C17_QT.pdf) để gắn tự động vào đúng mã hàng.'}
+                            : 'Sửa tên file (VD: 9690-C17.pdf) để gắn tự động vào đúng mã hàng.'}
                         </p>
                       </div>
 
                       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                        <div className="text-[10.5px] font-bold uppercase text-slate-600 flex items-center justify-between">
-                          <span>B. Chế độ ghi dữ liệu</span>
-                          <span className="font-mono text-[10px] text-slate-500 lowercase">
-                            {writePolicy === 'append' ? 'an toàn' : 'thay thế'}
-                          </span>
+                        <div className="text-[10.5px] font-bold uppercase text-slate-700">
+                          B. Chế độ ghi dữ liệu
                         </div>
                         <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
                           <button
@@ -819,7 +816,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         <p className="text-[10px] text-slate-500 leading-tight">
                           {writePolicy === 'append'
                             ? 'An toàn: Giữ nguyên tệp cũ và cộng nối thêm tệp mới vào danh sách.'
-                            : 'Cảnh báo: Xóa danh sách tệp cũ ở cột đã chọn và thay hoàn toàn bằng tệp mới.'}
+                            : 'Chú ý: Xóa nội dung cột đã chọn và thay mới hoàn toàn.'}
                         </p>
                       </div>
                     </div>
