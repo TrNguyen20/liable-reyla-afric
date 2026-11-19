@@ -232,7 +232,7 @@ export function SingleA4TicketContent({
   const { t, locale } = useTranslation();
 
   return (
-    <div className="a4-sheet mx-auto w-full max-w-[210mm] bg-white text-zinc-950 p-[8mm] sm:p-[10mm] font-sans shadow-lg print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full">
+    <div className="a4-sheet mx-auto w-full max-w-[210mm] min-h-[calc(297mm-16mm)] max-h-[calc(297mm-16mm)] bg-white text-zinc-950 p-[8mm] sm:p-[10mm] font-sans shadow-lg print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full flex flex-col justify-between box-border">
       {/* Header Block */}
       <header className="flex items-start justify-between border-b-2 border-black pb-3">
         <div className="flex items-start gap-3">
@@ -575,13 +575,14 @@ export function SinglePalletTagContent({ item, role }: { item: QTItem; role: Rol
 }
 
 /**
- * Isolated Iframe Print Service for Industrial Job Tickets
- * Bypasses all Radix Modal / DOM transform restrictions and delivers 100% crisp, zero-blank printing.
+ * Isolated Iframe Print Service for Industrial Job Tickets (DIPS v1.0 Standard)
+ * Bypasses all Radix Modal / DOM transform / overflow restrictions and delivers 100% crisp, zero-blank printing.
  */
 export function printTicketElement(
   element: HTMLElement | null,
   docTitle = "Phiếu giao nhận & Lệnh gia công ngoài",
   copies = 1,
+  orientation: "portrait" | "landscape" = "portrait",
 ) {
   if (!element) {
     window.print();
@@ -615,10 +616,27 @@ export function printTicketElement(
 
     // Deep clone the printable DOM
     const clone = element.cloneNode(true) as HTMLElement;
+    // Strip root container styling that breaks Chromium pagination
     clone.style.transform = "none";
+    clone.style.overflow = "visible";
+    clone.style.overflowY = "visible";
+    clone.style.overflowX = "visible";
+    clone.style.maxHeight = "none";
+    clone.style.height = "auto";
+    clone.style.display = "block";
+    clone.classList.remove("overflow-y-auto", "overflow-hidden", "flex-1");
+
+    // Recursively clean all descendant nodes
     clone.querySelectorAll<HTMLElement>("*").forEach((el) => {
-      if (el.style && el.style.transform) {
-        el.style.transform = "none";
+      if (el.style) {
+        if (el.style.transform) el.style.transform = "none";
+        if (el.style.overflow) el.style.overflow = "visible";
+        if (el.style.overflowY) el.style.overflowY = "visible";
+      }
+      if (el.classList.contains("job-ticket-canvas-container")) {
+        el.classList.remove("overflow-y-auto", "flex", "items-start", "justify-center");
+        el.style.display = "block";
+        el.style.overflow = "visible";
       }
     });
 
@@ -648,8 +666,8 @@ export function printTicketElement(
         ${styles}
         <style>
           @page {
-            size: auto;
-            margin: 6mm 8mm;
+            size: A4 ${orientation};
+            margin: 8mm 10mm;
           }
           *, *::before, *::after {
             box-sizing: border-box;
@@ -660,8 +678,17 @@ export function printTicketElement(
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+          }
+          .print-page-wrapper {
+            width: 100% !important;
+            display: block !important;
+            overflow: visible !important;
           }
           .a4-sheet {
             background: #ffffff !important;
@@ -676,7 +703,21 @@ export function printTicketElement(
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
+          .a4-sheet-landscape {
+            background: #ffffff !important;
+            color: #000000 !important;
+            box-shadow: none !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+            display: block !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
           .a4-sheet header,
+          .a4-sheet-landscape header,
           .job-ticket header {
             display: flex !important;
           }
@@ -696,9 +737,27 @@ export function printTicketElement(
             border: none !important;
             page-break-after: always !important;
             break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            width: 100% !important;
+            min-height: calc(297mm - 16mm) !important;
+            max-height: calc(297mm - 16mm) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
           }
-          .print-page-wrapper {
-            width: 100%;
+          .printable-job-ticket:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+          table {
+            page-break-inside: auto !important;
+            border-collapse: collapse !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         </style>
       </head>
@@ -825,6 +884,7 @@ export function JobTicketButton({
       printRef.current,
       `Phieu_${activeItem.ma_hang}_${activeItem.ID_Key}`,
       copies,
+      "portrait",
     );
   }, [activeItem.ma_hang, activeItem.ID_Key, copies]);
 
@@ -1215,7 +1275,8 @@ export function BatchJobTicketModal({
   const { t, locale } = useTranslation();
   const [mode, setMode] = React.useState<"manifest" | "tickets">("manifest");
   const [zoomLevel, setZoomLevel] = React.useState<"fit" | "90" | "100">("fit");
-  const batchPrintRef = React.useRef<HTMLDivElement>(null);
+  const manifestPrintRef = React.useRef<HTMLDivElement>(null);
+  const ticketsPrintRef = React.useRef<HTMLDivElement>(null);
   const totalKg = items.reduce((a, r) => a + r.kg_Lot, 0);
   const totalPcs = items.reduce((a, r) => a + r.so_luong, 0);
 
@@ -1265,6 +1326,15 @@ export function BatchJobTicketModal({
                 {t("ticket.tabTickets", { count: items.length })}
               </button>
             </div>
+
+            {/* DIPS Format orientation badge */}
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm border border-border bg-card text-[10px] font-mono">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-muted-foreground">Khổ in DIPS:</span>
+              <span className="font-bold text-foreground">
+                {mode === "manifest" ? "A4 Ngang (Landscape)" : `A4 Dọc (Portrait) · ${items.length} trang`}
+              </span>
+            </div>
           </div>
 
           {/* Zoom controls for tickets mode */}
@@ -1311,12 +1381,23 @@ export function BatchJobTicketModal({
             <Button
               size="sm"
               className="gap-1.5 font-bold h-7 px-3 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs rounded-lg"
-              onClick={() =>
-                printTicketElement(
-                  batchPrintRef.current,
-                  mode === "manifest" ? "Bang_ke_tong_hop" : `Tap_phieu_A4_${items.length}_lo`,
-                )
-              }
+              onClick={() => {
+                if (mode === "manifest") {
+                  printTicketElement(
+                    manifestPrintRef.current,
+                    `Bang_ke_tong_hop_${items.length}_lo`,
+                    1,
+                    "landscape",
+                  );
+                } else {
+                  printTicketElement(
+                    ticketsPrintRef.current,
+                    `Tap_phieu_A4_${items.length}_lo`,
+                    1,
+                    "portrait",
+                  );
+                }
+              }}
             >
               <Printer size={13} />{" "}
               {mode === "manifest"
@@ -1336,11 +1417,13 @@ export function BatchJobTicketModal({
 
         {/* Workbench Content */}
         <div
-          ref={batchPrintRef}
           className="job-ticket-canvas-container flex-1 overflow-y-auto bg-zinc-900/60 dark:bg-black/60 p-4 sm:p-6 flex justify-center items-start"
         >
           {mode === "manifest" ? (
-            <div className="a4-sheet mx-auto w-full max-w-4xl bg-white p-6 text-black shadow-xl print:shadow-none print:p-0 print:m-0 print:w-full">
+            <div
+              ref={manifestPrintRef}
+              className="a4-sheet-landscape mx-auto w-full max-w-5xl bg-white p-6 sm:p-8 text-black shadow-2xl print:shadow-none print:p-0 print:m-0 print:w-full border border-slate-300 dark:border-slate-700 rounded-sm aspect-[297/210]"
+            >
               <header className="flex items-start justify-between border-b-2 border-black pb-3">
                 <div className="flex items-start gap-3">
                   <img src={logo} alt="Dynamo Vietnam" className="h-10 w-auto object-contain" />
@@ -1357,6 +1440,11 @@ export function BatchJobTicketModal({
                       <b>{number(totalKg, 1)} kg</b>
                     </p>
                   </div>
+                </div>
+                <div className="flex flex-col items-end print:hidden">
+                  <span className="font-mono text-[9px] bg-zinc-800 text-white px-2 py-0.5 rounded-xs font-bold">
+                    A4 Ngang (Landscape) · DIPS v1.0
+                  </span>
                 </div>
               </header>
 
@@ -1451,11 +1539,20 @@ export function BatchJobTicketModal({
             </div>
           ) : (
             <div
-              className="w-full max-w-[210mm] transition-transform duration-200 origin-top space-y-6 print:space-y-0"
+              ref={ticketsPrintRef}
+              className="w-full max-w-[210mm] transition-transform duration-200 origin-top space-y-8 print:space-y-0"
               style={{ transform: zoomScale }}
             >
               {items.map((it, idx) => (
-                <div key={it.ID_Key} className="printable-job-ticket">
+                <div
+                  key={it.ID_Key}
+                  className="printable-job-ticket relative bg-white border border-slate-300 dark:border-slate-700 shadow-2xl rounded-sm aspect-[210/297] print:shadow-none print:border-none print:rounded-none"
+                >
+                  <div className="absolute top-2 right-2 print:hidden z-10">
+                    <span className="font-mono text-[9px] bg-zinc-900/80 text-white px-2 py-0.5 rounded-xs font-bold shadow-xs">
+                      Trang {idx + 1}/{items.length} · A4 Dọc
+                    </span>
+                  </div>
                   <SingleA4TicketContent
                     item={it}
                     role={role}
