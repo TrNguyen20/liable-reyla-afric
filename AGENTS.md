@@ -36,6 +36,9 @@
 >    - **Phân định 2 khổ giấy A4**: Bảng kê tổng hợp nhiều cột (Manifest) bắt buộc dùng A4 Ngang (`@page { size: A4 landscape; margin: 8mm 10mm; }`). Phiếu giao nhận & lệnh gia công (Job Tickets) bắt buộc dùng A4 Dọc (`@page { size: A4 portrait; margin: 8mm 10mm; }`).
 >    - **Dồn nội dung lên đỉnh (Top-aligned)**: Nội dung phiếu luôn dồn khít lên phía trên (`justify-start`), giữ nguyên khung A4 chuẩn (`min-h/max-h` 297mm, `aspect-[210/297]`), tuyệt đối không dùng `justify-between` làm phân tán khoảng cách thưa thớt.
 >    - **DOM Sanitizer & Khử trang trắng thừa**: Hàm `printTicketElement` bắt buộc tẩy sạch `overflow`, `max-height`, `transform`, `flex` trên thẻ cha DOM clone để Chromium phân trang tự nhiên (1 phiếu = 1 sheet); phần tử cuối cùng phải có `last-child { break-after: auto; }` chống in trang trắng số 31 thừa.
+> 9. **Zero-Gap Full-Height Data Grid Architecture (v2.8.0)**:
+>    - **Triệt tiêu khoảng trắng lãng phí ở đáy**: Nghiêm cấm dùng `maxHeight: calc(100vh - Xpx)` bên trong container flex cha đã có `flex-1 flex flex-col`.
+>    - **Chuẩn co giãn kịch đáy**: Thẻ container bảng dữ liệu bắt buộc dùng `className="flex-1 min-h-0 overflow-auto relative"` kết hợp thanh phân trang Pagination bar mang class `shrink-0` để bảng dữ liệu tự động lấp đầy 100% chiều cao màn hình, thanh phân trang luôn tự động bám sát mép viền đáy dưới cùng.
 <!-- MES_DESIGN_SYSTEM:END -->
 
 <!-- SUBAGENT_PROTOCOL:BEGIN -->
