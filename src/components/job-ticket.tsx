@@ -232,7 +232,7 @@ export function SingleA4TicketContent({
   const { t, locale } = useTranslation();
 
   return (
-    <div className="a4-sheet mx-auto w-full max-w-[210mm] min-h-[calc(297mm-16mm)] max-h-[calc(297mm-16mm)] bg-white text-zinc-950 p-[8mm] sm:p-[10mm] font-sans shadow-lg print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full flex flex-col justify-between box-border">
+    <div className="a4-sheet mx-auto w-full max-w-[210mm] bg-white text-zinc-950 p-[6mm] sm:p-[8mm] font-sans shadow-lg print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full flex flex-col justify-start box-border">
       {/* Header Block */}
       <header className="flex items-start justify-between border-b-2 border-black pb-3">
         <div className="flex items-start gap-3">
@@ -740,11 +740,9 @@ export function printTicketElement(
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             width: 100% !important;
-            min-height: calc(297mm - 16mm) !important;
-            max-height: calc(297mm - 16mm) !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: space-between !important;
+            justify-content: flex-start !important;
             box-sizing: border-box !important;
           }
           .printable-job-ticket:last-child {
@@ -1326,15 +1324,6 @@ export function BatchJobTicketModal({
                 {t("ticket.tabTickets", { count: items.length })}
               </button>
             </div>
-
-            {/* DIPS Format orientation badge */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm border border-border bg-card text-[10px] font-mono">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-muted-foreground">Khổ in DIPS:</span>
-              <span className="font-bold text-foreground">
-                {mode === "manifest" ? "A4 Ngang (Landscape)" : `A4 Dọc (Portrait) · ${items.length} trang`}
-              </span>
-            </div>
           </div>
 
           {/* Zoom controls for tickets mode */}
@@ -1546,7 +1535,7 @@ export function BatchJobTicketModal({
               {items.map((it, idx) => (
                 <div
                   key={it.ID_Key}
-                  className="printable-job-ticket relative bg-white border border-slate-300 dark:border-slate-700 shadow-2xl rounded-sm aspect-[210/297] print:shadow-none print:border-none print:rounded-none"
+                  className="printable-job-ticket relative bg-white border border-slate-300 dark:border-slate-700 shadow-xl rounded-sm print:shadow-none print:border-none print:rounded-none"
                 >
                   <div className="absolute top-2 right-2 print:hidden z-10">
                     <span className="font-mono text-[9px] bg-zinc-900/80 text-white px-2 py-0.5 rounded-xs font-bold shadow-xs">
