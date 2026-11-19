@@ -1,10 +1,10 @@
 ---
 title: DYNAMO QT-MES Design System Specification
 standard: Graphite Wireframe UI
-version: 2.6.0
-last_updated: 2026-11-12
+version: 2.8.0
+last_updated: 2026-11-19
 status: Active (Single Source of Truth)
-tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.6]
+tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.6, dips-print-v1.0]
 ---
 
 # DYNAMO QT-MES DESIGN SYSTEM
@@ -16,6 +16,7 @@ tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, na
 
 | Phiên bản | Ngày | Tác giả / Đội ngũ | Loại thay đổi | Nội dung tóm tắt |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.8.0** | 2026-11-19 | Dynamo MES Architecture Team | **DIPS v1.0 INDUSTRIAL PRINT STANDARD** | **Ban hành Tiêu chuẩn In ấn Công nghiệp (DIPS v1.0 - A4 Portrait & Landscape):**<br>• Phân định 2 khổ in: A4 Ngang (297x210mm) cho Bảng kê luân chuyển 12 cột và A4 Dọc (210x297mm) cho Phiếu giao nhận từng lô.<br>• Bố cục Top-aligned: Bảo toàn khung giấy A4 tỷ lệ 1:1.414 nhưng toàn bộ nội dung dồn sát lên đỉnh bằng `justify-start`, loại bỏ hoàn toàn hiện tượng dãn khoảng cách thưa thớt.<br>• Isolated Iframe DOM Sanitizer: Tự động gỡ bỏ `overflow`, `max-height`, `transform`, `flex` trên container bọc ngoài để chống lỗi Chromium gom 30 trang vào 1 sheet.<br>• Zero-blank-page: Reset ngắt trang ở phần tử cuối cùng `last-child { break-after: auto }`. |
 | **v2.7.0** | 2026-11-17 | Dynamo MES Architecture Team | **MODAL WINDOW FLOATING SPECIFICATION** | **Chuẩn hóa đồng bộ hệ thống Floating Pop-up Window toàn dự án:**<br>• Phân định kiến trúc rõ rệt giữa Phần tử Tĩnh trên trang (Grid, Table cell, Toolbar, Badge, Input dùng chuẩn 2px `rounded-xs`) và Cửa sổ Nổi Độc Lập (Floating Pop-up Windows/Dialogs).<br>• Mọi cửa sổ pop-up (Modal/Dialog/Window) xuất hiện trên màn hình (Tùy chỉnh cột, In/Tải phiếu gia công A4, Quản lý file đính kèm/Upload, Thao tác hàng loạt, Chỉnh sửa thông số lô, Xem trước Lightbox...) bắt buộc tuân theo chuẩn: `rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-2xl`.<br>• Header và Footer của window sử dụng bo góc viền phân cấp (`rounded-lg`, `rounded-full` badge đếm số lượng), mang lại trải nghiệm hiện đại, tương phản cao, chống lóa trên màn hình máy tính xưởng. |
 | **v2.6.1** | 2026-11-17 | Dynamo MES Architecture Team | **TOOLBAR 2-TIER & COLUMN CUSTOMIZATION OVERHAUL** | **Tối ưu UI/UX bảng điều độ Tracking 37 cột v2.6.1:**<br>• Tái cấu trúc Toolbar 2 tầng tinh gọn (2-Tier Industrial Bar) chống đè chữ trên màn hình 1366px; ô Search có `pr-9 truncate` và phím tắt `/` `pointer-events-none`.<br>• Mở rộng độ rộng cột ghim Phiếu A4 lên 64px (`w-[64px]`), căn giữa và đổ bóng ngăn cách trái `shadow-[-6px_0_12px_-4px]`; đổ bóng phải cho cột Mã hàng.<br>• Bổ sung Tooltip toàn văn + Click Copy nhanh cho mã bản vẽ và quy cách kích thước.<br>• Tính năng Double-click vạch chia cột để Auto-fit kích thước như Excel.<br>• Phân cấp độ tương phản dòng: Zebra striping rõ nét; dòng được chọn có viền trái `border-l-2 border-l-primary` kết hợp hover phân cấp.<br>• Tích hợp Popover Distinct cho Vật liệu, Đối tác, bộ lọc Độ cứng và chuẩn hóa badge mác thép.<br>• Đệm đáy động `pb-24` khi chọn dòng chống che khuất dòng thứ 30 bởi Floating Bulk Bar.<br>• Tích hợp Modal Tùy chỉnh ẩn/hiện & Ghim cột (`ColumnConfigModal`), tự động lưu LocalStorage với tab `⭐ Tùy chỉnh`.<br>• Chuẩn hóa nhãn phân trang Footer thành `Hiển thị: 30 dòng`. |
 | **v2.6.0** | 2026-11-12 | Dynamo MES Architecture Team | **TYPOGRAPHY & HIGH-DENSITY GRID** | **Chuẩn hóa Typography và Micro-Spacing bảng điều độ Tracking v2.6.0:**<br>• Cố định chuẩn chiều cao dòng 34px (`h-[34px]`) và padding ô 4px x 8px (`py-1 px-2`), loại bỏ nút chuyển đổi mật độ dòng để chuẩn hóa duy nhất một trải nghiệm tối ưu nhất cho nhà máy.<br>• Font chữ: Sử dụng `"Be Vietnam Pro", sans-serif` kết hợp `tabular-nums` cho số liệu định lượng, mã hàng và ngày tháng.<br>• Kích thước chữ: Header tiêu đề 10.5px (`text-[10.5px]`), Body nội dung 11.5px (`text-[11.5px]`).<br>• Đường kẻ: `border-collapse: collapse` kết hợp viền xám nhạt `border-slate-200` (Light) và `dark:border-slate-800` (Dark).<br>• Mở rộng 5 Tab góc nhìn: `Tất cả (36)`, `📎 Tài liệu`, `Kỹ thuật`, `Đơn giá & PO`, `NCC Ghi` với `<colgroup>` động lọc theo cột visible. |
@@ -161,11 +162,34 @@ Khi can thiệp hoặc viết thêm mã nguồn mới, **TUYỆT ĐỐI KHÔNG**
 
 ---
 
-## 🤖 4. Cơ Chế Tự Kiểm Tra & Duy Trì (Automated Enforcement)
+## 🖨️ 4. Chuẩn Mực In Ấn Công Nghiệp (Industrial Print Media Specification - DIPS v1.0)
+
+Mọi chức năng in ấn chứng từ, phiếu giao nhận, tem nhãn và bảng kê tổng hợp trong Dynamo MES bắt buộc tuân thủ:
+
+### 4.1 Bảng Tham Số Tiêu Chuẩn In Ấn
+| Tiêu chí | 📄 Chuẩn A4 Dọc (Job Tickets) | 📑 Chuẩn A4 Ngang (Manifest) |
+| :--- | :--- | :--- |
+| **Loại chứng từ** | Phiếu giao nhận & Lệnh gia công (lẻ & hàng loạt) | Bảng kê tổng hợp luân chuyển 30 lô |
+| **Kích thước `@page`** | `@page { size: A4 portrait; margin: 8mm 10mm; }` | `@page { size: A4 landscape; margin: 8mm 10mm; }` |
+| **Kích thước vật lý** | $210\text{mm} \times 297\text{mm}$ (Tỷ lệ ISO 1:1.414) | $297\text{mm} \times 210\text{mm}$ (Tỷ lệ ISO 1.414:1) |
+| **Bố cục nội dung** | `flex flex-col justify-start` (Top-aligned, dồn sát lên trên) | Bảng dàn đều 100% bề ngang, `tr { break-inside: avoid }` |
+| **Khung xem trước** | `min-h-[calc(297mm-16mm)] max-h-[calc(297mm-16mm)] aspect-[210/297]` | `aspect-[297/210]` kèm đổ bóng `shadow-2xl` |
+| **Ngắt trang Chromium** | `break-after: page; page-break-after: always;` | Ngắt dòng bảng tự động theo chiều cao trang |
+| **Khử trang trắng thừa** | `.printable-job-ticket:last-child { break-after: auto }` | Tương tự |
+
+### 4.2 Cơ Chế DOM Sanitizer Bắt Buộc
+Khi chuyển DOM sang iframe in ấn độc lập (`printTicketElement`):
+- Bắt buộc gỡ bỏ `overflow`, `overflow-y`, `overflow-x`, `max-height`, `height`, `transform: scale`, `display: flex` trên phần tử gốc và các container cuộn màn hình.
+- Mọi thẻ in ấn phải được đặt `display: block !important; overflow: visible !important;`.
+
+---
+
+## 🤖 5. Cơ Chế Tự Kiểm Tra & Duy Trì (Automated Enforcement)
 
 Mọi commit hoặc pull request phải vượt qua bài kiểm tra tự động tại:
 - `src/test/design-system-compliance.test.ts`
 - `src/test/app-routing.test.tsx`
+- `src/test/dips-print-standard.test.ts`
 
 Quy trình kích hoạt:
 ```powershell

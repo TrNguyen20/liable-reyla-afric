@@ -32,6 +32,10 @@
 > 5. **Automated Enforcement**: All UI modifications must pass `src/test/design-system-compliance.test.ts` and `src/test/app-routing.test.tsx` on `npm test`.
 > 6. **36-Column Google Sheets Schema & Timestamp Sorting**: All date columns (`ngay_tao`, `ngay_gui_qt`, `ncc_ngay_qt`, `ncc_ngay_tra_qt`, `han_tra`) MUST sort chronologically using Epoch numeric timestamps (`parseFlexibleDate(val)?.getTime() ?? 0`). Default grid sort is `ngay_tao` descending (`desc`).
 > 7. **7 Immutable Master Columns (Strictly Read-Only)**: The following 7 columns are master identifiers and MUST NEVER be editable from the webapp table: `ma_hang`, `ngay_tao`, `quoc_gia`, `phong_sx`, `doi_tuong_hang`, `id_ma_hang`, and `cty_qt`. All other columns, including 12 vendor columns (`ncc_*`), support hover `PenLine` inline edit.
+> 8. **DIPS v1.0 Industrial Print Standard (v2.8.0)**:
+>    - **Phân định 2 khổ giấy A4**: Bảng kê tổng hợp nhiều cột (Manifest) bắt buộc dùng A4 Ngang (`@page { size: A4 landscape; margin: 8mm 10mm; }`). Phiếu giao nhận & lệnh gia công (Job Tickets) bắt buộc dùng A4 Dọc (`@page { size: A4 portrait; margin: 8mm 10mm; }`).
+>    - **Dồn nội dung lên đỉnh (Top-aligned)**: Nội dung phiếu luôn dồn khít lên phía trên (`justify-start`), giữ nguyên khung A4 chuẩn (`min-h/max-h` 297mm, `aspect-[210/297]`), tuyệt đối không dùng `justify-between` làm phân tán khoảng cách thưa thớt.
+>    - **DOM Sanitizer & Khử trang trắng thừa**: Hàm `printTicketElement` bắt buộc tẩy sạch `overflow`, `max-height`, `transform`, `flex` trên thẻ cha DOM clone để Chromium phân trang tự nhiên (1 phiếu = 1 sheet); phần tử cuối cùng phải có `last-child { break-after: auto; }` chống in trang trắng số 31 thừa.
 <!-- MES_DESIGN_SYSTEM:END -->
 
 <!-- SUBAGENT_PROTOCOL:BEGIN -->
