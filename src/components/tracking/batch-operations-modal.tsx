@@ -86,6 +86,14 @@ export const BATCH_FIELDS_CONFIG: BatchFieldDefinition[] = [
   { key: 'doc_quote', label: 'Báo giá NCC', category: 'documents', type: 'attachment', docField: 'ncc_thongtinkhac2' },
 ];
 
+/** Mapping between batch document chips and actual QTItem columns */
+export const DOC_FIELD_MAPPING: Record<string, { col: string; label: string }> = {
+  ncc_file1: { col: 'ncc_file1', label: 'Chứng chỉ QT (CO/CQ)' },
+  ncc_giando: { col: 'ncc_giando', label: 'Giản đồ nhiệt' },
+  doc_po: { col: 'ncc_thongtinkhac1', label: 'File PO / Đơn hàng' },
+  doc_quote: { col: 'ncc_thongtinkhac2', label: 'Báo giá NCC' },
+};
+
 /** 6 Absolute Immutable Master Identifiers (Strictly Locked for All Roles) */
 export const MASTER_IMMUTABLE_KEYS = new Set([
   'ma_hang',
@@ -218,8 +226,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
   // State 3: Values for active field editors
   const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
 
-  // State 4: Batch Document Upload Settings
-  const [targetDocColumns, setTargetDocColumns] = useState<Set<string>>(new Set(['ncc_file1']));
+  // State 4: Batch Document Upload Settings (Single Source of Truth: target columns bound to selectedFieldKeys)
   const [assignmentStrategy, setAssignmentStrategy] = useState<'shared' | 'smart'>('shared');
   const [writePolicy, setWritePolicy] = useState<'append' | 'replace'>('append');
   const [stagedFiles, setStagedFiles] = useState<{ file: File; dataUri?: string; name: string }[]>([]);
@@ -231,6 +238,37 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
   const [editingNameValue, setEditingNameValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputId = useId();
+
+  // Active target document columns derived directly from selectedFieldKeys (Single Source of Truth)
+  const activeDocColumns = useMemo(() => {
+    const cols = new Set<string>();
+    for (const [chipKey, info] of Object.entries(DOC_FIELD_MAPPING)) {
+      if (selectedFieldKeys.has(chipKey)) {
+        cols.add(info.col);
+      }
+    }
+    // Fallback: If on documents tab and nothing selected yet, default to ncc_file1
+    if (cols.size === 0 && activeTab === 'documents') {
+      cols.add('ncc_file1');
+    }
+    return cols;
+  }, [selectedFieldKeys, activeTab]);
+
+  // Tab switch handler: auto-selects default document field when entering documents tab
+  const handleTabChange = (tab: BatchCategory) => {
+    setActiveTab(tab);
+    if (tab === 'documents') {
+      setSelectedFieldKeys((prev) => {
+        const hasAnyDoc = prev.has('ncc_file1') || prev.has('ncc_giando') || prev.has('doc_po') || prev.has('doc_quote');
+        if (!hasAnyDoc) {
+          const next = new Set(prev);
+          next.add('ncc_file1');
+          return next;
+        }
+        return prev;
+      });
+    }
+  };
 
   // Summary telemetry for header
   const totalPieces = useMemo(() => items.reduce((acc, i) => acc + (Number(i.so_luong) || 0), 0), [items]);
@@ -267,17 +305,6 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
       playAudioCue('pop');
     }
     setSelectedFieldKeys(next);
-  };
-
-  // Toggle target document column
-  const toggleDocColumn = (colKey: string) => {
-    const next = new Set(targetDocColumns);
-    if (next.has(colKey)) {
-      if (next.size > 1) next.delete(colKey);
-    } else {
-      next.add(colKey);
-    }
-    setTargetDocColumns(next);
   };
 
   // Handle local files drop / input
@@ -450,7 +477,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
         }
 
         if (lotAttachments.length > 0) {
-          for (const col of targetDocColumns) {
+          for (const col of activeDocColumns) {
             const existingRaw = (lot as any)[col] as string | undefined;
             const existingItems = parseAttachments(existingRaw);
             const finalItems = writePolicy === 'append' ? [...existingItems, ...lotAttachments] : lotAttachments;
@@ -475,7 +502,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     stagedUrls,
     assignmentStrategy,
     writePolicy,
-    targetDocColumns,
+    activeDocColumns,
   ]);
 
   // Total affected lots and total fields modified
@@ -607,7 +634,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       className={`px-2.5 py-1 rounded-md transition cursor-pointer font-medium whitespace-nowrap ${activeTab === tab.id
                           ? 'bg-slate-900 text-white font-semibold shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
@@ -680,21 +707,35 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                 </div>
               ) : null}
 
-              {/* Special: Batch Document Upload Card (Viền đôi Slate 900 nổi bật) */}
+              {/* Special: Batch Document Upload Card */}
               {(activeTab === 'documents' ||
                 selectedFieldKeys.has('ncc_file1') ||
                 selectedFieldKeys.has('ncc_giando') ||
                 selectedFieldKeys.has('doc_po') ||
                 selectedFieldKeys.has('doc_quote')) && (
-                  <div className="border-2 border-slate-900 rounded-xl p-4 bg-white shadow-sm space-y-3.5">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                      <div className="flex items-center gap-2 min-w-0">
+                  <div className="border border-slate-900 dark:border-slate-700 rounded-xl p-3.5 bg-white dark:bg-card shadow-sm space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold uppercase shrink-0">
                           UPLOAD HÀNG LOẠT
                         </span>
-                        <span className="text-xs font-bold uppercase tracking-wide text-slate-900 whitespace-nowrap">
-                          ĐÍNH KÈM TÀI LIỆU / CHỨNG CHỈ (KẾ THỪA HÌNH 6)
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                          ĐÍNH KÈM TÀI LIỆU & CHỨNG CHỈ GIA CÔNG
                         </span>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                          <span>• Nhận tệp:</span>
+                          {Array.from(activeDocColumns).map((col) => {
+                            const info = Object.values(DOC_FIELD_MAPPING).find((m) => m.col === col);
+                            return (
+                              <span
+                                key={col}
+                                className="px-1.5 py-0.2 rounded bg-slate-900 text-white font-mono font-bold text-[10px]"
+                              >
+                                {info?.label || col}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -705,49 +746,26 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           next.delete('doc_po');
                           next.delete('doc_quote');
                           setSelectedFieldKeys(next);
+                          if (activeTab === 'documents') {
+                            setActiveTab('all');
+                          }
                         }}
-                        className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer"
+                        className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer shrink-0"
                         title="Đóng khung Upload"
                       >
                         <X size={14} />
                       </button>
                     </div>
 
-                    {/* Step A: Chọn cột tài liệu đích (Multi-target pills) */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-slate-600 block">
-                        A. Chọn cột tài liệu cần cập nhật (có thể chọn nhiều cột cùng lúc):
-                      </label>
-                      <div className="flex flex-wrap sm:flex-nowrap gap-1.5">
-                        {[
-                          { key: 'ncc_file1', label: 'Chứng chỉ QT (CO/CQ)' },
-                          { key: 'ncc_giando', label: 'Giản đồ nhiệt' },
-                          { key: 'ncc_thongtinkhac1', label: 'File PO / Đơn hàng' },
-                          { key: 'ncc_thongtinkhac2', label: 'Báo giá NCC' },
-                        ].map((col) => {
-                          const selected = targetDocColumns.has(col.key);
-                          return (
-                            <button
-                              key={col.key}
-                              type="button"
-                              onClick={() => toggleDocColumn(col.key)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${selected
-                                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                                }`}
-                            >
-                              <span>{selected ? '☑' : '☐'}</span>
-                              <span>{col.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Step B: Phương thức phân bổ & Step C: Chế độ ghi */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {/* Step A: Phương thức phân bổ & Step B: Chế độ ghi dữ liệu */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
                       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                        <div className="text-[10.5px] font-bold uppercase text-slate-500">B. Phương thức phân bổ tệp</div>
+                        <div className="text-[10.5px] font-bold uppercase text-slate-600 flex items-center justify-between">
+                          <span>A. Phương thức phân bổ tệp</span>
+                          <span className="font-mono text-[10px] text-slate-500 lowercase">
+                            {assignmentStrategy === 'shared' ? 'dùng chung' : 'smart-match'}
+                          </span>
+                        </div>
                         <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
                           <button
                             type="button"
@@ -769,12 +787,17 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         <p className="text-[10px] text-slate-500 leading-tight">
                           {assignmentStrategy === 'shared'
                             ? 'Gắn cùng 1 bộ tệp/link cho toàn bộ các lô được chọn.'
-                            : 'Đọc tên file (VD: 9690-C17_QT.pdf) để gắn tự động vào đúng lô.'}
+                            : 'Đọc tên file (VD: 9690-C17_QT.pdf) để gắn tự động vào đúng mã hàng.'}
                         </p>
                       </div>
 
                       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                        <div className="text-[10.5px] font-bold uppercase text-slate-500">C. Chế độ ghi dữ liệu</div>
+                        <div className="text-[10.5px] font-bold uppercase text-slate-600 flex items-center justify-between">
+                          <span>B. Chế độ ghi dữ liệu</span>
+                          <span className="font-mono text-[10px] text-slate-500 lowercase">
+                            {writePolicy === 'append' ? 'an toàn' : 'thay thế'}
+                          </span>
+                        </div>
                         <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
                           <button
                             type="button"
@@ -841,7 +864,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                       <input
                         id={urlInputId}
                         type="text"
-                        placeholder="Hoặc dán Link URL (Google Drive / OneDrive / Cloud)..."
+                        placeholder="Dán Link URL Google Drive / OneDrive (hỗ trợ nhiều link cách nhau bởi dấu phẩy hoặc dòng mới)..."
                         value={urlInput}
                         onChange={(e) => setUrlInput(e.target.value)}
                         className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
@@ -855,48 +878,23 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                       </button>
                     </form>
 
-                    {/* Quick Simulation Buttons */}
-                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap">
+                    {/* Staged file list header without simulation buttons */}
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         DANH SÁCH TỆP CHỜ GẮN ({stagedFiles.length + stagedUrls.length})
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      {(stagedFiles.length > 0 || stagedUrls.length > 0) && (
                         <button
                           type="button"
                           onClick={() => {
-                            setAssignmentStrategy('smart');
-                            const dummyUrls: AttachmentItem[] = [
-                              { id: 'sim-1', name: '9690-C17_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/9690-C17', type: 'pdf', size: '34 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
-                              { id: 'sim-2', name: '2439-P2_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/2439-P2', type: 'pdf', size: '31 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
-                              { id: 'sim-3', name: '9967-G4_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/9967-G4', type: 'pdf', size: '45 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
-                              { id: 'sim-4', name: '1414-J39_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/1414-J39', type: 'pdf', size: '29 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
-                              { id: 'sim-5', name: '9764-V1_ChungChiNhietLuyen.pdf', url: 'https://drive.google.com/file/d/9764-V1', type: 'pdf', size: '38 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' }
-                            ];
-                            setStagedUrls(dummyUrls);
-                            playAudioCue('success');
-                            toast.success('Đã tải 5 file mẫu khớp Mã hàng theo chuẩn prototype!');
+                            setStagedFiles([]);
+                            setStagedUrls([]);
                           }}
-                          className="px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-[10.5px] font-semibold whitespace-nowrap cursor-pointer"
+                          className="text-[10.5px] text-rose-600 hover:text-rose-700 hover:underline font-medium cursor-pointer"
                         >
-                          ⚡ Thử kéo thả 5 file theo Mã hàng
+                          Xóa tất cả tệp ({stagedFiles.length + stagedUrls.length})
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssignmentStrategy('shared');
-                            const sharedUrls: AttachmentItem[] = [
-                              { id: 'sh-1', name: 'Chung_Chi_Nhiet_Luyen_Yamaichi_Me08.pdf', url: 'https://drive.google.com/file/d/1A2B3C_Yamaichi_BatchCert/view', type: 'pdf', size: '44 KB', uploadedAt: new Date().toISOString(), source: 'gdrive' },
-                              { id: 'sh-2', name: 'drive.google.com/folder/Lo-2810-Pin-DAC', url: 'https://drive.google.com/drive/folders/Lo-2810-Pin-DAC', type: 'link', size: 'Google Drive', uploadedAt: new Date().toISOString(), source: 'gdrive' }
-                            ];
-                            setStagedUrls(sharedUrls);
-                            playAudioCue('success');
-                            toast.success('Đã chuyển sang bộ tệp dùng chung cho toàn bộ lô!');
-                          }}
-                          className="px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 text-[10.5px] font-medium whitespace-nowrap cursor-pointer"
-                        >
-                          ⚡ Thử bộ file dùng chung
-                        </button>
-                      </div>
+                      )}
                     </div>
 
                     {/* Staged file list with Smart Match Status Indicator */}
@@ -1145,8 +1143,30 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                     onClick={() => setActiveLotIds(new Set(items.map((i) => i.ID_Key)))}
                     className="px-2 py-1 rounded bg-white text-slate-900 font-semibold border border-slate-200 text-[11px] shadow-xs cursor-pointer hover:bg-slate-50"
                   >
-                    Tất cả
+                    Tất cả ({items.length})
                   </button>
+                  {assignmentStrategy === 'smart' && (stagedFiles.length > 0 || stagedUrls.length > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const matched = new Set<string>();
+                        for (const lot of items) {
+                          const isMatched =
+                            stagedFiles.some((f) =>
+                              smartMatchFileToLot(f.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
+                            ) ||
+                            stagedUrls.some((u) =>
+                              smartMatchFileToLot(u.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
+                            );
+                          if (isMatched) matched.add(lot.ID_Key);
+                        }
+                        setActiveLotIds(matched);
+                      }}
+                      className="px-2 py-1 rounded bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 text-[11px] cursor-pointer hover:bg-emerald-100 whitespace-nowrap"
+                    >
+                      Chỉ lô khớp
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setActiveLotIds(new Set())}
@@ -1174,6 +1194,15 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                   const isChecked = activeLotIds.has(lot.ID_Key);
                   const patch = candidatePatchMap.get(lot.ID_Key) || {};
                   const diffs = computeLotDiff(lot, patch);
+                  const isSmartActive = assignmentStrategy === 'smart' && (stagedFiles.length > 0 || stagedUrls.length > 0);
+                  const isMatchedToFiles = isSmartActive && (
+                    stagedFiles.some((f) =>
+                      smartMatchFileToLot(f.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
+                    ) ||
+                    stagedUrls.some((u) =>
+                      smartMatchFileToLot(u.name, lot.ma_hang, lot.id_ma_hang, lot.So_DatHang, lot.ID_Key)
+                    )
+                  );
 
                   return (
                     <div
@@ -1200,6 +1229,17 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           <span className="font-bold text-xs text-slate-900">{lot.ma_hang}</span>
                           {lot.phong_sx && (
                             <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">{lot.phong_sx}</span>
+                          )}
+                          {isSmartActive && (
+                            isMatchedToFiles ? (
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-0.5 shrink-0">
+                                ✓ Khớp file
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-400 text-[10px] shrink-0">
+                                Chưa khớp
+                              </span>
+                            )
                           )}
                         </label>
                         <span className="text-[10.5px] font-medium text-slate-500 shrink-0">{lot.TrangThai || '—'}</span>

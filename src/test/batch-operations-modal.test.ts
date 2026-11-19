@@ -148,5 +148,21 @@ describe('Batch Operations Modal Suite (Idea 2 - TDD)', () => {
         expect(modalSrc).toContain('handleRenameStagedUrl');
       }
     });
+
+    it('TC-BOM-06: verifies removal of simulation demo buttons and obsolete mockup text', () => {
+      if (fs.existsSync(modalFilePath)) {
+        const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
+        expect(modalSrc).not.toContain('Thử kéo thả 5 file theo Mã hàng');
+        expect(modalSrc).not.toContain('Thử bộ file dùng chung');
+        expect(modalSrc).not.toContain('KẾ THỪA HÌNH 6');
+      }
+    });
+
+    it('TC-BOM-07: verifies elimination of redundant Section A document picker in upload card', () => {
+      if (fs.existsSync(modalFilePath)) {
+        const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
+        expect(modalSrc).not.toContain('A. Chọn cột tài liệu cần cập nhật');
+      }
+    });
   });
 });
