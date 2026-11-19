@@ -2562,8 +2562,7 @@ function Tracking() {
         <div className="isolate flex-1 min-h-[400px] md:min-h-0 flex flex-col overflow-hidden rounded-xs border border-slate-200 dark:border-border bg-card shadow-2xs">
           <div
             ref={tableContainerRef}
-            className="flex-1 overflow-auto border border-slate-200 dark:border-border relative"
-            style={{ maxHeight: isTableFullscreen ? 'calc(100vh - 120px)' : 'calc(100vh - 220px)' }}
+            className="flex-1 min-h-0 overflow-auto relative"
           >
             <table className="w-full border-collapse text-xs select-text font-mono" style={{ width: `${totalTableWidth}px`, minWidth: '100%' }}>
               <thead
