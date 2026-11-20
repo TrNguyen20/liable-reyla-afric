@@ -144,4 +144,49 @@ describe('Lot Detail Modal Floating Window (v2.8.0) Specification Suite (TDD)', 
     expect(modalCode).toMatch(/Tải về|Download/);
     expect(modalCode).toMatch(/Mở tab mới/);
   });
+
+  it('TC-LDM-12: Chế độ 100% Read-only khi chưa bấm Chỉnh sửa (không nút Hiệu chỉnh/+ Giản đồ, click mở xem chi tiết)', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Không còn nút text "Hiệu chỉnh" hoặc "+ Giản đồ" tự do ở chế độ chỉ xem
+    expect(modalCode).not.toMatch(/>\s*Hiệu chỉnh\s*<\/button>/);
+    expect(modalCode).not.toMatch(/>\s*\+\s*Giản đồ\s*<\/button>/);
+    // HeatCycleModal nhận canEdit={isEditing}
+    expect(modalCode).toMatch(/canEdit=\{isEditing\}/);
+  });
+
+  it('TC-LDM-13: Chế độ Chỉnh sửa Giản đồ nhiệt: bỏ nút Đồ họa thừa, đổi thành Sửa với đồ họa và truyền prop value', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Nút [ Đồ họa ] cạnh input bị xóa bỏ
+    expect(modalCode).not.toMatch(/>\s*Đồ họa\s*<\/button>/);
+    // Đổi link thành "Sửa với đồ họa"
+    expect(modalCode).toMatch(/Sửa với đồ họa/);
+    // HeatCycleModal nhận prop value={...} thay vì initialShorthand
+    expect(modalCode).toMatch(/<HeatCycleModal[\s\S]*?\bvalue=\{/);
+  });
+
+  it('TC-LDM-14: NCC Nghiệm thu QC đã loại bỏ hoàn toàn tùy chọn PENDING (chờ kiểm tra)', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Thẻ select của ncc_ket_qua_qc không còn PENDING
+    expect(modalCode).not.toMatch(/value="PENDING"/);
+  });
+
+  it('TC-LDM-15: Tiến độ NCC (ncc_tatus) chuẩn hóa thành menu chọn WAIT, HEAT, TRANSIT, DONE', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // ncc_tatus khi edit là thẻ select với các tùy chọn chuẩn
+    expect(modalCode).toMatch(/<select[\s\S]*?value=\{form\.ncc_tatus\}[\s\S]*?WAIT[\s\S]*?HEAT[\s\S]*?TRANSIT[\s\S]*?DONE/);
+  });
+
+  it('TC-LDM-16: Cơ chế cửa sổ lồng nhau (Back-by-back window stack): phím Escape và click backdrop không đóng nhầm modal mẹ', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Kiểm tra Escape key ưu tiên đóng sub-modal trước
+    expect(modalCode).toMatch(/if\s*\(\s*lightboxFile\s*\)\s*\{\s*setLightboxFile\(null\);\s*return;\s*\}/);
+    expect(modalCode).toMatch(/if\s*\(\s*heatCycleModalOpen\s*\)\s*\{\s*setHeatCycleModalOpen\(false\);\s*return;\s*\}/);
+    // Kiểm tra backdrop click bảo vệ modal mẹ khi sub-modal đang mở
+    expect(modalCode).toMatch(/if\s*\(\s*lightboxFile\s*\|\|\s*heatCycleModalOpen\s*\)\s*return;/);
+  });
 });

@@ -12,8 +12,14 @@ export const FileLightboxModal: React.FC<FileLightboxModalProps> = ({ previewFil
   return (
     <Dialog open={!!previewFile} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-w-3xl rounded-xl sm:rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card p-5 shadow-2xl overflow-hidden"
+        className="max-w-3xl z-[70] rounded-xl sm:rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card p-5 shadow-2xl overflow-hidden"
         style={{ borderRadius: '12px' }}
+        onPointerDownOutside={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
       >
         <DialogTitle className="font-mono text-sm font-bold flex items-center justify-between border-b border-slate-200 dark:border-border pb-2.5">
           <span>{previewFile.title}</span>

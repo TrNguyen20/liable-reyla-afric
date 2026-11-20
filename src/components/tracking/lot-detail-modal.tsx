@@ -374,12 +374,20 @@ export function LotDetailModal({
         handleNextLot();
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        if (lightboxFile) {
+          setLightboxFile(null);
+          return;
+        }
+        if (heatCycleModalOpen) {
+          setHeatCycleModalOpen(false);
+          return;
+        }
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrevLot, handleNextLot, onClose]);
+  }, [handlePrevLot, handleNextLot, onClose, lightboxFile, heatCycleModalOpen]);
 
   // Handle save changes
   const handleSave = () => {
@@ -513,7 +521,12 @@ export function LotDetailModal({
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
-      onClick={onClose}
+      onClick={(e) => {
+        if (lightboxFile || heatCycleModalOpen) return;
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div
         className="w-[96vw] max-w-6xl max-h-[92vh] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-2xl flex flex-col overflow-hidden text-foreground animate-in zoom-in-95 duration-150"
@@ -1057,7 +1070,6 @@ export function LotDetailModal({
                         <option value="">— Chưa nghiệm thu —</option>
                         <option value="PASS">PASS (Đạt yêu cầu)</option>
                         <option value="FAIL">FAIL (Không đạt)</option>
-                        <option value="PENDING">PENDING (Chờ kiểm tra)</option>
                       </select>
                     ) : (
                       <div className="mt-0.5">
@@ -1140,48 +1152,39 @@ export function LotDetailModal({
 
                   {/* Giản đồ nhiệt - ĐỒNG BỘ CHUẨN TRACKING (Hình 1) */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
-                      {item.ncc_giando && (
-                        <button
-                          type="button"
-                          onClick={() => setHeatCycleModalOpen(true)}
-                          className="text-[10px] text-primary hover:underline font-medium cursor-pointer"
-                        >
-                          Hiệu chỉnh
-                        </button>
-                      )}
-                    </div>
-
                     {isEditing ? (
-                      <div className="mt-1 space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="text"
-                            value={form.ncc_giando}
-                            onChange={(e) => setForm((f) => ({ ...f, ncc_giando: e.target.value }))}
-                            placeholder="VD: Q: 1020°C / 2H | T1: 540°C / 5H..."
-                            className="w-full h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
-                          />
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
                           <button
                             type="button"
                             onClick={() => setHeatCycleModalOpen(true)}
-                            className="px-2 py-0.5 text-[10.5px] font-semibold bg-secondary hover:bg-secondary/80 rounded-xs border border-border/80 whitespace-nowrap cursor-pointer shadow-2xs"
+                            className="text-[10.5px] text-primary hover:underline font-semibold cursor-pointer"
                             title="Mở bảng vẽ chu trình nhiệt trực quan"
                           >
-                            Đồ họa
+                            Sửa với đồ họa
                           </button>
                         </div>
+                        <input
+                          type="text"
+                          value={form.ncc_giando}
+                          onChange={(e) => setForm((f) => ({ ...f, ncc_giando: e.target.value }))}
+                          placeholder="VD: Q: 1020°C / 2H | T1: 540°C / 5H..."
+                          className="w-full h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
+                        />
                       </div>
                     ) : (
-                      <div className="mt-1">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
+                        </div>
                         {item.ncc_giando && item.ncc_giando.trim() ? (
                           <HoverCard openDelay={120} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <button
                                 type="button"
                                 onClick={() => setHeatCycleModalOpen(true)}
-                                title="Bấm để xem hoặc chỉnh sửa thông số chu trình nhiệt luyện"
+                                title="Bấm để xem phóng to chu trình nhiệt luyện"
                                 className="inline-flex items-center justify-center h-6 px-1.5 py-0.5 rounded-xs bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-2xs transition cursor-pointer active:scale-95 select-none"
                               >
                                 <div className="w-[74px] h-[18px] flex items-center justify-center pointer-events-none">
@@ -1222,20 +1225,13 @@ export function LotDetailModal({
                                   {item.ncc_giando}
                                 </span>
                                 <span className="text-slate-400 text-[9px] shrink-0">
-                                  Bấm để hiệu chỉnh
+                                  Bấm để xem phóng to
                                 </span>
                               </div>
                             </HoverCardContent>
                           </HoverCard>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => setHeatCycleModalOpen(true)}
-                            title="Chưa có biểu đồ chu trình nhiệt luyện - Bấm để nạp thông số"
-                            className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all border-slate-200 dark:border-slate-700 bg-secondary/50 hover:bg-secondary text-slate-700 dark:text-slate-300 hover:border-amber-500/50 cursor-pointer active:scale-95 select-none"
-                          >
-                            <span>+ Giản đồ</span>
-                          </button>
+                          <span className="font-mono text-muted-foreground/50 text-[11px] block mt-1">—</span>
                         )}
                       </div>
                     )}
@@ -1284,15 +1280,41 @@ export function LotDetailModal({
                     <div className="text-right">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tiến độ NCC</span>
                       {isEditing ? (
-                        <input
-                          type="text"
+                        <select
                           value={form.ncc_tatus}
                           onChange={(e) => setForm((f) => ({ ...f, ncc_tatus: e.target.value }))}
-                          placeholder="Tiến độ NCC..."
-                          className="w-28 mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
-                        />
+                          className="w-36 mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
+                        >
+                          <option value="">— Chưa chọn —</option>
+                          <option value="WAIT">WAIT (Chờ xử lý)</option>
+                          <option value="HEAT">HEAT (Đang nhiệt)</option>
+                          <option value="TRANSIT">TRANSIT (Đang giao)</option>
+                          <option value="DONE">DONE (Hoàn thành)</option>
+                        </select>
                       ) : (
-                        <span className="font-mono text-xs text-muted-foreground block mt-0.5">{item.ncc_tatus || '—'}</span>
+                        <div className="mt-0.5">
+                          {item.ncc_tatus === 'WAIT' ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-semibold bg-slate-100 text-slate-700 dark:bg-muted dark:text-muted-foreground border border-border">
+                              WAIT
+                            </span>
+                          ) : item.ncc_tatus === 'HEAT' ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                              HEAT
+                            </span>
+                          ) : item.ncc_tatus === 'TRANSIT' ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                              TRANSIT
+                            </span>
+                          ) : item.ncc_tatus === 'DONE' ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                              DONE
+                            </span>
+                          ) : item.ncc_tatus ? (
+                            <span className="font-mono text-xs text-foreground">{item.ncc_tatus}</span>
+                          ) : (
+                            <span className="font-mono text-xs text-muted-foreground/60">—</span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1425,7 +1447,8 @@ export function LotDetailModal({
       {heatCycleModalOpen && (
         <HeatCycleModal
           isOpen={heatCycleModalOpen}
-          initialShorthand={item.ncc_giando || ''}
+          value={isEditing ? form.ncc_giando : (item.ncc_giando || '')}
+          canEdit={isEditing}
           lotCode={item.ma_hang || item.id_ma_hang}
           workshop={item.phong_sx}
           material={item.vat_lieu}
@@ -1433,7 +1456,9 @@ export function LotDetailModal({
           onClose={() => setHeatCycleModalOpen(false)}
           onSave={(newShorthand) => {
             setForm((f) => ({ ...f, ncc_giando: newShorthand }));
-            onUpdate({ ncc_giando: newShorthand });
+            if (!isEditing) {
+              onUpdate({ ncc_giando: newShorthand });
+            }
             toast.success('Đã cập nhật giản đồ chu trình nhiệt luyện');
             setHeatCycleModalOpen(false);
           }}

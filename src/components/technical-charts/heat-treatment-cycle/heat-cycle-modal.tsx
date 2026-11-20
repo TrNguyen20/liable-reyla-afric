@@ -107,6 +107,19 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
     }
   }, [isOpen, value]);
 
+  // Handle Escape key to close modal and stop propagation to parent modals
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isOpen, onClose]);
+
   const handleStepChange = (
     stage: 'Q' | 'T1' | 'T2' | 'T3',
     field: 'temp' | 'time',
@@ -136,8 +149,9 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-[1px] animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-[1px] animate-in fade-in-0 duration-150"
       onClick={(e) => {
+        e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -154,6 +168,11 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
               <h3 className="font-bold text-base text-slate-900 tracking-tight">
                 GIÃN ĐỒ NHIỆT (CHU TRÌNH NHIỆT LUYỆN)
               </h3>
+              {!canEdit && (
+                <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold font-mono border border-slate-200">
+                  CHỈ XEM
+                </span>
+              )}
               {workshop && (
                 <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold font-mono">
                   {workshop}
@@ -176,7 +195,10 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
           >
             <X size={18} />
@@ -190,7 +212,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs animate-in fade-in">
               <AlertCircle size={15} className="text-amber-600 shrink-0" />
               <span>
-                <strong>Chưa có thông số chu trình nhiệt luyện</strong> cho lô này. Vui lòng nhập trực tiếp vào 4 ô bên dưới hoặc nhấp một công thức mẫu để nạp nhanh.
+                <strong>Chưa có thông số chu trình nhiệt luyện</strong> cho lô này.{canEdit ? ' Vui lòng nhập trực tiếp vào 4 ô bên dưới hoặc nhấp một công thức mẫu để nạp nhanh.' : ''}
               </span>
             </div>
           )}
@@ -218,7 +240,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
             <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-700">
               <span>THÔNG SỐ CÔNG ĐOẠN NHIỆT LUYỆN</span>
               <span className="text-[10px] text-slate-400 font-normal normal-case">
-                Mặc định không yêu cầu nhập trước. Nhập số để kích hoạt từng công đoạn.
+                {canEdit ? 'Mặc định không yêu cầu nhập trước. Nhập số để kích hoạt từng công đoạn.' : 'Chế độ chỉ xem - Bấm Chỉnh sửa từ cửa sổ chi tiết để hiệu chỉnh.'}
               </span>
             </div>
 
@@ -251,7 +273,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                           value={stg.temp ?? ''}
                           disabled={!canEdit}
                           onChange={(e) => handleStepChange(stg.stage, 'temp', e.target.value)}
-                          className="w-full h-7 px-2 text-xs font-mono font-bold border border-slate-300 rounded focus:border-slate-900 focus:outline-none bg-white"
+                          className={`w-full h-7 px-2 text-xs font-mono font-bold border rounded focus:outline-none ${!canEdit ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed' : 'border-slate-300 focus:border-slate-900 bg-white'}`}
                         />
                       </div>
                       <div>
@@ -265,7 +287,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                           value={stg.time ?? ''}
                           disabled={!canEdit}
                           onChange={(e) => handleStepChange(stg.stage, 'time', e.target.value)}
-                          className="w-full h-7 px-2 text-xs font-mono font-bold border border-slate-300 rounded focus:border-slate-900 focus:outline-none bg-white"
+                          className={`w-full h-7 px-2 text-xs font-mono font-bold border rounded focus:outline-none ${!canEdit ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed' : 'border-slate-300 focus:border-slate-900 bg-white'}`}
                         />
                       </div>
                     </div>
@@ -275,31 +297,33 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
             </div>
           </div>
 
-          {/* 3. THANH NẠP NHANH CÔNG THỨC MẪU (TINH GỌN KHÔNG CHIẾM DIỆN TÍCH) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-600">
-              <Sparkles size={12} className="text-amber-500" />
-              <span>NẠP NHANH CÔNG THỨC MẪU (QUICK PRESETS)</span>
+          {/* 3. THANH NẠP NHANH CÔNG THỨC MẪU (TINH GỌN KHÔNG CHIẾM DIỆN TÍCH) - CHỈ HIỆN KHI ĐƯỢC PHÉP EDIT */}
+          {canEdit && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-600">
+                <Sparkles size={12} className="text-amber-500" />
+                <span>NẠP NHANH CÔNG THỨC MẪU (QUICK PRESETS)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-1.5">
+                {HEAT_CYCLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleApplyPreset(preset)}
+                    className="px-2 py-1.5 rounded border border-slate-200 hover:border-slate-800 bg-white hover:bg-slate-50 text-left transition flex flex-col justify-between group cursor-pointer"
+                    title={`${preset.name}: ${preset.shorthand}`}
+                  >
+                    <p className="text-[10.5px] font-bold text-slate-900 truncate group-hover:text-primary">
+                      {preset.name}
+                    </p>
+                    <p className="text-[9.5px] text-slate-500 font-mono truncate mt-0.5">
+                      {preset.hardness}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-1.5">
-              {HEAT_CYCLE_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleApplyPreset(preset)}
-                  className="px-2 py-1.5 rounded border border-slate-200 hover:border-slate-800 bg-white hover:bg-slate-50 text-left transition flex flex-col justify-between group cursor-pointer"
-                  title={`${preset.name}: ${preset.shorthand}`}
-                >
-                  <p className="text-[10.5px] font-bold text-slate-900 truncate group-hover:text-primary">
-                    {preset.name}
-                  </p>
-                  <p className="text-[9.5px] text-slate-500 font-mono truncate mt-0.5">
-                    {preset.hardness}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -310,7 +334,10 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               className="px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition cursor-pointer"
             >
               Đóng
