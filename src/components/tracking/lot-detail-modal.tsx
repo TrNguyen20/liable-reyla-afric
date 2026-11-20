@@ -12,11 +12,10 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
-  Clock,
   ExternalLink,
   Maximize2,
+  Download,
   FileText,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import {
@@ -37,7 +36,10 @@ import {
   transformToPreviewUrl,
   middleTruncate,
   renderFileIcon,
+  renderFileTypeBadge,
 } from '@/components/tracking/attachment-field';
+import { HeatTreatmentCycle, HeatCycleModal } from '@/components/technical-charts';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { toast } from 'sonner';
 
 export interface LotDetailModalProps {
@@ -50,18 +52,21 @@ export interface LotDetailModalProps {
 }
 
 /**
- * Interactive Hover Preview for Attachments (PO, Heat Graph, QC Certs)
+ * Interactive Hover Preview for Attachments (PO, QC Certs, Drawings)
+ * Features live embedded iframe document previews and synchronized lot filenames.
  */
 function AttachmentHoverPreview({
   rawUrl,
   title,
+  lotCode,
   onOpenLightbox,
 }: {
   rawUrl?: string;
   title: string;
+  lotCode?: string;
   onOpenLightbox?: (file: { url: string; title: string; type: 'image' | 'pdf' }) => void;
 }) {
-  const items = useMemo(() => parseAttachments(rawUrl), [rawUrl]);
+  const items = useMemo(() => parseAttachments(rawUrl, lotCode), [rawUrl, lotCode]);
 
   if (!items || items.length === 0) {
     return <span className="font-mono text-muted-foreground/50 text-[11px]">—</span>;
@@ -72,62 +77,100 @@ function AttachmentHoverPreview({
       {items.map((it, idx) => {
         const previewUrl = transformToPreviewUrl(it.url);
         const isImg = it.type === 'image' || it.url.startsWith('data:image/');
-        const isPdf = it.type === 'pdf';
+        const isPdf = it.type === 'pdf' || it.source === 'gdrive' || it.url.includes('.pdf') || it.url.includes('drive.google.com');
         const fileTitle = it.name || `${title} (${idx + 1})`;
 
         return (
-          <div key={idx} className="relative group/hover-preview inline-block">
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenLightbox && (isImg || isPdf)) {
-                  onOpenLightbox({ url: previewUrl, title: fileTitle, type: isImg ? 'image' : 'pdf' });
-                } else {
-                  window.open(it.url, '_blank', 'noreferrer');
-                }
-              }}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] bg-slate-100 hover:bg-slate-200 dark:bg-muted/80 dark:hover:bg-muted text-foreground border border-border/70 transition cursor-pointer shadow-2xs"
-              title={`${fileTitle} - Click để xem`}
-            >
-              <span className="text-[10px]">{renderFileIcon(it.type)}</span>
-              <span className="max-w-[110px] truncate">{middleTruncate(it.name || it.url, 15)}</span>
-            </button>
+          <HoverCard key={idx} openDelay={120} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenLightbox && (isImg || isPdf)) {
+                    onOpenLightbox({ url: previewUrl, title: fileTitle, type: isImg ? 'image' : 'pdf' });
+                  } else {
+                    window.open(it.url, '_blank', 'noreferrer');
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] bg-slate-100 hover:bg-slate-200 dark:bg-muted/80 dark:hover:bg-muted text-foreground border border-border/70 transition cursor-pointer shadow-2xs select-none"
+                title={`${fileTitle} - Click để xem phóng to`}
+              >
+                <span className="text-[10px]">{renderFileIcon(it.type)}</span>
+                <span className="max-w-[110px] truncate">{middleTruncate(it.name || it.url, 15)}</span>
+              </button>
+            </HoverCardTrigger>
 
-            {/* Hover Preview Card Popover */}
-            <div className="pointer-events-none group-hover/hover-preview:pointer-events-auto opacity-0 group-hover/hover-preview:opacity-100 transition-all duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 w-64 p-2.5 bg-white dark:bg-card border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl text-left select-text">
-              <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground border-b border-border/60 pb-1 mb-1.5">
-                <span className="truncate font-semibold text-foreground max-w-[160px]">{fileTitle}</span>
-                <span className="uppercase text-[9px] px-1 py-0.2 bg-muted rounded font-bold">{it.type}</span>
+            <HoverCardContent
+              side="top"
+              align="center"
+              sideOffset={8}
+              className="z-50 w-[420px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-2.5 shadow-2xl text-slate-900 dark:text-slate-100 outline-none select-text"
+            >
+              {/* Header Bar */}
+              <div className="flex items-center justify-between border-b border-border/70 pb-1.5 mb-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {renderFileTypeBadge(it.type, it.source)}
+                  <span className="font-mono text-xs font-bold truncate max-w-[210px] text-foreground" title={fileTitle}>
+                    {fileTitle}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <a
+                    href={it.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10.5px] font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white rounded border border-border/60 hover:bg-secondary cursor-pointer transition shadow-2xs"
+                    title="Tải về tệp gốc"
+                  >
+                    <Download size={11} />
+                    <span>Tải về</span>
+                  </a>
+                  <a
+                    href={it.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10.5px] font-semibold text-primary hover:underline rounded border border-primary/30 bg-primary/5 hover:bg-primary/10 cursor-pointer transition shadow-2xs"
+                  >
+                    <span>Mở tab mới</span>
+                    <ExternalLink size={10} />
+                  </a>
+                  {onOpenLightbox && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenLightbox({ url: previewUrl, title: fileTitle, type: isImg ? 'image' : 'pdf' })}
+                      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition"
+                      title="Phóng to xem toàn màn hình"
+                    >
+                      <Maximize2 size={12} />
+                    </button>
+                  )}
+                </div>
               </div>
-              {isImg ? (
-                <div className="max-h-36 overflow-hidden rounded bg-slate-950/10 flex items-center justify-center border border-border/40">
-                  <img src={previewUrl} alt={fileTitle} className="max-h-36 max-w-full object-contain" />
-                </div>
-              ) : isPdf ? (
-                <div className="h-32 rounded bg-slate-900/5 dark:bg-slate-900/40 flex flex-col items-center justify-center p-2 text-center text-xs text-muted-foreground border border-dashed border-border/80">
-                  <FileText size={24} className="text-primary mb-1" />
-                  <span className="font-mono text-[10px] truncate max-w-full text-foreground/90 font-medium">{it.name}</span>
-                  <span className="text-[9px] text-primary/80 mt-1 font-semibold">Tài liệu PDF / Google Drive</span>
-                </div>
-              ) : (
-                <div className="p-2 text-center text-xs text-muted-foreground bg-muted/40 rounded">
-                  <span className="font-mono text-[10px] truncate block">{it.url}</span>
-                </div>
-              )}
-              <div className="mt-1.5 flex items-center justify-between text-[10px] pt-1 border-t border-border/40">
-                <span className="text-[9px] text-muted-foreground">Rê chuột xem nhanh</span>
-                <a
-                  href={it.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-0.5 text-primary hover:underline font-mono text-[10px] font-semibold"
-                >
-                  <span>Mở tab mới</span>
-                  <ExternalLink size={9} />
-                </a>
+
+              {/* Body: Embedded Document / Image Preview (Hình 5) */}
+              <div className="w-full h-[270px] rounded border border-border/60 bg-slate-50 dark:bg-slate-900/40 overflow-hidden flex items-center justify-center">
+                {isImg ? (
+                  <img
+                    src={previewUrl}
+                    alt={fileTitle}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : isPdf ? (
+                  <iframe
+                    src={transformToPreviewUrl(it.url)}
+                    title={fileTitle}
+                    className="w-full h-full border-0 rounded bg-white"
+                  />
+                ) : (
+                  <div className="p-3 text-center text-xs text-muted-foreground">
+                    <FileText size={28} className="mx-auto mb-1 text-primary/70" />
+                    <span className="font-mono text-xs block truncate max-w-full">{it.url}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1 block">Tài liệu liên kết ngoài</span>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
+            </HoverCardContent>
+          </HoverCard>
         );
       })}
     </div>
@@ -135,7 +178,7 @@ function AttachmentHoverPreview({
 }
 
 /**
- * Lot Detail Modal Component (Floating Pop-up Window v2.8.0 with 4-Zone Bento Grid covering 36 columns)
+ * Lot Detail Modal Component (Floating Pop-up Window v2.8.5 with 4-Zone Bento Grid covering 36 columns)
  * Conforms to Dynamo MES Graphite Wireframe UI Specification v2.7.0/v2.8.0.
  */
 export function LotDetailModal({
@@ -151,8 +194,9 @@ export function LotDetailModal({
   const hasPricingView = canViewPricing(role as Role);
   const auditLogs = auditFor(item.ID_Key);
 
-  // Lightbox Preview State
+  // Lightbox & HeatCycle Modal States
   const [lightboxFile, setLightboxFile] = useState<{ url: string; title: string; type: 'image' | 'pdf' } | null>(null);
+  const [heatCycleModalOpen, setHeatCycleModalOpen] = useState(false);
 
   // Search & Navigation States
   const [isSearchingItem, setIsSearchingItem] = useState(false);
@@ -912,6 +956,7 @@ export function LotDetailModal({
                         <AttachmentHoverPreview
                           rawUrl={item.ten_file_dat_hang}
                           title={`File PO ${item.ma_hang}`}
+                          lotCode={item.ma_hang || item.id_ma_hang}
                           onOpenLightbox={setLightboxFile}
                         />
                       </div>
@@ -1093,29 +1138,110 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* Giản đồ nhiệt */}
+                  {/* Giản đồ nhiệt - ĐỒNG BỘ CHUẨN TRACKING (Hình 1) */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
+                      {item.ncc_giando && (
+                        <button
+                          type="button"
+                          onClick={() => setHeatCycleModalOpen(true)}
+                          className="text-[10px] text-primary hover:underline font-medium cursor-pointer"
+                        >
+                          Hiệu chỉnh
+                        </button>
+                      )}
+                    </div>
+
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={form.ncc_giando}
-                        onChange={(e) => setForm((f) => ({ ...f, ncc_giando: e.target.value }))}
-                        placeholder="Link ảnh hoặc URL giản đồ..."
-                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
-                      />
+                      <div className="mt-1 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={form.ncc_giando}
+                            onChange={(e) => setForm((f) => ({ ...f, ncc_giando: e.target.value }))}
+                            placeholder="VD: Q: 1020°C / 2H | T1: 540°C / 5H..."
+                            className="w-full h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setHeatCycleModalOpen(true)}
+                            className="px-2 py-0.5 text-[10.5px] font-semibold bg-secondary hover:bg-secondary/80 rounded-xs border border-border/80 whitespace-nowrap cursor-pointer shadow-2xs"
+                            title="Mở bảng vẽ chu trình nhiệt trực quan"
+                          >
+                            Đồ họa
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <div className="mt-0.5">
-                        <AttachmentHoverPreview
-                          rawUrl={item.ncc_giando}
-                          title={`Giản đồ nhiệt ${item.ma_hang}`}
-                          onOpenLightbox={setLightboxFile}
-                        />
+                      <div className="mt-1">
+                        {item.ncc_giando && item.ncc_giando.trim() ? (
+                          <HoverCard openDelay={120} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => setHeatCycleModalOpen(true)}
+                                title="Bấm để xem hoặc chỉnh sửa thông số chu trình nhiệt luyện"
+                                className="inline-flex items-center justify-center h-6 px-1.5 py-0.5 rounded-xs bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-2xs transition cursor-pointer active:scale-95 select-none"
+                              >
+                                <div className="w-[74px] h-[18px] flex items-center justify-center pointer-events-none">
+                                  <HeatTreatmentCycle
+                                    shorthand={item.ncc_giando}
+                                    variant="mini"
+                                    width={74}
+                                    height={18}
+                                    showFrame={false}
+                                  />
+                                </div>
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent
+                              side="top"
+                              align="center"
+                              sideOffset={6}
+                              className="z-50 w-[400px] rounded-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-2.5 shadow-xl text-slate-900 dark:text-slate-100 outline-none select-text"
+                            >
+                              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1 mb-2">
+                                <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                                  CHU TRÌNH NHIỆT LUYỆN
+                                </span>
+                                <span className="font-mono text-[9.5px] font-semibold text-slate-500 dark:text-slate-400">
+                                  {item.ma_hang || item.id_ma_hang}
+                                </span>
+                              </div>
+                              <div className="bg-white p-1 rounded-xs border border-slate-200 dark:border-slate-800 flex justify-center">
+                                <HeatTreatmentCycle
+                                  shorthand={item.ncc_giando}
+                                  width={370}
+                                  height={76}
+                                  showFrame={true}
+                                />
+                              </div>
+                              <div className="mt-2 flex items-center justify-between font-mono text-[9.5px]">
+                                <span className="text-slate-600 dark:text-slate-300 truncate max-w-[280px]" title={item.ncc_giando}>
+                                  {item.ncc_giando}
+                                </span>
+                                <span className="text-slate-400 text-[9px] shrink-0">
+                                  Bấm để hiệu chỉnh
+                                </span>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setHeatCycleModalOpen(true)}
+                            title="Chưa có biểu đồ chu trình nhiệt luyện - Bấm để nạp thông số"
+                            className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all border-slate-200 dark:border-slate-700 bg-secondary/50 hover:bg-secondary text-slate-700 dark:text-slate-300 hover:border-amber-500/50 cursor-pointer active:scale-95 select-none"
+                          >
+                            <span>+ Giản đồ</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Chứng chỉ QT (CO/CQ) */}
+                  {/* Chứng chỉ QT (CO/CQ) - ĐỒNG BỘ TÊN FILE VÀ HOVERCARD NHÚNG IFRAME (Hình 4, 5) */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block">Chứng chỉ QT (CO/CQ)</span>
                     {isEditing ? (
@@ -1131,6 +1257,7 @@ export function LotDetailModal({
                         <AttachmentHoverPreview
                           rawUrl={item.ncc_file1}
                           title={`Chứng chỉ QT ${item.ma_hang}`}
+                          lotCode={item.ma_hang || item.id_ma_hang}
                           onOpenLightbox={setLightboxFile}
                         />
                       </div>
@@ -1293,6 +1420,25 @@ export function LotDetailModal({
 
       {/* Embedded Lightbox Modal for Fullscreen File Viewing */}
       <FileLightboxModal previewFile={lightboxFile} onClose={() => setLightboxFile(null)} />
+
+      {/* Embedded Heat Cycle Modal for Interactive Diagram Configuration */}
+      {heatCycleModalOpen && (
+        <HeatCycleModal
+          isOpen={heatCycleModalOpen}
+          initialShorthand={item.ncc_giando || ''}
+          lotCode={item.ma_hang || item.id_ma_hang}
+          workshop={item.phong_sx}
+          material={item.vat_lieu}
+          requiredHardness={item.do_cung}
+          onClose={() => setHeatCycleModalOpen(false)}
+          onSave={(newShorthand) => {
+            setForm((f) => ({ ...f, ncc_giando: newShorthand }));
+            onUpdate({ ncc_giando: newShorthand });
+            toast.success('Đã cập nhật giản đồ chu trình nhiệt luyện');
+            setHeatCycleModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

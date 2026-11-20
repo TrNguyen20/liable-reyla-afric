@@ -116,4 +116,32 @@ describe('Lot Detail Modal Floating Window (v2.8.0) Specification Suite (TDD)', 
     // Accordion hoặc toggle ẩn hiện cho Audit Trail
     expect(modalCode).toMatch(/showAudit|auditOpen|Accordion|Collapsible/);
   });
+
+  it('TC-LDM-09: Giản đồ nhiệt tích hợp HeatTreatmentCycle mini SVG và HoverCard CHU TRÌNH NHIỆT LUYỆN chuẩn tracking, click mở HeatCycleModal', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Tích hợp HeatTreatmentCycle và HeatCycleModal
+    expect(modalCode).toContain('HeatTreatmentCycle');
+    expect(modalCode).toContain('HeatCycleModal');
+    // Có HoverCard hiển thị CHU TRÌNH NHIỆT LUYỆN và biến thể mini
+    expect(modalCode).toMatch(/CHU TRÌNH NHIỆT LUYỆN/);
+    expect(modalCode).toMatch(/variant="mini"/);
+  });
+
+  it('TC-LDM-10: Tên file tệp đính kèm tự động đồng bộ theo lotCode (ma_hang.pdf)', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Truyền mã hàng hoặc lotCode vào parseAttachments để đồng bộ tên file
+    expect(modalCode).toMatch(/parseAttachments\([^,]+,\s*(?:item\.ma_hang|lotCode)/);
+  });
+
+  it('TC-LDM-11: Cửa sổ xem trước HoverCard nhúng trực tiếp iframe xem trước tài liệu văn bản với transformToPreviewUrl và nút Tải về / Mở tab mới', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Iframe nhúng preview trực tiếp nội dung văn bản
+    expect(modalCode).toMatch(/<iframe[^>]*src=\{transformToPreviewUrl/);
+    // Có nút hoặc link Tải về và Mở tab mới
+    expect(modalCode).toMatch(/Tải về|Download/);
+    expect(modalCode).toMatch(/Mở tab mới/);
+  });
 });
