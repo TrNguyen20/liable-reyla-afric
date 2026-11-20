@@ -503,11 +503,55 @@ export function DynamoShell({ children, bare = false }: { children: ReactNode; b
 
   const visibleNav = nav.filter((n) => canAccessRoute(effectiveRole, n.to));
 
-  const toggleTheme = () => {
+  const toggleTheme = (e?: React.MouseEvent | MouseEvent) => {
     const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-    window.localStorage.setItem("dynamo-theme", next);
+
+    // Fallback nếu trình duyệt không hỗ trợ View Transitions API hoặc người dùng bật Giảm chuyển động (Reduced Motion)
+    const doc = typeof document !== "undefined" ? (document as Document & { startViewTransition?: (cb: () => void | Promise<void>) => { ready: Promise<void> } }) : null;
+    if (
+      !doc ||
+      !doc.startViewTransition ||
+      (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)
+    ) {
+      setTheme(next);
+      document.documentElement.classList.toggle("dark", next === "dark");
+      window.localStorage.setItem("dynamo-theme", next);
+      return;
+    }
+
+    // Tọa độ tâm lan tỏa vòng tròn: vị trí click chuột hoặc mặc định nút theme trên Header
+    const x = e?.clientX ?? (typeof window !== "undefined" ? window.innerWidth - 120 : 0);
+    const y = e?.clientY ?? 24;
+
+    // Bán kính tối đa để vòng tròn bung phủ trọn vẹn 4 góc màn hình
+    const endRadius = Math.hypot(
+      Math.max(x, typeof window !== "undefined" ? window.innerWidth - x : 1920),
+      Math.max(y, typeof window !== "undefined" ? window.innerHeight - y : 1080)
+    );
+
+    const transition = doc.startViewTransition(() => {
+      setTheme(next);
+      document.documentElement.classList.toggle("dark", next === "dark");
+      window.localStorage.setItem("dynamo-theme", next);
+    });
+
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 320,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          pseudoElement: "::view-transition-new(root)",
+        }
+      );
+    }).catch(() => {
+      // Bỏ qua nếu transition bị ngắt hoặc bỏ qua
+    });
   };
 
   const logout = () => {
