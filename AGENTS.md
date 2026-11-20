@@ -90,6 +90,25 @@ Người dùng có thể yêu cầu chỉ định nhanh subagent thông qua ngô
 - `"Thử nghiệm refactor nhánh riêng..."` ➔ Tự động kích hoạt `self` (`branch`).
 <!-- SUBAGENT_PROTOCOL:END -->
 
+<!-- MES_I18N_INVARIANTS:BEGIN -->
+> [!IMPORTANT]
+> ### 🌐 DYNAMO MES TRILINGUAL i18n & TEST-PRESERVATION STANDARD
+> 1. **Ma trận 3 ngôn ngữ đối xứng (`vi` [Master/SSOT], `en`, `ja`)**:
+>    - Mọi khóa mới trong `src/i18n/locales/vi/<ns>.json` BẮT BUỘC phải xuất hiện đồng thời trong cả `en/<ns>.json` và `ja/<ns>.json` (khớp 100% số lượng leaf keys, 0 diffs, 0 chuỗi rỗng khi chạy `node scripts/verify_parity.cjs`).
+> 2. **Chống bẫy Regex Scanner trong Vitest (`TC-I18N-T4-05`)**:
+>    - Test suite quét hàm dịch bằng regex `t\(\s*['"]([a-zA-Z0-9_.-]+)['"]/g`.
+>    - **TUYỆT ĐỐI CẤM** nối chuỗi động có tiền tố trong hàm dịch: `t('tracking.columns.' + key)`. Hành vi này khiến regex scanner bắt nhầm `'tracking.columns.'` làm fail test.
+>    - Bắt buộc dùng Dictionary Mapping: `{COLUMN_LABEL_MAP[col.key] ? (t(COLUMN_LABEL_MAP[col.key]) || col.label) : col.label}`.
+> 3. **Bảo toàn Fallback gốc cho Domain Unit Tests**:
+>    - Luôn viết theo mẫu: `{t('namespace.key') || 'Chuỗi Tiếng Việt Gốc'}` để bảo toàn các kiểm thử tĩnh kiểm tra chuỗi giao diện (`expect(content).toContain(...)`).
+> 4. **Thuật ngữ nhà máy công nghiệp**:
+>    - Nhiệt luyện: `Heat Treatment` / `熱処理`
+>    - Giản đồ nhiệt: `Heat Cycle Diagram` / `熱処理サイクル図`
+>    - Nghiệm thu QC: `QC Inspection` / `QC受入検査`
+>    - Phiếu lệnh: `Job Ticket` / `加工指示書`
+>    - Bảng kê: `Dispatch Manifest` / `一括受渡目録`
+<!-- MES_I18N_INVARIANTS:END -->
+
 <!-- SUPERPOWERS:BEGIN -->
 > [!IMPORTANT]
 > ### ⚡ SUPERPOWERS ENGINEERING PROTOCOL

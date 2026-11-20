@@ -11,7 +11,7 @@
   "search": "Search...",
   "filter": "Filter",
   "all": "All",
-  "loading": "Loading data...",
+  "loading": "Loading…",
   "offlineAlert": "FACTORY NETWORK DISCONNECTED · RUNNING IN OFFLINE MODE (DATA SAVED LOCALLY)",
   "roles": {
     "admin": "Admin (Full access)",
@@ -45,7 +45,8 @@
     "lots": "lots",
     "items": "items",
     "hours": "hours",
-    "days": "days"
+    "days": "days",
+    "set": "set"
   },
   "meta": {
     "title": "DYNAMO VIETNAM QT - MES",
@@ -341,7 +342,34 @@
       "qcSign": "Sign & Receiving Date"
     },
     "slogan": "Shopfloor Motto: DISCIPLINE · PRECISION · SAFETY · ON-TIME",
-    "printedAt": "Printed at: {timestamp}"
+    "printedAt": "Printed at: {timestamp}",
+    "navPrev": "Prev Lot",
+    "navNext": "Next Lot",
+    "navLot": "Lot",
+    "navPrevTooltip": "View previous lot (Shortcut: ←)",
+    "navNextTooltip": "View next lot (Shortcut: →)",
+    "copiesLabel": "Copies:",
+    "copy1": "1 copy",
+    "copy2Std": "2 copies (Std)",
+    "copy3": "3 copies",
+    "copy1Tooltip": "Print 1 copy only",
+    "copy2Tooltip": "Print 2 copies (1 travels with goods, 1 archived for reconciliation)",
+    "copy3Tooltip": "Print 3 copies (Vendor, Gate security, Workshop archive)",
+    "quickMemoLabel": "Quick Memo:",
+    "quickMemoPlaceholder": "e.g. Urgent morning delivery, 3-point HRC inspection, bubble wrap...",
+    "keepMemoForNext": "Keep for next lot",
+    "pageA4Standard": "Page 1/1 (Standard A4)",
+    "zoomFitLaptop": "Fit Screen",
+    "zoomFitTooltip": "Fit to laptop screen height",
+    "zoom100Print": "100% (Print)",
+    "palletStandard": "Standard Pallet Tag: 100 × 150 mm (1:1.5 ratio)",
+    "ratioA4": "Ratio: ISO 216 (1:1.414)",
+    "ratioPallet": "Ratio: 100×150mm (1:1.5)",
+    "keyPrefix": "Keys:",
+    "keyIn": "Print",
+    "keySwitchLot": "Switch lot",
+    "keyCopy": "Copy",
+    "keyClose": "Close"
   },
   "pallet": {
     "title": "DYNAMO VIETNAM · PALLET TAG",
@@ -376,9 +404,9 @@
   "lastMonth": "Last month",
   "selected": "Selected",
   "pagination": {
-    "prev": "Previous",
-    "page": "Page",
-    "next": "Next"
+    "prev": "Previous page",
+    "page": "Enter page",
+    "next": "Next page"
   },
   "jobTicket": {
     "sec1": {
@@ -387,8 +415,10 @@
       "totalPrice": "Estimated Total"
     }
   },
-  "loading": "Loading…",
   "loading.permissions": "Loading authorization data…",
   "loading.failedTitle": "Failed to load production data",
-  "loading.syncing": "Syncing heat treatment data from Google Sheets…"
+  "loading.syncing": "Syncing heat treatment data from Google Sheets…",
+  "addFile": "+ File",
+  "unauthorizedUpload": "Unauthorized to upload files",
+  "clickToCopy": "Click to copy"
 }

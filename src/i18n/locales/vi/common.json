@@ -11,7 +11,7 @@
   "search": "Tìm kiếm...",
   "filter": "Lọc",
   "all": "Tất cả",
-  "loading": "Đang tải dữ liệu...",
+  "loading": "Đang tải…",
   "offlineAlert": "MẤT KẾT NỐI MẠNG NHÀ MÁY · ĐANG HOẠT ĐỘNG Ở CHẾ ĐỘ NGOẠI TUYẾN (DỮ LIỆU ĐƯỢC LƯU CỤC BỘ)",
   "roles": {
     "admin": "Admin (Toàn quyền)",
@@ -45,7 +45,8 @@
     "lots": "lô",
     "items": "chi tiết",
     "hours": "giờ",
-    "days": "ngày"
+    "days": "ngày",
+    "set": "bộ"
   },
   "meta": {
     "title": "DYNAMO VIETNAM QT - MES",
@@ -341,7 +342,34 @@
       "qcSign": "Ký & ngày nhập kho"
     },
     "slogan": "Phương châm xưởng: KỶ LUẬT · CHÍNH XÁC · AN TOÀN · ĐÚNG HẠN",
-    "printedAt": "In lúc: {timestamp}"
+    "printedAt": "In lúc: {timestamp}",
+    "navPrev": "Lô trước",
+    "navNext": "Lô sau",
+    "navLot": "Lô",
+    "navPrevTooltip": "Xem lô trước (Phím tắt: ←)",
+    "navNextTooltip": "Xem lô sau (Phím tắt: →)",
+    "copiesLabel": "Số liên:",
+    "copy1": "1 liên",
+    "copy2Std": "2 liên (Chuẩn)",
+    "copy3": "3 liên",
+    "copy1Tooltip": "In 1 bản duy nhất",
+    "copy2Tooltip": "In 2 bản (1 bản theo hàng sang đơn vị gia công, 1 bản lưu tại xưởng đối soát)",
+    "copy3Tooltip": "In 3 bản (Gia công, Bảo vệ, Hồ sơ xưởng)",
+    "quickMemoLabel": "Ghi chú nhanh:",
+    "quickMemoPlaceholder": "VD: Giao gấp ca sáng, đo kiểm HRC 3 điểm, bọc màng xốp khí...",
+    "keepMemoForNext": "Giữ cho lô sau",
+    "pageA4Standard": "Trang 1/1 (Chuẩn khổ A4)",
+    "zoomFitLaptop": "Fit màn hình",
+    "zoomFitTooltip": "Vừa khít chiều cao màn hình laptop",
+    "zoom100Print": "100% (Chuẩn in)",
+    "palletStandard": "Khổ tem Pallet tiêu chuẩn: 100 × 150 mm (Tỷ lệ 1:1.5)",
+    "ratioA4": "Tỷ lệ: ISO 216 (1:1.414)",
+    "ratioPallet": "Tỷ lệ: 100×150mm (1:1.5)",
+    "keyPrefix": "Phím:",
+    "keyIn": "In",
+    "keySwitchLot": "Đổi lô",
+    "keyCopy": "Copy",
+    "keyClose": "Đóng"
   },
   "pallet": {
     "title": "DYNAMO VIỆT NAM · TEM PALLET",
@@ -377,7 +405,7 @@
   "selected": "Đang chọn",
   "pagination": {
     "prev": "Trang trước",
-    "page": "Trang",
+    "page": "Nhập số trang",
     "next": "Trang sau"
   },
   "jobTicket": {
@@ -387,8 +415,10 @@
       "totalPrice": "Thành tiền dự kiến"
     }
   },
-  "loading": "Đang tải…",
   "loading.permissions": "Đang tải dữ liệu phân quyền…",
   "loading.failedTitle": "Chưa tải được dữ liệu sản xuất",
-  "loading.syncing": "Đang đồng bộ dữ liệu nhiệt luyện từ Google Sheets…"
+  "loading.syncing": "Đang đồng bộ dữ liệu nhiệt luyện từ Google Sheets…",
+  "addFile": "+ Tệp",
+  "unauthorizedUpload": "Chưa được phân quyền tải lên",
+  "clickToCopy": "Nhấp để sao chép"
 }

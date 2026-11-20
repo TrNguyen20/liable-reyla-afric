@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { useTranslation } from '@/i18n';
 import type { QTItem } from '@/lib/dynamo-data';
 import type { ColumnKey } from '@/routes/tracking';
 import { CountryCellBadge } from '@/components/common/vietnam-flag';
@@ -44,6 +45,7 @@ export const TrackingTableRow = memo(function TrackingTableRow({
   saveInlineEdit,
   handleCellKeyDown,
 }: TrackingTableRowProps) {
+  const { t } = useTranslation();
   const padY = 'py-1';
   const isEditingRow = editingCellId === r.ID_Key;
 
@@ -159,7 +161,7 @@ export const TrackingTableRow = memo(function TrackingTableRow({
         <td
           className={`whitespace-nowrap px-2 ${padY} font-mono text-muted-foreground truncate cursor-pointer hover:text-foreground hover:underline`}
           style={{ maxWidth: `${colWidths.id_ma_hang}px` }}
-          title={r.id_ma_hang ? `Mã bản vẽ: ${r.id_ma_hang} (Nhấp để sao chép)` : undefined}
+          title={r.id_ma_hang ? `${t('tracking.lotDetail.blankDrawingCode') || 'Mã bản vẽ'}: ${r.id_ma_hang} (${t('common.clickToCopy') || 'Nhấp để sao chép'})` : undefined}
           onClick={() => {
             if (r.id_ma_hang) {
               navigator.clipboard.writeText(r.id_ma_hang);

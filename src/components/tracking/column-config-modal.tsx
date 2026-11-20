@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/i18n';
 import { Search, X, RotateCcw, Check, Pin, SlidersHorizontal, Eye, EyeOff, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -68,6 +69,54 @@ export const ALL_COLUMN_DEFINITIONS: ColumnDefinition[] = [
   { key: 'ticket', label: 'Phiếu A4', group: 'DOCS', groupLabel: '📎 Hồ sơ & Phiếu A4', isPermanent: true, isPinned: true },
 ];
 
+export const GROUP_LABEL_MAP: Record<string, string> = {
+  IDENT: 'tracking.columnConfig.groups.ident',
+  TECH: 'tracking.columnConfig.groups.tech',
+  COMM: 'tracking.columnConfig.groups.comm',
+  VENDOR: 'tracking.columnConfig.groups.vendor',
+  DOCS: 'tracking.columnConfig.groups.docs',
+};
+
+export const COLUMN_LABEL_MAP: Record<string, string> = {
+  checkbox: 'tracking.columns.checkbox',
+  ma_hang: 'tracking.columns.itemCode',
+  ngay_tao: 'tracking.columns.createdDate',
+  nguoi_tao: 'tracking.columns.createdBy',
+  quoc_gia: 'tracking.columns.country',
+  phong_sx: 'tracking.columns.workshop',
+  doi_tuong_hang: 'tracking.columns.targetItem',
+  id_ma_hang: 'tracking.columns.drawingCode',
+  so_luong: 'tracking.columns.quantity',
+  vat_lieu: 'tracking.columns.material',
+  do_cung: 'tracking.columns.hardness',
+  kich_thuoc_sp: 'tracking.columns.productDimension',
+  kg_lot: 'tracking.columns.weight',
+  don_vi_tinh: 'tracking.columns.uom',
+  so_luong_tinh: 'tracking.columns.calcQuantity',
+  don_gia: 'tracking.columns.unitPrice',
+  thanh_tien: 'tracking.columns.totalAmount',
+  ty_gia: 'tracking.columns.exchangeRate',
+  ngay_gui_qt: 'tracking.columns.sentDate',
+  cty_qt: 'tracking.columns.partner',
+  trang_thai: 'tracking.columns.sheetStatus',
+  so_dat_hang: 'tracking.columns.orderNo',
+  ten_file_dat_hang: 'tracking.columns.orderPdf',
+  ghi_chu_khi_gui: 'tracking.columns.dispatchNotes',
+  ncc_ngay_qt: 'tracking.columns.vendorOvenDate',
+  ncc_ngay_tra_qt: 'tracking.columns.vendorDueDate',
+  ncc_id_lot_qt: 'tracking.columns.vendorLotId',
+  ncc_name_qt: 'tracking.columns.vendorTech',
+  ncc_giando: 'tracking.columns.vendorHeatDiagram',
+  ncc_ket_qua_hrc: 'tracking.columns.vendorHrcMeasured',
+  ncc_ket_qua_qc: 'tracking.columns.vendorQcVerdict',
+  ncc_don_gia: 'tracking.columns.vendorQuotedPrice',
+  ncc_tatus: 'tracking.columns.vendorStatus',
+  ncc_thongtinkhac1: 'tracking.columns.vendorExtra1',
+  ncc_thongtinkhac2: 'tracking.columns.vendorExtra2',
+  ncc_file1: 'tracking.columns.vendorQcCert',
+  ticket: 'tracking.columns.ticket',
+};
+
 export const STORAGE_CUSTOM_COLUMNS_KEY = 'dynamo_tracking_custom_columns';
 
 export interface ColumnConfigModalProps {
@@ -85,6 +134,7 @@ export function ColumnConfigModal({
   onApply,
   onReset,
 }: ColumnConfigModalProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set(visibleCols));
 
@@ -211,22 +261,22 @@ export function ColumnConfigModal({
             </div>
             <div>
               <DialogTitle className="text-sm font-bold tracking-tight text-slate-900 dark:text-foreground uppercase">
-                Tùy Chỉnh Ẩn / Hiện & Ghim Cột
+                {t('tracking.columnConfig.title') || 'Tùy Chỉnh Ẩn / Hiện & Ghim Cột'}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 dark:text-muted-foreground mt-0.5">
-                Cấu hình hiển thị theo nhu cầu điều độ xưởng (Lưu tự động vào trình duyệt)
+                {t('tracking.columnConfig.description') || 'Cấu hình hiển thị theo nhu cầu điều độ xưởng (Lưu tự động vào trình duyệt)'}
               </DialogDescription>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[11px] tabular-nums font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-muted border border-slate-200 dark:border-border text-slate-700 dark:text-foreground">
-              {selectedKeys.size}/{ALL_COLUMN_DEFINITIONS.length} cột
+              {t('tracking.columnConfig.columnCount', { selected: selectedKeys.size, total: ALL_COLUMN_DEFINITIONS.length }) || `${selectedKeys.size}/${ALL_COLUMN_DEFINITIONS.length} cột`}
             </span>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
               className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-muted flex items-center justify-center text-base transition cursor-pointer"
-              title="Đóng"
+              title={t('common.close') || 'Đóng'}
             >
               ✕
             </button>
@@ -241,7 +291,7 @@ export function ColumnConfigModal({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm kiếm cột (mã hàng, vật liệu, po, ncc...)..."
+              placeholder={t('tracking.columnConfig.searchPlaceholder') || 'Tìm kiếm cột (mã hàng, vật liệu, po, ncc...)...'}
               className="h-8.5 w-full rounded-lg border border-slate-200 dark:border-input bg-white dark:bg-card pl-8.5 pr-8 text-xs font-mono text-foreground placeholder:text-slate-400 shadow-2xs focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition"
             />
             {search && (
@@ -262,7 +312,7 @@ export function ColumnConfigModal({
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card px-3 h-8.5 text-[11px] font-medium text-slate-700 dark:text-foreground hover:bg-slate-100 dark:hover:bg-secondary cursor-pointer shadow-2xs transition"
             >
               <Eye size={12} className="text-primary" />
-              <span>Hiện tất cả</span>
+              <span>{t('tracking.columnConfig.showAll') || 'Hiện tất cả'}</span>
             </button>
             <button
               type="button"
@@ -270,7 +320,7 @@ export function ColumnConfigModal({
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card px-3 h-8.5 text-[11px] font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-secondary cursor-pointer shadow-2xs transition"
             >
               <EyeOff size={12} />
-              <span>Chỉ cột ghim</span>
+              <span>{t('tracking.columnConfig.onlyPinned') || 'Chỉ cột ghim'}</span>
             </button>
             <button
               type="button"
@@ -278,7 +328,7 @@ export function ColumnConfigModal({
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-border bg-white dark:bg-card px-2.5 h-8.5 text-[11px] font-medium text-slate-500 hover:text-destructive hover:bg-slate-100 cursor-pointer transition shadow-2xs"
             >
               <RotateCcw size={11} />
-              <span>Khôi phục mặc định</span>
+              <span>{t('tracking.columnConfig.resetDefault') || 'Khôi phục mặc định'}</span>
             </button>
           </div>
         </div>
@@ -303,7 +353,7 @@ export function ColumnConfigModal({
                   <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-border/50">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="font-mono font-bold text-xs uppercase tracking-tight text-slate-800 dark:text-foreground truncate">
-                        {group.label}
+                        {GROUP_LABEL_MAP[group.key] ? (t(GROUP_LABEL_MAP[group.key]) || group.label) : group.label}
                       </span>
                       <span className="font-mono text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-muted text-slate-600 dark:text-muted-foreground border border-slate-200/60 dark:border-transparent shrink-0">
                         {activeCount}/{colsInGroup.length}
@@ -315,9 +365,9 @@ export function ColumnConfigModal({
                         type="button"
                         onClick={() => toggleGroup(group.key)}
                         className="text-[10px] font-mono font-medium text-slate-500 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-secondary px-1.5 py-0.5 rounded cursor-pointer transition shrink-0"
-                        title={allOptionalSelected ? "Bỏ chọn tất cả cột tùy chọn trong nhóm" : "Chọn tất cả cột trong nhóm"}
+                        title={allOptionalSelected ? (t('tracking.columnConfig.deselectAllTooltip') || 'Bỏ chọn tất cả cột tùy chọn trong nhóm') : (t('tracking.columnConfig.selectAllTooltip') || 'Chọn tất cả cột trong nhóm')}
                       >
-                        {allOptionalSelected ? 'Bỏ chọn' : 'Chọn hết'}
+                        {allOptionalSelected ? (t('tracking.columnConfig.deselectAll') || 'Bỏ chọn') : (t('tracking.columnConfig.selectAll') || 'Chọn hết')}
                       </button>
                     )}
                   </div>
@@ -345,25 +395,25 @@ export function ColumnConfigModal({
                               onChange={() => toggleCol(col.key)}
                               className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 accent-slate-900 cursor-pointer disabled:opacity-50"
                             />
-                            <span className="truncate text-[11px]">{col.label}</span>
+                            <span className="truncate text-[11px]">{COLUMN_LABEL_MAP[col.key] ? (t(COLUMN_LABEL_MAP[col.key]) || col.label) : col.label}</span>
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0 ml-1">
                             {isLocked ? (
                               <span
-                                title="Cột bắt buộc hiển thị của hệ thống"
+                                title={t('tracking.columnConfig.lockedTooltip') || 'Cột bắt buộc hiển thị của hệ thống'}
                                 className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50"
                               >
                                 <Lock size={8} />
-                                <span>Khóa</span>
+                                <span>{t('tracking.columnConfig.locked') || 'Khóa'}</span>
                               </span>
                             ) : col.isPinned ? (
                               <span
-                                title="Cột được ghim cố định"
+                                title={t('tracking.columnConfig.pinnedTooltip') || 'Cột được ghim cố định'}
                                 className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold bg-slate-100 dark:bg-muted text-slate-600 dark:text-muted-foreground border border-slate-200 dark:border-transparent"
                               >
                                 <Pin size={8} className="fill-current" />
-                                <span>Ghim</span>
+                                <span>{t('tracking.columnConfig.pinned') || 'Ghim'}</span>
                               </span>
                             ) : null}
                           </div>
@@ -380,23 +430,21 @@ export function ColumnConfigModal({
         {/* Footer Actions */}
         <div className="flex flex-wrap items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-secondary/30 gap-2 shrink-0">
           <div className="text-xs font-mono text-slate-500 dark:text-muted-foreground flex items-center gap-1.5">
-            <span>💾 Lưu tự động vào trình duyệt</span>
+            <span>{t('tracking.columnConfig.autoSaveNotice') || '💾 Lưu tự động vào trình duyệt'}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
               className="px-4 py-1.5 rounded-lg border border-slate-300 dark:border-border bg-white dark:bg-card hover:bg-slate-100 dark:hover:bg-secondary text-slate-700 dark:text-foreground text-xs font-medium cursor-pointer shadow-2xs transition"
-            >
-              Hủy
-            </button>
+            >{t('common.cancel') || 'Hủy'}</button>
             <button
               type="button"
               onClick={handleSaveAndApply}
               className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 shadow-sm active:scale-98 transition"
             >
               <Check size={13} />
-              <span>Áp dụng cấu hình</span>
+              <span>{t('tracking.columnConfig.apply') || 'Áp dụng cấu hình'}</span>
             </button>
           </div>
         </div>

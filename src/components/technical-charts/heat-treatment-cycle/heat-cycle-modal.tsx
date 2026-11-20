@@ -8,6 +8,7 @@ import {
 } from './heat-cycle-types';
 import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
+import { useTranslation } from '@/i18n';
 
 export interface HeatCyclePreset {
   id: string;
@@ -61,6 +62,14 @@ export const HEAT_CYCLE_PRESETS: HeatCyclePreset[] = [
   },
 ];
 
+const PRESET_LABEL_KEYS: Record<string, string> = {
+  'dac-std': 'tracking.heatCycleModal.presets.dacStd',
+  'dac-tough': 'tracking.heatCycleModal.presets.dacTough',
+  'dac-hard': 'tracking.heatCycleModal.presets.dacHard',
+  'dha-world': 'tracking.heatCycleModal.presets.dhaWorld',
+  'skd61-soft': 'tracking.heatCycleModal.presets.skd61Soft',
+};
+
 export interface HeatCycleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -84,6 +93,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
   onSave,
   canEdit = true,
 }) => {
+  const { t } = useTranslation();
   const [steps, setSteps] = useState<HeatStepParam[]>(() => {
     return parseHeatCycleShorthand(value);
   });
@@ -134,14 +144,15 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
   const handleApplyPreset = (preset: HeatCyclePreset) => {
     setSteps(parseHeatCycleShorthand(preset.shorthand));
     playAudioCue('success');
-    toast.success(`Đã nạp công thức: ${preset.name}`);
+    const presetLabel = PRESET_LABEL_KEYS[preset.id] ? (t(PRESET_LABEL_KEYS[preset.id]) || preset.name) : preset.name;
+    toast.success(t('tracking.heatCycleModal.toastApplied', { name: presetLabel }) || `Đã nạp công thức: ${preset.name}`);
   };
 
   const handleSave = () => {
     const formatted = formatHeatCycleShorthand(steps);
     onSave(formatted);
     playAudioCue('success');
-    toast.success('Đã lưu biểu đồ chu trình nhiệt luyện');
+    toast.success(t('tracking.heatCycleModal.toastSaved') || 'Đã lưu biểu đồ chu trình nhiệt luyện');
     onClose();
   };
 
@@ -166,11 +177,11 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
             <div className="flex items-center gap-2">
               <Flame size={18} className="text-amber-600" />
               <h3 className="font-bold text-base text-slate-900 tracking-tight">
-                GIÃN ĐỒ NHIỆT (CHU TRÌNH NHIỆT LUYỆN)
+                {t('tracking.heatCycleModal.title') || 'GIÃN ĐỒ NHIỆT (CHU TRÌNH NHIỆT LUYỆN)'}
               </h3>
               {!canEdit && (
                 <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold font-mono border border-slate-200">
-                  CHỈ XEM
+                  {t('tracking.heatCycleModal.readOnlyBadge') || 'CHỈ XEM'}
                 </span>
               )}
               {workshop && (
@@ -185,10 +196,10 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
               )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5 font-mono">
-              Lô: <strong className="text-slate-900">{lotCode}</strong>
+              {t('tracking.heatCycleModal.lotPrefix') || 'Lô:'} <strong className="text-slate-900">{lotCode}</strong>
               {requiredHardness && (
                 <span className="ml-2 text-slate-600 font-sans">
-                  | Yêu cầu độ cứng: <strong className="text-slate-900">{requiredHardness} HRC</strong>
+                  | {t('tracking.heatCycleModal.hardnessPrefix') || 'Yêu cầu độ cứng:'} <strong className="text-slate-900">{requiredHardness} HRC</strong>
                 </span>
               )}
             </p>
@@ -212,7 +223,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs animate-in fade-in">
               <AlertCircle size={15} className="text-amber-600 shrink-0" />
               <span>
-                <strong>Chưa có thông số chu trình nhiệt luyện</strong> cho lô này.{canEdit ? ' Vui lòng nhập trực tiếp vào 4 ô bên dưới hoặc nhấp một công thức mẫu để nạp nhanh.' : ''}
+                <strong>{t('tracking.heatCycleModal.noParamsAlert') || 'Chưa có thông số chu trình nhiệt luyện'}</strong> {t('tracking.heatCycleModal.noParamsForLot') || 'cho lô này.'}{canEdit ? ` ${t('tracking.heatCycleModal.noParamsInstruction') || 'Vui lòng nhập trực tiếp vào 4 ô bên dưới hoặc nhấp một công thức mẫu để nạp nhanh.'}` : ''}
               </span>
             </div>
           )}
@@ -223,11 +234,11 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-slate-900 animate-pulse" />
                 <span className="text-xs font-black uppercase tracking-wider text-slate-900 font-mono">
-                  BIỂU ĐỒ LIVE PREVIEW (ĐỘ CAO CO GIÃN ĐỘNG)
+                  {t('tracking.heatCycleModal.livePreviewTitle') || 'BIỂU ĐỒ LIVE PREVIEW (ĐỘ CAO CO GIÃN ĐỘNG)'}
                 </span>
               </div>
               <span className="text-[11px] text-slate-500 font-medium">
-                Tự động co giãn theo nhiệt độ (°C) và thời gian (H)
+                {t('tracking.heatCycleModal.livePreviewSubtitle') || 'Tự động co giãn theo nhiệt độ (°C) và thời gian (H)'}
               </span>
             </div>
             <div className="flex justify-center bg-white p-2.5 rounded-lg border border-slate-200 overflow-x-auto">
@@ -238,9 +249,9 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
           {/* 2. BỐ CỤC TINH GỌN: 4 Ô CÔNG ĐOẠN NHIỆT LUYỆN */}
           <div className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-700">
-              <span>THÔNG SỐ CÔNG ĐOẠN NHIỆT LUYỆN</span>
+              <span>{t('tracking.heatCycleModal.processSectionTitle') || 'THÔNG SỐ CÔNG ĐOẠN NHIỆT LUYỆN'}</span>
               <span className="text-[10px] text-slate-400 font-normal normal-case">
-                {canEdit ? 'Mặc định không yêu cầu nhập trước. Nhập số để kích hoạt từng công đoạn.' : 'Chế độ chỉ xem - Bấm Chỉnh sửa từ cửa sổ chi tiết để hiệu chỉnh.'}
+                {canEdit ? (t('tracking.heatCycleModal.processSectionSubtitle') || 'Mặc định không yêu cầu nhập trước. Nhập số để kích hoạt từng công đoạn.') : (t('tracking.heatCycleModal.readOnlyNotice') || 'Chế độ chỉ xem - Bấm Chỉnh sửa từ cửa sổ chi tiết để hiệu chỉnh.')}
               </span>
             </div>
 
@@ -255,17 +266,17 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[11.5px] font-bold font-mono text-slate-900">
-                        [{stg.stage}] {stg.stage === 'Q' ? 'Tôi' : 'Ram'}
+                        [{stg.stage}] {stg.stage === 'Q' ? (t('tracking.heatCycleModal.stageQuench') || 'Tôi') : (t('tracking.heatCycleModal.stageTemper') || 'Ram')}
                       </span>
                       {stg.stage === 'T3' && (
-                        <span className="text-[9px] text-slate-400 italic">Tùy chọn</span>
+                        <span className="text-[9px] text-slate-400 italic">{t('tracking.heatCycleModal.stageOptional') || 'Tùy chọn'}</span>
                       )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-1.5">
                       <div>
                         <label className="text-[9.5px] font-medium text-slate-500 block truncate">
-                          Nhiệt độ (°C)
+                          {t('tracking.heatCycleModal.tempLabel') || 'Nhiệt độ (°C)'}
                         </label>
                         <input
                           type="number"
@@ -278,7 +289,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                       </div>
                       <div>
                         <label className="text-[9.5px] font-medium text-slate-500 block truncate">
-                          Thời gian (H)
+                          {t('tracking.heatCycleModal.timeLabel') || 'Thời gian (H)'}
                         </label>
                         <input
                           type="number"
@@ -302,7 +313,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-600">
                 <Sparkles size={12} className="text-amber-500" />
-                <span>NẠP NHANH CÔNG THỨC MẪU (QUICK PRESETS)</span>
+                <span>{t('tracking.heatCycleModal.quickPresetsTitle') || 'NẠP NHANH CÔNG THỨC MẪU (QUICK PRESETS)'}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-1.5">
                 {HEAT_CYCLE_PRESETS.map((preset) => (
@@ -314,7 +325,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                     title={`${preset.name}: ${preset.shorthand}`}
                   >
                     <p className="text-[10.5px] font-bold text-slate-900 truncate group-hover:text-primary">
-                      {preset.name}
+                      {PRESET_LABEL_KEYS[preset.id] ? (t(PRESET_LABEL_KEYS[preset.id]) || preset.name) : preset.name}
                     </p>
                     <p className="text-[9.5px] text-slate-500 font-mono truncate mt-0.5">
                       {preset.hardness}
@@ -329,7 +340,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
         {/* Footer */}
         <div className="border-t border-slate-200 pt-3 flex items-center justify-between gap-2 shrink-0">
           <p className="text-[11px] text-slate-500 font-mono truncate max-w-[540px]">
-            Chuỗi kỹ thuật: <strong className="text-slate-800">{formatHeatCycleShorthand(steps) || 'Chưa khởi tạo'}</strong>
+            {t('tracking.heatCycleModal.technicalShorthand') || 'Chuỗi kỹ thuật:'} <strong className="text-slate-800">{formatHeatCycleShorthand(steps) || (t('tracking.heatCycleModal.uninitialized') || 'Chưa khởi tạo')}</strong>
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -340,7 +351,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
               }}
               className="px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition cursor-pointer"
             >
-              Đóng
+              {t('common.close') || 'Đóng'}
             </button>
             {canEdit && (
               <button
@@ -349,7 +360,7 @@ export const HeatCycleModal: React.FC<HeatCycleModalProps> = ({
                 className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer"
               >
                 <Check size={14} />
-                <span>Lưu thay đổi</span>
+                <span>{t('common.save') || 'Lưu thay đổi'}</span>
               </button>
             )}
           </div>
