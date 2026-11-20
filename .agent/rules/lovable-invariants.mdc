@@ -155,7 +155,19 @@ Mọi component Dashboard, Orders, Tracking, Job Ticket đều phải tuân th�
 
 ---
 
-## 10. CHỈ THỊ DÀNH CHO CÁC AGENT & AI SKILLS
+## 11. BENTO GRID MODAL & KIẾN TRÚC XẾP CHỒNG CỬA SỔ (BACK-BY-BACK STACK)
+Mọi cửa sổ chi tiết (ví dụ: `LotDetailModal`) và các hộp thoại con lồng nhau phải tuân thủ:
+1. **Back-by-Back Sub-modal Guard**:
+   - Khi một sub-modal (như Lightbox xem ảnh/file hoặc Modal đồ họa nhiệt luyện) mở ra trên nền modal cha, các hành động đóng (nhấn phím Escape, click backdrop bên ngoài, click nút Close) CHỈ ĐƯỢC PHÉP đóng sub-modal con đó.
+   - TUYỆT ĐỐI KHÔNG để sự kiện đóng lọt ra ngoài làm tắt cả modal cha đưa người dùng văng về bảng tracking.
+2. **Cô lập Chế độ Xem (100% Read-Only) và Chế độ Sửa (Edit Mode)**:
+   - Ở chế độ xem mặc định, toàn bộ dữ liệu chỉ xem; rê chuột xem popover preview, click chỉ mở zoom/lightbox.
+   - Chỉ mở các tính năng chỉnh sửa sau khi người dùng chủ động nhấn nút "Chỉnh sửa".
+   - Khi chuyển sang edit mode và mở công cụ đồ họa, bắt buộc nạp sẵn thông số hiện tại (`form.ncc_giando || item.ncc_giando`), không được để trống hoặc hiển thị "Chưa khởi tạo".
+
+---
+
+## 12. CHỈ THỊ DÀNH CHO CÁC AGENT & AI SKILLS
 Khi thực hiện bất kỳ yêu cầu nào liên quan đến dự án này:
 1. **Pre-flight Check**: Trước khi tạo mới hoặc refactor mã nguồn, kiểm tra xem thay đổi có vi phạm:
    - SSR Hydration?

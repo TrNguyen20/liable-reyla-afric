@@ -1,10 +1,10 @@
 ---
 title: DYNAMO QT-MES Design System Specification
 standard: Graphite Wireframe UI
-version: 2.8.0
-last_updated: 2026-11-19
+version: 2.8.7
+last_updated: 2026-11-20
 status: Active (Single Source of Truth)
-tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.6, dips-print-v1.0]
+tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, navigation, tracking-grid-v2.6, dips-print-v1.0, lot-detail-bento-v2.8]
 ---
 
 # DYNAMO QT-MES DESIGN SYSTEM
@@ -16,6 +16,7 @@ tags: [design-system, graphite-wireframe, industrial-mes, tokens, primitives, na
 
 | Phiên bản | Ngày | Tác giả / Đội ngũ | Loại thay đổi | Nội dung tóm tắt |
 | :--- | :--- | :--- | :--- | :--- |
+| **v2.8.7** | 2026-11-20 | Dynamo MES Architecture Team | **BENTO GRID LOT DETAIL MODAL & NESTED MODALS STACK** | **Chuẩn hóa Cửa sổ Chi tiết Lô & Xếp chồng Cửa sổ nổi:**<br>• Tái cấu trúc Bento Grid 4 vùng thông tin 36 cột cân xứng hoàn hảo; đồng bộ CountryCellBadge cờ VN cho Quốc gia.<br>• Ban hành chuẩn Back-by-Back Stack cho Modal lồng Modal (Lightbox/HeatCycle over LotDetail): đóng sub-modal không làm tắt modal cha.<br>• Phân định nghiêm ngặt View Mode (100% Read-Only, hover popover, click zoom) và Edit Mode (Prefill đồ họa chu trình nhiệt, loại bỏ PENDING & Trạng thái luân chuyển). |
 | **v2.8.0** | 2026-11-19 | Dynamo MES Architecture Team | **DIPS v1.0 & ZERO-GAP FULL-HEIGHT GRID** | **Chuẩn hóa In ấn Công nghiệp & Bố cục Bảng biểu Kịch đáy:**<br>• Ban hành chuẩn DIPS v1.0: Phân tách rõ A4 Dọc (Phiếu lẻ/30 lô: 1 lô = 1 trang) và A4 Ngang (Bảng kê tổng hợp 12 cột).<br>• Tích hợp DOM Sanitizer tháo bỏ container overflow/flex chống lỗi Chromium dồn 30 trang thành 1 sheet.<br>• Triệt tiêu khoảng trắng thừa đáy trang: Cấm dùng `maxHeight` cứng trên Data Grid, chuẩn hóa `flex-1 min-h-0 overflow-auto` kết hợp Pagination bar `shrink-0` bám sát đáy. |
 | **v2.7.0** | 2026-11-17 | Dynamo MES Architecture Team | **MODAL WINDOW FLOATING SPECIFICATION** | **Chuẩn hóa đồng bộ hệ thống Floating Pop-up Window toàn dự án:**<br>• Phân định kiến trúc rõ rệt giữa Phần tử Tĩnh trên trang (Grid, Table cell, Toolbar, Badge, Input dùng chuẩn 2px `rounded-xs`) và Cửa sổ Nổi Độc Lập (Floating Pop-up Windows/Dialogs).<br>• Mọi cửa sổ pop-up (Modal/Dialog/Window) xuất hiện trên màn hình (Tùy chỉnh cột, In/Tải phiếu gia công A4, Quản lý file đính kèm/Upload, Thao tác hàng loạt, Chỉnh sửa thông số lô, Xem trước Lightbox...) bắt buộc tuân theo chuẩn: `rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-2xl`.<br>• Header và Footer của window sử dụng bo góc viền phân cấp (`rounded-lg`, `rounded-full` badge đếm số lượng), mang lại trải nghiệm hiện đại, tương phản cao, chống lóa trên màn hình máy tính xưởng. |
 | **v2.6.1** | 2026-11-17 | Dynamo MES Architecture Team | **TOOLBAR 2-TIER & COLUMN CUSTOMIZATION OVERHAUL** | **Tối ưu UI/UX bảng điều độ Tracking 37 cột v2.6.1:**<br>• Tái cấu trúc Toolbar 2 tầng tinh gọn (2-Tier Industrial Bar) chống đè chữ trên màn hình 1366px; ô Search có `pr-9 truncate` và phím tắt `/` `pointer-events-none`.<br>• Mở rộng độ rộng cột ghim Phiếu A4 lên 64px (`w-[64px]`), căn giữa và đổ bóng ngăn cách trái `shadow-[-6px_0_12px_-4px]`; đổ bóng phải cho cột Mã hàng.<br>• Bổ sung Tooltip toàn văn + Click Copy nhanh cho mã bản vẽ và quy cách kích thước.<br>• Tính năng Double-click vạch chia cột để Auto-fit kích thước như Excel.<br>• Phân cấp độ tương phản dòng: Zebra striping rõ nét; dòng được chọn có viền trái `border-l-2 border-l-primary` kết hợp hover phân cấp.<br>• Tích hợp Popover Distinct cho Vật liệu, Đối tác, bộ lọc Độ cứng và chuẩn hóa badge mác thép.<br>• Đệm đáy động `pb-24` khi chọn dòng chống che khuất dòng thứ 30 bởi Floating Bulk Bar.<br>• Tích hợp Modal Tùy chỉnh ẩn/hiện & Ghim cột (`ColumnConfigModal`), tự động lưu LocalStorage với tab `⭐ Tùy chỉnh`.<br>• Chuẩn hóa nhãn phân trang Footer thành `Hiển thị: 30 dòng`. |

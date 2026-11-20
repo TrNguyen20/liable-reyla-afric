@@ -39,6 +39,11 @@
 > 9. **Zero-Gap Full-Height Data Grid Architecture (v2.8.0)**:
 >    - **Triệt tiêu khoảng trắng lãng phí ở đáy**: Nghiêm cấm dùng `maxHeight: calc(100vh - Xpx)` bên trong container flex cha đã có `flex-1 flex flex-col`.
 >    - **Chuẩn co giãn kịch đáy**: Thẻ container bảng dữ liệu bắt buộc dùng `className="flex-1 min-h-0 overflow-auto relative"` kết hợp thanh phân trang Pagination bar mang class `shrink-0` để bảng dữ liệu tự động lấp đầy 100% chiều cao màn hình, thanh phân trang luôn tự động bám sát mép viền đáy dưới cùng.
+> 10. **Bento Grid Lot Detail Modal & Nested Modals Stack (v2.8.7)**:
+>    - **Kiến trúc Back-by-Back Stack**: Khi mở sub-modal (Lightbox phóng to ảnh/file đính kèm, Modal đồ họa giản đồ nhiệt) đè lên floating window, thao tác đóng (Escape/Backdrop click/Nút X) bắt buộc chỉ đóng sub-modal trên cùng, tuyệt đối không được đóng văng modal cha về bảng tracking.
+>    - **Phân tách Chế độ Xem (100% Read-Only) và Sửa**: Ở chế độ xem mặc định, rê chuột chỉ hiển thị hover popover preview, click chỉ mở phóng to xem trước; nghiêm cấm kích hoạt form chỉnh sửa khi chưa bấm nút "Chỉnh sửa".
+>    - **Nạp trước thông số đồ họa**: Mở "Sửa với đồ họa" bắt buộc nạp sẵn dữ liệu chu kỳ nhiệt từ `form.ncc_giando || item.ncc_giando` vào editor, không để trống hay "Chưa khởi tạo".
+>    - **Đồng bộ hóa & Cân xứng 36 cột**: Trường Quốc gia dùng `CountryCellBadge` (cờ VN + text VN); Vùng 1 hàng 3 chia 3 cột cân xứng Vùng 2 hàng 3; loại bỏ hoàn toàn trường *Trạng thái luân chuyển* lỗi thời; *NCC Nghiệm thu QC* chỉ gồm PASS/FAIL/Chưa nghiệm thu (bỏ PENDING); *Tiến độ NCC* đồng bộ 4 trạng thái WAIT/HEAT/TRANSIT/DONE.
 <!-- MES_DESIGN_SYSTEM:END -->
 
 <!-- SUBAGENT_PROTOCOL:BEGIN -->

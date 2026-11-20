@@ -203,11 +203,14 @@ describe('Attachment Field & Date Cell Suite (TDD)', () => {
     });
 
     it('integrates DateCell into Column 18 (ngay_gui_QT), 20 (han_tra), 24 (ncc_ngay_qt), 25 (ncc_ngay_tra_qt)', () => {
-      expect(trackingTsxSrc).toContain('<DateCell');
-      expect(trackingTsxSrc).toMatch(/field="ngay_gui_QT"/);
-      expect(trackingTsxSrc).toMatch(/field="han_tra"/);
-      expect(trackingTsxSrc).toMatch(/field="ncc_ngay_qt"/);
-      expect(trackingTsxSrc).toMatch(/field="ncc_ngay_tra_qt"/);
+      const modalPath = path.resolve(__dirname, '../components/tracking/lot-detail-modal.tsx');
+      const modalSrc = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : '';
+      const combinedSrc = trackingTsxSrc + modalSrc;
+      expect(combinedSrc).toContain('<DateCell');
+      expect(combinedSrc).toMatch(/field="ngay_gui_QT"/);
+      expect(combinedSrc).toMatch(/field="han_tra"/);
+      expect(combinedSrc).toMatch(/field="ncc_ngay_qt"/);
+      expect(combinedSrc).toMatch(/field="ncc_ngay_tra_qt"/);
     });
   });
 

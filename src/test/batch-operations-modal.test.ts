@@ -148,5 +148,45 @@ describe('Batch Operations Modal Suite (Idea 2 - TDD)', () => {
         expect(modalSrc).toContain('handleRenameStagedUrl');
       }
     });
+
+    it('TC-BOM-06: verifies removal of simulation demo buttons and obsolete mockup text', () => {
+      if (fs.existsSync(modalFilePath)) {
+        const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
+        expect(modalSrc).not.toContain('Thử kéo thả 5 file theo Mã hàng');
+        expect(modalSrc).not.toContain('Thử bộ file dùng chung');
+        expect(modalSrc).not.toContain('KẾ THỪA HÌNH 6');
+      }
+    });
+
+    it('TC-BOM-07: verifies elimination of redundant Section A document picker in upload card', () => {
+      if (fs.existsSync(modalFilePath)) {
+        const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
+        expect(modalSrc).not.toContain('A. Chọn cột tài liệu cần cập nhật');
+      }
+    });
+
+    it('TC-BOM-08: verifies clean label standardization (clean tab, Chứng chỉ QT without CO/CQ, refined subtexts, no superfluous tags)', () => {
+      if (fs.existsSync(modalFilePath)) {
+        const modalSrc = fs.readFileSync(modalFilePath, 'utf-8');
+        // Clean labels
+        expect(modalSrc).toContain("label: '📎 Tài liệu'");
+        expect(modalSrc).not.toContain("label: '📎 Tài liệu (4)'");
+        expect(modalSrc).toContain("label: 'Chứng chỉ QT'");
+        expect(modalSrc).not.toContain('Chứng chỉ QT (CO/CQ)');
+
+        // Refined subtexts
+        expect(modalSrc).toContain('Sửa tên file (VD: 9690-C17.pdf) để gắn tự động vào đúng mã hàng.');
+        expect(modalSrc).toContain('Chú ý: Xóa nội dung cột đã chọn và thay mới hoàn toàn.');
+
+        // Clean section headers without small tags
+        expect(modalSrc).not.toContain("'dùng chung'");
+        expect(modalSrc).not.toContain("'smart-match'");
+      }
+    });
+
+    it('TC-BOM-09: verifies no default document column when no chip is selected', () => {
+      const defCert = BATCH_FIELDS_CONFIG.find((f) => f.key === 'ncc_file1');
+      expect(defCert?.label).toBe('Chứng chỉ QT');
+    });
   });
 });
