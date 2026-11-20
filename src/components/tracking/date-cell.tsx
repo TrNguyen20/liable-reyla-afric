@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/i18n';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { date } from '@/lib/dynamo-data';
@@ -22,6 +23,7 @@ export const DateCell: React.FC<DateCellProps> = ({
   className = '',
   variant = 'cell',
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [tempDate, setTempDate] = useState<string>(value);
 
@@ -81,7 +83,7 @@ export const DateCell: React.FC<DateCellProps> = ({
               ? `group/date flex h-6 w-full items-center justify-between gap-1 overflow-hidden cursor-pointer select-none rounded-xs px-1.5 border border-primary bg-background hover:border-primary/80 transition-colors shadow-2xs ${className}`
               : `group/date flex h-6 w-full items-center justify-between gap-1 overflow-hidden cursor-pointer select-none rounded-xs px-1 hover:bg-secondary/50 transition-colors ${className}`
           }
-          title={`${title}: ${displayDate || 'Chưa có'} - Bấm để chọn ngày`}
+          title={`${title}: ${displayDate || (t('tracking.popovers.notSet') || 'Chưa có')} - ${t('tracking.popovers.dateTitle') || 'Bấm để chọn ngày'}`}
         >
           <span
             className={`font-mono text-xs tabular-nums truncate ${
@@ -112,9 +114,9 @@ export const DateCell: React.FC<DateCellProps> = ({
                 type="button"
                 onClick={handleClear}
                 className="text-[10px] text-destructive hover:underline cursor-pointer flex items-center gap-0.5"
-                title="Xóa ngày hiện tại"
+                title={t('tracking.popovers.clearCurrentDate') || 'Xóa ngày hiện tại'}
               >
-                <X size={10} /> Xóa
+                <X size={10} /> {t('common.delete') || 'Xóa'}
               </button>
             )}
           </div>
@@ -138,7 +140,7 @@ export const DateCell: React.FC<DateCellProps> = ({
               onClick={() => setIsOpen(false)}
               className="h-6 px-3 rounded-xs border border-border bg-secondary hover:bg-secondary/80 font-mono text-[11px] font-medium transition-colors cursor-pointer"
             >
-              Đóng
+              {t('common.close') || 'Đóng'}
             </button>
           </div>
         </div>

@@ -1011,22 +1011,22 @@ export function JobTicketButton({
                   disabled={!hasPrev}
                   onClick={handlePrevItem}
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-md font-semibold text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-secondary disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
-                  title="Xem lô trước (Phím tắt: ←)"
+                  title={t('ticket.navPrevTooltip') || 'Xem lô trước (Phím tắt: ←)'}
                 >
                   <ChevronLeft size={13} />
-                  <span className="hidden md:inline">Lô trước</span>
+                  <span className="hidden md:inline">{t('ticket.navPrev') || 'Lô trước'}</span>
                 </button>
                 <span className="font-mono font-bold text-foreground px-1.5 border-x border-slate-200 dark:border-border/60">
-                  Lô {currentIndex + 1}/{siblingItems.length}
+                  {t('ticket.navLot') || 'Lô'} {currentIndex + 1}/{siblingItems.length}
                 </span>
                 <button
                   type="button"
                   disabled={!hasNext}
                   onClick={handleNextItem}
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-md font-semibold text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-secondary disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors"
-                  title="Xem lô sau (Phím tắt: →)"
+                  title={t('ticket.navNextTooltip') || 'Xem lô sau (Phím tắt: →)'}
                 >
-                  <span className="hidden md:inline">Lô sau</span>
+                  <span className="hidden md:inline">{t('ticket.navNext') || 'Lô sau'}</span>
                   <ChevronRight size={13} />
                 </button>
               </div>
@@ -1077,7 +1077,7 @@ export function JobTicketButton({
             {/* Nhóm Số liên in: 1x / 2x / 3x */}
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-[11px] text-muted-foreground">
-                Số liên:
+                {t('ticket.copiesLabel') || 'Số liên:'}
               </span>
               <div className="flex rounded-lg border border-slate-200 dark:border-border bg-slate-50 dark:bg-secondary/50 p-0.5 text-[11px]">
                 <button
@@ -1088,9 +1088,9 @@ export function JobTicketButton({
                       ? "bg-white text-slate-900 font-bold shadow-2xs border border-slate-300 dark:bg-card dark:text-foreground dark:border-border/60"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  title="In 1 bản duy nhất"
+                  title={t('ticket.copy1Tooltip') || 'In 1 bản duy nhất'}
                 >
-                  1 liên
+                  {t('ticket.copy1') || '1 liên'}
                 </button>
                 <button
                   type="button"
@@ -1100,9 +1100,9 @@ export function JobTicketButton({
                       ? "bg-white text-slate-900 font-bold shadow-2xs border border-slate-300 dark:bg-card dark:text-foreground dark:border-border/60"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  title="In 2 bản (1 bản theo hàng sang đơn vị gia công, 1 bản lưu tại xưởng đối soát)"
+                  title={t('ticket.copy2Tooltip') || 'In 2 bản (1 bản theo hàng sang đơn vị gia công, 1 bản lưu tại xưởng đối soát)'}
                 >
-                  2 liên (Chuẩn)
+                  {t('ticket.copy2Std') || '2 liên (Chuẩn)'}
                 </button>
                 <button
                   type="button"
@@ -1112,9 +1112,9 @@ export function JobTicketButton({
                       ? "bg-white text-slate-900 font-bold shadow-2xs border border-slate-300 dark:bg-card dark:text-foreground dark:border-border/60"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  title="In 3 bản (Gia công, Bảo vệ, Hồ sơ xưởng)"
+                  title={t('ticket.copy3Tooltip') || 'In 3 bản (Gia công, Bảo vệ, Hồ sơ xưởng)'}
                 >
-                  3 liên
+                  {t('ticket.copy3') || '3 liên'}
                 </button>
               </div>
             </div>
@@ -1122,13 +1122,13 @@ export function JobTicketButton({
             {/* Nhóm Quick Memo: Ghi chú điều động nhanh */}
             <div className="flex-1 flex items-center gap-2 min-w-[240px]">
               <span className="font-semibold text-[11px] text-muted-foreground shrink-0">
-                Ghi chú nhanh:
+                {t('ticket.quickMemoLabel') || 'Ghi chú nhanh:'}
               </span>
               <input
                 type="text"
                 value={quickMemo}
                 onChange={(e) => setQuickMemo(e.target.value)}
-                placeholder="VD: Giao gấp ca sáng, đo kiểm HRC 3 điểm, bọc màng xốp khí..."
+                placeholder={t('ticket.quickMemoPlaceholder') || 'VD: Giao gấp ca sáng, đo kiểm HRC 3 điểm, bọc màng xốp khí...'}
                 className="h-7 flex-1 rounded-md border border-slate-200 dark:border-input bg-slate-50 dark:bg-background px-2.5 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/60 shadow-2xs focus:outline-hidden focus:border-primary/80 focus:ring-1 focus:ring-primary/40 truncate"
               />
               <label className="hidden lg:flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer select-none">
@@ -1138,14 +1138,14 @@ export function JobTicketButton({
                   onChange={(e) => setKeepMemoForNext(e.target.checked)}
                   className="rounded border-border text-primary accent-primary h-3.5 w-3.5"
                 />
-                <span>Giữ cho lô sau</span>
+                <span>{t('ticket.keepMemoForNext') || 'Giữ cho lô sau'}</span>
               </label>
             </div>
 
             {/* Chỉ báo giới hạn Trang 1/1 */}
             <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono font-bold text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                <Check size={11} className="stroke-[3]" /> Trang 1/1 (Chuẩn khổ A4)
+                <Check size={11} className="stroke-[3]" /> {t('ticket.pageA4Standard') || 'Trang 1/1 (Chuẩn khổ A4)'}
               </span>
             </div>
           </div>
@@ -1204,9 +1204,9 @@ export function JobTicketButton({
                       ? "bg-slate-100 text-slate-900 font-bold dark:bg-primary/20 dark:text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  title="Vừa khít chiều cao màn hình laptop"
+                  title={t('ticket.zoomFitTooltip') || 'Vừa khít chiều cao màn hình laptop'}
                 >
-                  Fit màn hình
+                  {t('ticket.zoomFitLaptop') || 'Fit màn hình'}
                 </button>
                 <button
                   type="button"
@@ -1239,22 +1239,22 @@ export function JobTicketButton({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  100% (Chuẩn in)
+                  {t('ticket.zoom100Print') || '100% (Chuẩn in)'}
                 </button>
               </div>
             ) : (
               <div className="text-[11px] font-mono text-muted-foreground">
-                Khổ tem Pallet tiêu chuẩn: 100 × 150 mm (Tỷ lệ 1:1.5)
+                {t('ticket.palletStandard') || 'Khổ tem Pallet tiêu chuẩn: 100 × 150 mm (Tỷ lệ 1:1.5)'}
               </div>
             )}
 
             {/* Chỉ báo tỷ lệ & Phím tắt */}
             <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
               <span className="hidden sm:inline">
-                Tỷ lệ: {ticketFormat === "a4" ? "ISO 216 (1:1.414)" : "100×150mm (1:1.5)"}
+                {ticketFormat === "a4" ? (t('ticket.ratioA4') || 'Tỷ lệ: ISO 216 (1:1.414)') : (t('ticket.ratioPallet') || 'Tỷ lệ: 100×150mm (1:1.5)')}
               </span>
               <span className="hidden md:inline border-l border-slate-300 dark:border-border pl-3">
-                Phím: <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">P</kbd> In · <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">← / →</kbd> Đổi lô · <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">C</kbd> Copy · <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">Esc</kbd> Đóng
+                {t('ticket.keyPrefix') || 'Phím:'} <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">P</kbd> {t('ticket.keyIn') || 'In'} · <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">← / →</kbd> {t('ticket.keySwitchLot') || 'Đổi lô'} · <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">C</kbd> {t('ticket.keyCopy') || 'Copy'} · <kbd className="px-1 py-0.2 rounded bg-muted border border-border/60 text-foreground font-bold">Esc</kbd> {t('ticket.keyClose') || 'Đóng'}
               </span>
             </div>
           </div>

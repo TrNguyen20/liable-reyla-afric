@@ -11,7 +11,7 @@
   "search": "検索...",
   "filter": "絞り込み",
   "all": "すべて",
-  "loading": "データ読込中...",
+  "loading": "読み込み中…",
   "offlineAlert": "工場ネットワーク切断中 · オフラインモードで動作中（データはローカルに保存されます）",
   "roles": {
     "admin": "管理者（全権限）",
@@ -45,7 +45,8 @@
     "lots": "ロット",
     "items": "点",
     "hours": "時間",
-    "days": "日"
+    "days": "日",
+    "set": "セット"
   },
   "meta": {
     "title": "DYNAMO VIETNAM QT - MES",
@@ -341,7 +342,34 @@
       "qcSign": "署名・受入日付"
     },
     "slogan": "現場方針: 規律・正確・安全・時間厳守",
-    "printedAt": "印刷日時: {timestamp}"
+    "printedAt": "印刷日時: {timestamp}",
+    "navPrev": "前ロット",
+    "navNext": "次ロット",
+    "navLot": "ロット",
+    "navPrevTooltip": "前のロットを表示 (ショートカット: ←)",
+    "navNextTooltip": "次のロットを表示 (ショートカット: →)",
+    "copiesLabel": "発行部数:",
+    "copy1": "1部",
+    "copy2Std": "2部 (標準)",
+    "copy3": "3部",
+    "copy1Tooltip": "1部のみ印刷",
+    "copy2Tooltip": "2部印刷（1部は現品添付、1部は工場控）",
+    "copy3Tooltip": "3部印刷（外注先、警備室、工場保管）",
+    "quickMemoLabel": "特記事項:",
+    "quickMemoPlaceholder": "例: 午前中特急納品、HRC3点測定、気泡緩衝材梱包...",
+    "keepMemoForNext": "次ロットにも適用",
+    "pageA4Standard": "ページ 1/1 (A4標準規格)",
+    "zoomFitLaptop": "画面に合わせる",
+    "zoomFitTooltip": "画面の高さに合わせる",
+    "zoom100Print": "100% (印刷原寸)",
+    "palletStandard": "標準パレット現品票: 100 × 150 mm (比率 1:1.5)",
+    "ratioA4": "比率: ISO 216 (1:1.414)",
+    "ratioPallet": "比率: 100×150mm (1:1.5)",
+    "keyPrefix": "キー:",
+    "keyIn": "印刷",
+    "keySwitchLot": "ロット切替",
+    "keyCopy": "コピー",
+    "keyClose": "閉じる"
   },
   "pallet": {
     "title": "DYNAMO VIETNAM · パレット現品票",
@@ -376,9 +404,9 @@
   "lastMonth": "先月",
   "selected": "選択中",
   "pagination": {
-    "prev": "前へ",
-    "page": "ページ",
-    "next": "次へ"
+    "prev": "前ページ",
+    "page": "ページ番号入力",
+    "next": "次ページ"
   },
   "jobTicket": {
     "sec1": {
@@ -387,8 +415,10 @@
       "totalPrice": "概算金額"
     }
   },
-  "loading": "読み込み中…",
   "loading.permissions": "権限データ読込中…",
   "loading.failedTitle": "製造データを読み込めませんでした",
-  "loading.syncing": "Googleスプレッドシートから熱処理データを同期中…"
+  "loading.syncing": "Googleスプレッドシートから熱処理データを同期中…",
+  "addFile": "+ ファイル",
+  "unauthorizedUpload": "アップロード権限がありません",
+  "clickToCopy": "クリックしてコピー"
 }

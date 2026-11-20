@@ -67,6 +67,7 @@ function AttachmentHoverPreview({
   lotCode?: string;
   onOpenLightbox?: (file: { url: string; title: string; type: 'image' | 'pdf' }) => void;
 }) {
+  const { t } = useTranslation();
   const items = useMemo(() => parseAttachments(rawUrl, lotCode), [rawUrl, lotCode]);
 
   if (!items || items.length === 0) {
@@ -94,7 +95,7 @@ function AttachmentHoverPreview({
                   }
                 }}
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] bg-slate-100 hover:bg-slate-200 dark:bg-muted/80 dark:hover:bg-muted text-foreground border border-border/70 transition cursor-pointer shadow-2xs select-none"
-                title={`${fileTitle} - Click để xem phóng to`}
+                title={`${fileTitle} - ${t('tracking.attachments.clickToZoom') || 'Click để xem phóng to'}`}
               >
                 <span className="text-[10px]">{renderFileIcon(it.type)}</span>
                 <span className="max-w-[110px] truncate">{middleTruncate(it.name || it.url, 15)}</span>
@@ -121,10 +122,10 @@ function AttachmentHoverPreview({
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10.5px] font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white rounded border border-border/60 hover:bg-secondary cursor-pointer transition shadow-2xs"
-                    title="Tải về tệp gốc"
+                    title={t('tracking.attachments.downloadTooltip') || 'Tải về tệp gốc'}
                   >
                     <Download size={11} />
-                    <span>Tải về</span>
+                    <span>{t('tracking.attachments.downloadOriginal') || 'Tải về'}</span>
                   </a>
                   <a
                     href={it.url}
@@ -132,7 +133,7 @@ function AttachmentHoverPreview({
                     rel="noreferrer"
                     className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10.5px] font-semibold text-primary hover:underline rounded border border-primary/30 bg-primary/5 hover:bg-primary/10 cursor-pointer transition shadow-2xs"
                   >
-                    <span>Mở tab mới</span>
+                    <span>{t('tracking.attachments.openTab') || 'Mở tab mới'}</span>
                     <ExternalLink size={10} />
                   </a>
                   {onOpenLightbox && (
@@ -140,7 +141,7 @@ function AttachmentHoverPreview({
                       type="button"
                       onClick={() => onOpenLightbox({ url: previewUrl, title: fileTitle, type: isImg ? 'image' : 'pdf' })}
                       className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition"
-                      title="Phóng to xem toàn màn hình"
+                      title={t('tracking.attachments.fullscreenTooltip') || 'Phóng to xem toàn màn hình'}
                     >
                       <Maximize2 size={12} />
                     </button>
@@ -166,7 +167,7 @@ function AttachmentHoverPreview({
                   <div className="p-3 text-center text-xs text-muted-foreground">
                     <FileText size={28} className="mx-auto mb-1 text-primary/70" />
                     <span className="font-mono text-xs block truncate max-w-full">{it.url}</span>
-                    <span className="text-[10px] text-muted-foreground mt-1 block">Tài liệu liên kết ngoài</span>
+                    <span className="text-[10px] text-muted-foreground mt-1 block">{t('tracking.attachments.previewExternalDoc') || 'Tài liệu liên kết ngoài'}</span>
                   </div>
                 )}
               </div>
@@ -190,7 +191,7 @@ export function LotDetailModal({
   onUpdate,
   onItemChange,
 }: LotDetailModalProps) {
-  const { locale } = useTranslation();
+  const { t, locale } = useTranslation();
   const isAdmin = role === 'admin';
   const hasPricingView = canViewPricing(role as Role);
   const auditLogs = auditFor(item.ID_Key);
@@ -319,7 +320,7 @@ export function LotDetailModal({
   // Unsaved Changes Guard helper
   const confirmDiscardChanges = useCallback(() => {
     if (!isDirty) return true;
-    return window.confirm('Bạn có thay đổi chưa lưu trên lô này. Bạn có chắc chắn muốn hủy bỏ các thay đổi không?');
+    return window.confirm(t('tracking.lotDetail.unsavedConfirm') || 'Bạn có thay đổi chưa lưu trên lô này. Bạn có chắc chắn muốn hủy bỏ các thay đổi không?');
   }, [isDirty]);
 
   const handleCancelEdit = useCallback(() => {
@@ -425,12 +426,12 @@ export function LotDetailModal({
     if (matched && onItemChange) {
       onItemChange(matched);
       playAudioCue('pop');
-      toast.success(`Đã chuyển tới mã hàng ${matched.ma_hang}`);
+      toast.success(t('tracking.lotDetail.switchedToItem', { item: matched.ma_hang }) || `Đã chuyển tới mã hàng ${matched.ma_hang}`);
       setIsSearchingItem(false);
       setSearchItemCode('');
     } else {
       playAudioCue('error');
-      toast.error(`Không tìm thấy mã hàng phù hợp với "${searchItemCode}"`);
+      toast.error(t('tracking.lotDetail.itemNotFound', { item: searchItemCode }) || `Không tìm thấy mã hàng phù hợp với "${searchItemCode}"`);
     }
   }, [searchItemCode, siblingItems, onItemChange, confirmDiscardChanges]);
 
@@ -445,7 +446,7 @@ export function LotDetailModal({
       if (target && onItemChange) {
         onItemChange(target);
         playAudioCue('pop');
-        toast.success(`Đã chuyển tới lô thứ ${num}`);
+        toast.success(t('tracking.lotDetail.switchedToLotIndex', { index: num }) || `Đã chuyển tới lô thứ ${num}`);
         setJumpIndex('');
         return;
       }
@@ -454,11 +455,11 @@ export function LotDetailModal({
     if (byId && onItemChange) {
       onItemChange(byId);
       playAudioCue('pop');
-      toast.success(`Đã chuyển tới lô ${byId.ID_Key}`);
+      toast.success(t('tracking.lotDetail.switchedToLotId', { id: byId.ID_Key }) || `Đã chuyển tới lô ${byId.ID_Key}`);
       setJumpIndex('');
       return;
     }
-    toast.error(`Số thứ tự phải từ 1 đến ${siblingItems.length}`);
+    toast.error(t('tracking.lotDetail.invalidLotIndex', { max: siblingItems.length }) || `Số thứ tự phải từ 1 đến ${siblingItems.length}`);
   }, [jumpIndex, siblingItems, onItemChange, confirmDiscardChanges]);
 
   // Keyboard navigation
@@ -554,7 +555,7 @@ export function LotDetailModal({
     if (form.ncc_file1 !== (item.ncc_file1 || '')) changes['Chứng chỉ QT'] = [item.ncc_file1, form.ncc_file1];
 
     if (Object.keys(changes).length === 0) {
-      toast.info('Không có thay đổi nào để lưu.');
+      toast.info(t('tracking.lotDetail.noChangesToSave') || 'Không có thay đổi nào để lưu.');
       setIsEditing(false);
       return;
     }
@@ -602,12 +603,12 @@ export function LotDetailModal({
       user: isAdmin ? 'Admin' : role,
       role,
       changes,
-      reason: editReason.trim() || 'Cập nhật trực tiếp từ cửa sổ chi tiết lô',
+      reason: editReason.trim() || t('tracking.lotDetail.auditReasonDefault') || 'Cập nhật trực tiếp từ cửa sổ chi tiết lô',
     });
 
     onUpdate(patch);
     playAudioCue('success');
-    toast.success(`Đã cập nhật thành công ${Object.keys(changes).length} trường thông tin.`);
+    toast.success(t('tracking.lotDetail.updateSuccess', { count: Object.keys(changes).length }) || `Đã cập nhật thành công ${Object.keys(changes).length} trường thông tin.`);
     setIsEditing(false);
   };
 
@@ -636,7 +637,7 @@ export function LotDetailModal({
               </span>
               {item.phong_sx && (
                 <span className="text-[10.5px] px-2 py-0.5 rounded-xs bg-secondary border border-border/40 font-semibold text-muted-foreground">
-                  Phân xưởng {item.phong_sx}
+                  {t('tracking.lotDetail.workshop', { workshop: item.phong_sx }) || `Phân xưởng ${item.phong_sx}`}
                 </span>
               )}
             </div>
@@ -653,7 +654,7 @@ export function LotDetailModal({
                       if (e.key === 'Enter') handleSearchItem();
                       if (e.key === 'Escape') setIsSearchingItem(false);
                     }}
-                    placeholder="Nhập mã hàng cần tìm (VD: 9075-P3)..."
+                    placeholder={t('tracking.lotDetail.searchPlaceholder') || 'Nhập mã hàng cần tìm (VD: 9075-P3)...'}
                     className="h-7 w-64 px-2 text-xs font-mono rounded-xs border-2 border-primary bg-background text-foreground outline-none shadow-xs"
                     autoFocus
                   />
@@ -661,9 +662,7 @@ export function LotDetailModal({
                     type="button"
                     onClick={handleSearchItem}
                     className="px-2 py-1 text-xs font-semibold rounded-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
-                  >
-                    Tìm
-                  </button>
+                  >{t('tracking.lotDetail.search') || 'Tìm'}</button>
                   <button
                     type="button"
                     onClick={() => setIsSearchingItem(false)}
@@ -679,7 +678,7 @@ export function LotDetailModal({
                     setIsSearchingItem(true);
                   }}
                   className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-center gap-1.5 cursor-pointer hover:text-primary transition group/mh"
-                  title="Nhấp để tìm kiếm nhanh mã hàng khác"
+                  title={t('tracking.lotDetail.searchTooltip') || 'Nhấp để tìm kiếm nhanh mã hàng khác'}
                 >
                   <span className="font-mono">{item.ma_hang}</span>
                   <Search size={13} className="text-muted-foreground opacity-60 group-hover/mh:opacity-100 group-hover/mh:text-primary transition" />
@@ -702,7 +701,7 @@ export function LotDetailModal({
                   className="inline-flex items-center gap-1 rounded-xs border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
                 >
                   <RotateCcw size={12} />
-                  <span>Hủy</span>
+                  <span>{t('common.cancel') || 'Hủy'}</span>
                 </button>
                 <button
                   type="button"
@@ -710,7 +709,7 @@ export function LotDetailModal({
                   className="inline-flex items-center gap-1 rounded-xs bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
                 >
                   <Save size={12} />
-                  <span>Lưu thay đổi</span>
+                  <span>{t('common.save') || 'Lưu thay đổi'}</span>
                 </button>
               </div>
             ) : (
@@ -723,7 +722,7 @@ export function LotDetailModal({
                 className="inline-flex items-center gap-1.5 rounded-xs border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer shadow-2xs"
               >
                 <Edit2 size={13} className="text-primary" />
-                <span>Chỉnh sửa</span>
+                <span>{t('common.edit') || 'Chỉnh sửa'}</span>
               </button>
             )}
 
@@ -731,7 +730,7 @@ export function LotDetailModal({
               type="button"
               onClick={handleCloseModal}
               className="rounded-xs p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition"
-              title="Đóng (Esc)"
+              title={t('tracking.lotDetail.closeEsc') || 'Đóng (Esc)'}
             >
               <X size={18} />
             </button>
@@ -748,11 +747,11 @@ export function LotDetailModal({
                 <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-primary rounded-xs" />
-                    <span>1. ĐỊNH DANH & BẢN VẼ PHÔI</span>
+                    <span>{t('tracking.lotDetail.zone1Title') || '1. ĐỊNH DANH & BẢN VẼ PHÔI'}</span>
                   </h3>
                   <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
                     <Lock size={10} className="text-muted-foreground/60" />
-                    <span>7 Master Identifiers</span>
+                    <span>{t('tracking.lotDetail.zone1Sub') || '7 Master Identifiers'}</span>
                   </span>
                 </div>
 
@@ -760,7 +759,7 @@ export function LotDetailModal({
                   {/* Mã hàng */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Mã hàng</span>
+                      <span>{t('tracking.lotDetail.partNo') || 'Mã hàng'}</span>
                       <Lock size={9} className="text-muted-foreground/50" />
                     </span>
                     <span className="font-mono text-xs font-bold text-foreground block mt-0.5">{item.ma_hang}</span>
@@ -769,7 +768,7 @@ export function LotDetailModal({
                   {/* Mã bản vẽ / phôi */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Mã BV / Phôi</span>
+                      <span>{t('tracking.lotDetail.blankDrawingCode') || 'Mã BV / Phôi'}</span>
                       <Lock size={9} className="text-muted-foreground/50" />
                     </span>
                     <span className="font-mono text-xs font-semibold text-foreground block mt-0.5">{item.id_ma_hang || '—'}</span>
@@ -778,7 +777,7 @@ export function LotDetailModal({
                   {/* Ngày tạo */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Ngày tạo</span>
+                      <span>{t('tracking.lotDetail.createdDate') || 'Ngày tạo'}</span>
                       <Lock size={9} className="text-muted-foreground/50" />
                     </span>
                     <span className="font-mono text-xs text-muted-foreground block mt-0.5">{date(item.ngay_tao) || '—'}</span>
@@ -787,7 +786,7 @@ export function LotDetailModal({
                   {/* Người tạo - Khóa 100% 7 Master Identifiers */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Người tạo</span>
+                      <span>{t('tracking.lotDetail.createdBy') || 'Người tạo'}</span>
                       <Lock size={9} className="text-muted-foreground/50" />
                     </span>
                     <span className="font-mono text-xs text-foreground block mt-0.5">{item.nguoi_tao || '—'}</span>
@@ -798,7 +797,7 @@ export function LotDetailModal({
                     {/* Quốc gia */}
                     <div className="p-2 rounded bg-card/80 border border-border/60">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                        <span>Quốc gia</span>
+                        <span>{t('tracking.lotDetail.country') || 'Quốc gia'}</span>
                         <Lock size={9} className="text-muted-foreground/50" />
                       </span>
                       <div className="mt-1 flex items-center h-5">
@@ -809,7 +808,7 @@ export function LotDetailModal({
                     {/* Phân xưởng */}
                     <div className="p-2 rounded bg-card/80 border border-border/60">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                        <span>Phân xưởng</span>
+                        <span>{t('tracking.lotDetail.workshopField') || 'Phân xưởng'}</span>
                         <Lock size={9} className="text-muted-foreground/50" />
                       </span>
                       <span className="font-mono text-xs font-semibold text-foreground block mt-0.5">{item.phong_sx || '—'}</span>
@@ -818,7 +817,7 @@ export function LotDetailModal({
                     {/* Đối tượng hàng */}
                     <div className="p-2 rounded bg-card/80 border border-border/60">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                        <span>Đối tượng hàng</span>
+                        <span>{t('tracking.lotDetail.targetItem') || 'Đối tượng hàng'}</span>
                         <Lock size={9} className="text-muted-foreground/50" />
                       </span>
                       <span className="font-mono text-xs text-foreground block mt-0.5 truncate" title={item.doi_tuong_hang || '—'}>
@@ -836,15 +835,15 @@ export function LotDetailModal({
                 <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-amber-500 rounded-xs" />
-                    <span>2. THÔNG SỐ KỸ THUẬT & KÍCH THƯỚC</span>
+                    <span>{t('tracking.lotDetail.zone2Title') || '2. THÔNG SỐ KỸ THUẬT & KÍCH THƯỚC'}</span>
                   </h3>
-                  <span className="text-[10px] font-mono text-muted-foreground">Quy chuẩn xưởng</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{t('tracking.lotDetail.zone2Sub') || 'Quy chuẩn xưởng'}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Mác thép / Vật liệu */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Mác thép / Vật liệu</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.material') || 'Mác thép / Vật liệu'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -859,7 +858,7 @@ export function LotDetailModal({
 
                   {/* Độ cứng yêu cầu */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Độ cứng yêu cầu (HRC)</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.requiredHardness') || 'Độ cứng yêu cầu (HRC)'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -877,13 +876,13 @@ export function LotDetailModal({
 
                   {/* Kích thước sản phẩm */}
                   <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Quy cách kích thước SP</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.dimensions') || 'Quy cách kích thước SP'}</span>
                     {isEditing ? (
                       <input
                         type="text"
                         value={form.kich_thuoc_sp}
                         onChange={(e) => setForm((f) => ({ ...f, kich_thuoc_sp: e.target.value }))}
-                        placeholder="VD: Ø30x120, 93*27*72..."
+                        placeholder={t('tracking.lotDetail.dimensionsPlaceholder') || 'VD: Ø30x120, 93*27*72...'}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
                       />
                     ) : (
@@ -895,7 +894,7 @@ export function LotDetailModal({
                   <div className="col-span-2 grid grid-cols-3 gap-2">
                     {/* Số lượng */}
                     <div className="p-2 rounded bg-card/80 border border-border/60">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số lượng xuất</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.quantity') || 'Số lượng xuất'}</span>
                       {isEditing ? (
                         <div className="flex items-center gap-1 mt-0.5">
                           <input
@@ -910,21 +909,21 @@ export function LotDetailModal({
                             className="w-14 shrink-0 h-6 px-1 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
                           >
                             <option value="pcs">pcs</option>
-                            <option value="chi tiết">chi tiết</option>
+                            <option value="chi tiết">{t('common.units.items') || 'chi tiết'}</option>
                             <option value="Kg">Kg</option>
-                            <option value="bộ">bộ</option>
+                            <option value="bộ">{t('common.units.set') || 'bộ'}</option>
                           </select>
                         </div>
                       ) : (
                         <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
-                          {number(item.so_luong)} {item.don_vi_tinh || 'chi tiết'}
+                          {number(item.so_luong)} {item.don_vi_tinh || t('common.units.items') || 'chi tiết'}
                         </span>
                       )}
                     </div>
 
                     {/* Khối lượng (kg) */}
                     <div className="p-2 rounded bg-card/80 border border-border/60">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Khối lượng lô (kg)</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.weight') || 'Khối lượng lô (kg)'}</span>
                       {isEditing ? (
                         <input
                           type="number"
@@ -942,7 +941,7 @@ export function LotDetailModal({
 
                     {/* SL Tính tiền */}
                     <div className="p-2 rounded bg-card/80 border border-border/60">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">SL Tính tiền</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.calcQuantity') || 'SL Tính tiền'}</span>
                       {isEditing ? (
                         <input
                           type="number"
@@ -968,16 +967,16 @@ export function LotDetailModal({
                 <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-blue-500 rounded-xs" />
-                    <span>3. TIẾN ĐỘ, ĐƠN GIÁ & HỒ SƠ PO</span>
+                    <span>{t('tracking.lotDetail.zone3Title') || '3. TIẾN ĐỘ, ĐƠN GIÁ & HỒ SƠ PO'}</span>
                   </h3>
-                  <span className="text-[10px] font-mono text-muted-foreground">Đơn vị & Thương mại</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{t('tracking.lotDetail.zone3Sub') || 'Đơn vị & Thương mại'}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Đối tác gia công */}
                   <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Đối tác gia công</span>
+                      <span>{t('tracking.lotDetail.partner') || 'Đối tác gia công'}</span>
                       <Lock size={9} className="text-muted-foreground/50" />
                     </span>
                     <span className="font-mono text-xs font-bold text-primary block mt-0.5">
@@ -987,7 +986,7 @@ export function LotDetailModal({
 
                   {/* Số ĐH (PO) */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số đơn hàng (PO)</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.orderNo') || 'Số đơn hàng (PO)'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -1002,13 +1001,13 @@ export function LotDetailModal({
 
                   {/* File PO đính kèm */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">File PO đính kèm</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.orderFile') || 'File PO đính kèm'}</span>
                     {isEditing ? (
                       <input
                         type="text"
                         value={form.ten_file_dat_hang}
                         onChange={(e) => setForm((f) => ({ ...f, ten_file_dat_hang: e.target.value }))}
-                        placeholder="Link file PO hoặc URL..."
+                        placeholder={t('tracking.lotDetail.orderFilePlaceholder') || 'Link file PO hoặc URL...'}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
                       />
                     ) : (
@@ -1025,11 +1024,11 @@ export function LotDetailModal({
 
                   {/* Ngày gửi QT */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Ngày gửi QT</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.sentDate') || 'Ngày gửi QT'}</span>
                     {isEditing ? (
                       <DateCell
                         field="ngay_gui_QT"
-                        title="Ngày gửi QT"
+                        title={t('tracking.lotDetail.sentDate') || 'Ngày gửi QT'}
                         value={form.ngay_gui_qt}
                         canEdit={true}
                         variant="input"
@@ -1042,7 +1041,7 @@ export function LotDetailModal({
 
                   {/* Tỷ giá */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tỷ giá</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.exchangeRate') || 'Tỷ giá'}</span>
                     {isEditing && hasPricingView ? (
                       <input
                         type="number"
@@ -1061,7 +1060,7 @@ export function LotDetailModal({
                   {/* Đơn giá gia công */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Đơn giá gia công</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.unitPrice') || 'Đơn giá gia công'}</span>
                       {isEditing && hasPricingView && (
                         <span className="text-[10px] font-mono text-muted-foreground">
                           {money(form.don_gia)}
@@ -1088,7 +1087,7 @@ export function LotDetailModal({
                   {/* Thành tiền dự kiến */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Thành tiền dự kiến</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.totalAmount') || 'Thành tiền dự kiến'}</span>
                       {isEditing && hasPricingView && (
                         <span className="text-[10px] font-mono text-primary font-bold">
                           {money(form.thanh_tien)}
@@ -1114,7 +1113,7 @@ export function LotDetailModal({
 
                   {/* Ghi chú khi gửi */}
                   <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Ghi chú khi gửi</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.dispatchNotes') || 'Ghi chú khi gửi'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -1136,15 +1135,15 @@ export function LotDetailModal({
                 <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-emerald-500 rounded-xs" />
-                    <span>4. CỔNG NHÀ CUNG CẤP & QC ĐO KIỂM</span>
+                    <span>{t('tracking.lotDetail.zone4Title') || '4. CỔNG NHÀ CUNG CẤP & QC ĐO KIỂM'}</span>
                   </h3>
-                  <span className="text-[10px] font-mono text-muted-foreground">12 Cột NCC_*</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{t('tracking.lotDetail.zone4Sub') || '12 Cột NCC_*'}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* NCC Độ cứng thực tế */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Độ cứng đo thực tế</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorHardness') || 'NCC Độ cứng đo thực tế'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -1155,23 +1154,23 @@ export function LotDetailModal({
                       />
                     ) : (
                       <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
-                        {item.ncc_ket_qua_hrc ? `${item.ncc_ket_qua_hrc} HRC` : '— (Chưa đo)'}
+                        {item.ncc_ket_qua_hrc ? `${item.ncc_ket_qua_hrc} HRC` : (t('tracking.lotDetail.notMeasured') || '— (Chưa đo)')}
                       </span>
                     )}
                   </div>
 
                   {/* NCC Nghiệm thu QC */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Nghiệm thu QC</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorQc') || 'NCC Nghiệm thu QC'}</span>
                     {isEditing ? (
                       <select
                         value={form.ncc_ket_qua_qc}
                         onChange={(e) => setForm((f) => ({ ...f, ncc_ket_qua_qc: e.target.value }))}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
                       >
-                        <option value="">— Chưa nghiệm thu —</option>
-                        <option value="PASS">PASS (Đạt yêu cầu)</option>
-                        <option value="FAIL">FAIL (Không đạt)</option>
+                        <option value="">{t('tracking.lotDetail.qcNotInspected') || '— Chưa nghiệm thu —'}</option>
+                        <option value="PASS">{t('tracking.lotDetail.qcPass') || 'PASS (Đạt yêu cầu)'}</option>
+                        <option value="FAIL">{t('tracking.lotDetail.qcFail') || 'FAIL (Không đạt)'}</option>
                       </select>
                     ) : (
                       <div className="mt-0.5">
@@ -1184,7 +1183,7 @@ export function LotDetailModal({
                             <XCircle size={11} /> FAIL
                           </span>
                         ) : (
-                          <span className="font-mono text-muted-foreground text-xs">— (Chưa có)</span>
+                          <span className="font-mono text-muted-foreground text-xs">{t('tracking.lotDetail.notAvailable') || '— (Chưa có)'}</span>
                         )}
                       </div>
                     )}
@@ -1192,11 +1191,11 @@ export function LotDetailModal({
 
                   {/* NCC Ngày vào lò */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Ngày vào lò</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorOvenDate') || 'NCC Ngày vào lò'}</span>
                     {isEditing ? (
                       <DateCell
                         field="ncc_ngay_qt"
-                        title="NCC Ngày vào lò"
+                        title={t('tracking.lotDetail.vendorOvenDate') || 'NCC Ngày vào lò'}
                         value={form.ncc_ngay_qt}
                         canEdit={true}
                         variant="input"
@@ -1209,11 +1208,11 @@ export function LotDetailModal({
 
                   {/* NCC Hạn trả cam kết (đồng bộ field="han_tra" và field="ncc_ngay_tra_qt") */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Hạn trả cam kết</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorDueDate') || 'NCC Hạn trả cam kết'}</span>
                     {isEditing ? (
                       <DateCell
                         field="ncc_ngay_tra_qt" /* field="han_tra" */
-                        title="NCC Hạn trả"
+                        title={t('tracking.lotDetail.vendorDueDate') || 'NCC Hạn trả'}
                         value={form.ncc_ngay_tra_qt}
                         canEdit={true}
                         variant="input"
@@ -1226,7 +1225,7 @@ export function LotDetailModal({
 
                   {/* NCC Lô QT (Mẻ nhiệt) */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Mã mẻ nhiệt (ID Lot NCC)</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorLotId') || 'Mã mẻ nhiệt (ID Lot NCC)'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -1241,7 +1240,7 @@ export function LotDetailModal({
 
                   {/* NCC Kỹ thuật viên */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Kỹ thuật viên NCC</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorTech') || 'Kỹ thuật viên NCC'}</span>
                     {isEditing ? (
                       <input
                         type="text"
@@ -1259,15 +1258,13 @@ export function LotDetailModal({
                     {isEditing ? (
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.thermalCycle') || 'Giản đồ nhiệt'}</span>
                           <button
                             type="button"
                             onClick={() => setHeatCycleModalOpen(true)}
                             className="text-[10.5px] text-primary hover:underline font-semibold cursor-pointer"
-                            title="Mở bảng vẽ chu trình nhiệt trực quan"
-                          >
-                            Sửa với đồ họa
-                          </button>
+                            title={t('tracking.lotDetail.editWithGraphicTitle') || 'Mở bảng vẽ chu trình nhiệt trực quan'}
+                          >{t('tracking.lotDetail.editWithGraphic') || 'Sửa với đồ họa'}</button>
                         </div>
                         <input
                           type="text"
@@ -1280,7 +1277,7 @@ export function LotDetailModal({
                     ) : (
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Giản đồ nhiệt</span>
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.thermalCycle') || 'Giản đồ nhiệt'}</span>
                         </div>
                         {item.ncc_giando && item.ncc_giando.trim() ? (
                           <HoverCard openDelay={120} closeDelay={100}>
@@ -1288,7 +1285,7 @@ export function LotDetailModal({
                               <button
                                 type="button"
                                 onClick={() => setHeatCycleModalOpen(true)}
-                                title="Bấm để xem phóng to chu trình nhiệt luyện"
+                                title={t('tracking.lotDetail.clickToEnlargeTitle') || 'Bấm để xem phóng to chu trình nhiệt luyện'}
                                 className="inline-flex items-center justify-center h-6 px-1.5 py-0.5 rounded-xs bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-2xs transition cursor-pointer active:scale-95 select-none"
                               >
                                 <div className="w-[74px] h-[18px] flex items-center justify-center pointer-events-none">
@@ -1309,9 +1306,7 @@ export function LotDetailModal({
                               className="z-50 w-[400px] rounded-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-2.5 shadow-xl text-slate-900 dark:text-slate-100 outline-none select-text"
                             >
                               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1 mb-2">
-                                <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                                  CHU TRÌNH NHIỆT LUYỆN
-                                </span>
+                                <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">{t('tracking.lotDetail.thermalCycleTitle') || 'CHU TRÌNH NHIỆT LUYỆN'}</span>
                                 <span className="font-mono text-[9.5px] font-semibold text-slate-500 dark:text-slate-400">
                                   {item.ma_hang || item.id_ma_hang}
                                 </span>
@@ -1328,9 +1323,7 @@ export function LotDetailModal({
                                 <span className="text-slate-600 dark:text-slate-300 truncate max-w-[280px]" title={item.ncc_giando}>
                                   {item.ncc_giando}
                                 </span>
-                                <span className="text-slate-400 text-[9px] shrink-0">
-                                  Bấm để xem phóng to
-                                </span>
+                                <span className="text-slate-400 text-[9px] shrink-0">{t('tracking.lotDetail.clickToEnlarge') || 'Bấm để xem phóng to'}</span>
                               </div>
                             </HoverCardContent>
                           </HoverCard>
@@ -1343,20 +1336,20 @@ export function LotDetailModal({
 
                   {/* Chứng chỉ QT (CO/CQ) - ĐỒNG BỘ TÊN FILE VÀ HOVERCARD NHÚNG IFRAME (Hình 4, 5) */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Chứng chỉ QT (CO/CQ)</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.qcCertificate') || 'Chứng chỉ QT (CO/CQ)'}</span>
                     {isEditing ? (
                       <input
                         type="text"
                         value={form.ncc_file1}
                         onChange={(e) => setForm((f) => ({ ...f, ncc_file1: e.target.value }))}
-                        placeholder="Link file PDF hoặc ảnh chứng chỉ..."
+                        placeholder={t('tracking.lotDetail.qcCertificatePlaceholder') || 'Link file PDF hoặc ảnh chứng chỉ...'}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
                       />
                     ) : (
                       <div className="mt-0.5">
                         <AttachmentHoverPreview
                           rawUrl={item.ncc_file1}
-                          title={`Chứng chỉ QT ${item.ma_hang}`}
+                          title={`${t('tracking.columns.vendorQcCert') || 'Chứng chỉ QT'} ${item.ma_hang}`}
                           lotCode={item.ma_hang || item.id_ma_hang}
                           onOpenLightbox={setLightboxFile}
                         />
@@ -1366,7 +1359,7 @@ export function LotDetailModal({
 
                   {/* NCC Báo giá */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Báo giá NCC</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorPrice') || 'Báo giá NCC'}</span>
                     {isEditing && hasPricingView ? (
                       <input
                         type="number"
@@ -1383,18 +1376,18 @@ export function LotDetailModal({
 
                   {/* Tiến độ NCC */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tiến độ NCC</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorProgress') || 'Tiến độ NCC'}</span>
                     {isEditing ? (
                       <select
                         value={form.ncc_tatus}
                         onChange={(e) => setForm((f) => ({ ...f, ncc_tatus: e.target.value }))}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
                       >
-                        <option value="">— Chưa chọn —</option>
-                        <option value="WAIT">WAIT (Chờ xử lý)</option>
-                        <option value="HEAT">HEAT (Đang nhiệt)</option>
-                        <option value="TRANSIT">TRANSIT (Đang giao)</option>
-                        <option value="DONE">DONE (Hoàn thành)</option>
+                        <option value="">{t('tracking.lotDetail.progressNotSelected') || '— Chưa chọn —'}</option>
+                        <option value="WAIT">{t('tracking.lotDetail.progressWait') || 'WAIT (Chờ xử lý)'}</option>
+                        <option value="HEAT">{t('tracking.lotDetail.progressHeat') || 'HEAT (Đang nhiệt)'}</option>
+                        <option value="TRANSIT">{t('tracking.lotDetail.progressTransit') || 'TRANSIT (Đang giao)'}</option>
+                        <option value="DONE">{t('tracking.lotDetail.progressDone') || 'DONE (Hoàn thành)'}</option>
                       </select>
                     ) : (
                       <div className="mt-0.5">
@@ -1425,13 +1418,13 @@ export function LotDetailModal({
 
                   {/* NCC Ghi chú 1 */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Ghi chú 1</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorNote1') || 'NCC Ghi chú 1'}</span>
                     {isEditing ? (
                       <input
                         type="text"
                         value={form.ncc_thongtinkhac1}
                         onChange={(e) => setForm((f) => ({ ...f, ncc_thongtinkhac1: e.target.value }))}
-                        placeholder="Ghi chú kỹ thuật khác..."
+                        placeholder={t('tracking.lotDetail.vendorNote1Placeholder') || 'Ghi chú kỹ thuật khác...'}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
                       />
                     ) : (
@@ -1441,13 +1434,13 @@ export function LotDetailModal({
 
                   {/* NCC Ghi chú 2 */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Ghi chú 2</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t('tracking.lotDetail.vendorNote2') || 'NCC Ghi chú 2'}</span>
                     {isEditing ? (
                       <input
                         type="text"
                         value={form.ncc_thongtinkhac2}
                         onChange={(e) => setForm((f) => ({ ...f, ncc_thongtinkhac2: e.target.value }))}
-                        placeholder="Ghi chú đóng gói / giao hàng..."
+                        placeholder={t('tracking.lotDetail.vendorNote2Placeholder') || 'Ghi chú đóng gói / giao hàng...'}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
                       />
                     ) : (
@@ -1467,13 +1460,13 @@ export function LotDetailModal({
               className="w-full px-3.5 py-2 bg-secondary/30 hover:bg-secondary/60 flex items-center justify-between text-xs font-semibold text-foreground/80 transition cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[11px] tracking-wide text-foreground">NHẬT KÝ THAY ĐỔI & AUDIT TRAIL</span>
+                <span className="font-bold text-[11px] tracking-wide text-foreground">{t('tracking.lotDetail.auditTrailTitle') || 'NHẬT KÝ THAY ĐỔI & AUDIT TRAIL'}</span>
                 <span className="font-mono text-[10px] text-muted-foreground px-1.5 py-0.2 rounded bg-muted border border-border/50">
-                  {auditLogs.length} bản ghi
+                  {t('tracking.lotDetail.auditRecords', { count: auditLogs.length }) || `${auditLogs.length} bản ghi`}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <span>{showAudit ? 'Thu gọn' : 'Xem lịch sử'}</span>
+                <span>{showAudit ? (t('tracking.lotDetail.auditCollapse') || 'Thu gọn') : (t('tracking.lotDetail.auditExpand') || 'Xem lịch sử')}</span>
                 {showAudit ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </div>
             </button>
@@ -1496,14 +1489,14 @@ export function LotDetailModal({
                       </p>
                       {log.reason && (
                         <p className="text-muted-foreground/80 text-[10px] italic mt-0.5">
-                          Lý do: {log.reason}
+                          {t('tracking.lotDetail.auditReasonPrefix', { reason: log.reason }) || `Lý do: ${log.reason}`}
                         </p>
                       )}
                     </div>
                   ))
                 ) : (
                   <p className="text-xs text-muted-foreground italic p-3 text-center">
-                    Chưa có thay đổi nào được ghi nhận cho lô này.
+                    {t('tracking.lotDetail.auditNoLogs') || 'Chưa có thay đổi nào được ghi nhận cho lô này.'}
                   </p>
                 )}
               </div>
@@ -1520,10 +1513,10 @@ export function LotDetailModal({
               disabled={!hasPrev}
               onClick={handlePrevLot}
               className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-2xs"
-              title="Xem lô trước (Mũi tên trái)"
+              title={t('tracking.lotDetail.prevLotTooltip') || 'Xem lô trước (Mũi tên trái)'}
             >
               <ChevronLeft size={14} />
-              <span>Lô trước</span>
+              <span>{t('tracking.lotDetail.prevLot') || 'Lô trước'}</span>
             </button>
 
             {/* Quick Jump Input */}
@@ -1535,7 +1528,7 @@ export function LotDetailModal({
                 onKeyDown={(e) => e.key === 'Enter' && handleJumpLot()}
                 placeholder={currentIndex >= 0 ? `${currentIndex + 1}` : '1'}
                 className="w-12 text-center h-6 font-mono font-bold text-foreground bg-card border border-border/80 rounded-xs px-1 text-xs outline-none focus:border-primary shadow-2xs"
-                title="Gõ số thứ tự hoặc ID lô rồi bấm Enter để nhảy nhanh"
+                title={t('tracking.lotDetail.jumpTooltip') || 'Gõ số thứ tự hoặc ID lô rồi bấm Enter để nhảy nhanh'}
               />
               <span>/ {siblingItems.length}</span>
             </div>
@@ -1545,9 +1538,9 @@ export function LotDetailModal({
               disabled={!hasNext}
               onClick={handleNextLot}
               className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-2xs"
-              title="Xem lô sau (Mũi tên phải)"
+              title={t('tracking.lotDetail.nextLotTooltip') || 'Xem lô sau (Mũi tên phải)'}
             >
-              <span>Lô sau</span>
+              <span>{t('tracking.lotDetail.nextLot') || 'Lô sau'}</span>
               <ChevronRight size={14} />
             </button>
           </div>
@@ -1569,7 +1562,7 @@ export function LotDetailModal({
                   className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition cursor-pointer shadow-2xs"
                 >
                   <RotateCcw size={13} />
-                  <span>Hủy</span>
+                  <span>{t('common.cancel') || 'Hủy'}</span>
                 </button>
                 <button
                   type="button"
@@ -1577,7 +1570,7 @@ export function LotDetailModal({
                   className="inline-flex items-center gap-1 rounded-lg bg-primary text-primary-foreground px-3.5 py-2 text-xs font-semibold hover:bg-primary/90 transition cursor-pointer shadow-2xs"
                 >
                   <Save size={13} />
-                  <span>Lưu thay đổi</span>
+                  <span>{t('common.save') || 'Lưu thay đổi'}</span>
                 </button>
               </>
             ) : (
@@ -1585,9 +1578,7 @@ export function LotDetailModal({
                 type="button"
                 onClick={handleCloseModal}
                 className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition cursor-pointer shadow-2xs"
-              >
-                Đóng
-              </button>
+              >{t('common.close') || 'Đóng'}</button>
             )}
           </div>
         </div>
@@ -1612,7 +1603,7 @@ export function LotDetailModal({
             if (!isEditing) {
               onUpdate({ ncc_giando: newShorthand });
             }
-            toast.success('Đã cập nhật giản đồ chu trình nhiệt luyện');
+            toast.success(t('tracking.lotDetail.thermalCycleUpdated') || 'Đã cập nhật giản đồ chu trình nhiệt luyện');
             setHeatCycleModalOpen(false);
           }}
         />

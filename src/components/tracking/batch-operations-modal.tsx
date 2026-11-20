@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useTranslation } from '@/i18n';
 import { toast } from 'sonner';
 import { playAudioCue } from '@/lib/audio-cues';
 import { roleBadge, roleLabel, canViewPricing, type Role } from '@/lib/dynamo-auth';
@@ -214,6 +215,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
   role,
   onApply,
 }) => {
+  const { t } = useTranslation();
   // State 1: Active lots selection (right column)
   const [activeLotIds, setActiveLotIds] = useState<Set<string>>(() => new Set(items.map((i) => i.ID_Key)));
   const [lotSearch, setLotSearch] = useState('');
@@ -276,7 +278,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     const isAllowed = isFieldEditableByRole(key, role);
     if (!isAllowed) {
       playAudioCue('beep');
-      toast.warning('Vai trò của bạn không có quyền sửa thông số này');
+      toast.warning(t('tracking.batchModal.noPermissionField') || 'Vai trò của bạn không có quyền sửa thông số này');
       return;
     }
     const next = new Set(selectedFieldKeys);
@@ -295,14 +297,14 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
   // Handle local files drop / input
   const handleProcessFile = async (file: File) => {
     if (file.type.startsWith('image/')) {
-      toast.info(`Đang nén ảnh ${file.name}...`);
+      toast.info(t('tracking.attachments.optimizingImage', { name: file.name }) || `Đang nén ảnh ${file.name}...`);
       try {
         const compressed = await compressImageFile(file);
         setStagedFiles((prev) => [...prev, { file, dataUri: compressed, name: file.name }]);
         playAudioCue('success');
-        toast.success(`Đã thêm ảnh: ${file.name}`);
+        toast.success(t('tracking.attachments.imageAdded', { name: file.name }) || `Đã thêm ảnh: ${file.name}`);
       } catch {
-        toast.error('Lỗi khi nén ảnh');
+        toast.error(t('tracking.attachments.imageError') || 'Lỗi khi nén ảnh');
       }
       return;
     }
@@ -320,7 +322,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
       if (typeof reader.result === 'string') {
         setStagedFiles((prev) => [...prev, { file, dataUri: reader.result as string, name: file.name }]);
         playAudioCue('success');
-        toast.success(`Đã thêm tệp: ${file.name}`);
+        toast.success(t('tracking.attachments.fileAdded', { name: file.name }) || `Đã thêm tệp: ${file.name}`);
       }
     };
     reader.readAsDataURL(file);
@@ -338,14 +340,14 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     if (e) e.preventDefault();
     const parsed = parseMultiUrls(urlInput, urlNote.trim() || 'Tài liệu');
     if (parsed.length === 0) {
-      toast.error('Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)');
+      toast.error(t('tracking.attachments.invalidUrl') || 'Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)');
       return;
     }
     setStagedUrls((prev) => [...prev, ...parsed]);
     setUrlInput('');
     setUrlNote('');
     playAudioCue('success');
-    toast.success(`Đã thêm ${parsed.length} liên kết tài liệu`);
+    toast.success(t('tracking.attachments.linksAdded', { count: parsed.length }) || `Đã thêm ${parsed.length} liên kết tài liệu`);
   };
 
   // Run Smart Match and auto-uncheck non-matching lots
@@ -354,7 +356,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     const urlsToMatch = overrideUrls || stagedUrls;
 
     if (filesToMatch.length === 0 && urlsToMatch.length === 0) {
-      toast.warning('Vui lòng tải lên tệp hoặc dán liên kết trước khi kích hoạt Smart Match');
+      toast.warning(t('tracking.batchModal.uploadBeforeSmartMatch') || 'Vui lòng tải lên tệp hoặc dán liên kết trước khi kích hoạt Smart Match');
       return;
     }
 
@@ -376,7 +378,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     setActiveLotIds(matchedIds);
     setAssignmentStrategy('smart');
     playAudioCue('success');
-    toast.info(`Smart Match hoàn tất: Khớp ${matchedIds.size}/${items.length} lô. Các lô không khớp đã được tự động bỏ tích.`);
+    toast.info(t('tracking.batchModal.smartMatchComplete', { matched: matchedIds.size, total: items.length }) || `Smart Match hoàn tất: Khớp ${matchedIds.size}/${items.length} lô. Các lô không khớp đã được tự động bỏ tích.`);
   };
 
   // Sửa nhanh tên tệp/link và tự động chạy Smart Match
@@ -390,7 +392,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
     const nextUrls = stagedUrls.map((u, i) => (i === idx ? { ...u, name: finalName } : u));
     setStagedUrls(nextUrls);
     setEditingUrlIdx(null);
-    toast.success(`Đã đổi tên thành: ${finalName}`);
+    toast.success(t('tracking.attachments.renamedFile', { name: finalName }) || `Đã đổi tên thành: ${finalName}`);
     // Tự động kích hoạt Smart Match theo tên mới ngay lập tức
     handleSmartMatch(stagedFiles, nextUrls);
   };
@@ -501,20 +503,20 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
 
   const handleConfirmSubmit = () => {
     if (activeLotIds.size === 0) {
-      toast.warning('Vui lòng chọn ít nhất 1 lô để áp dụng');
+      toast.warning(t('tracking.batchModal.selectAtLeastOneLot') || 'Vui lòng chọn ít nhất 1 lô để áp dụng');
       return;
     }
     if ((stagedFiles.length > 0 || stagedUrls.length > 0) && activeDocColumns.size === 0) {
-      toast.warning('Bạn đã thêm tệp đính kèm nhưng chưa chọn cột nhận tệp. Vui lòng bấm chọn ít nhất 1 thẻ phía trên (VD: + Chứng chỉ QT, + Giản đồ nhiệt...).');
+      toast.warning(t('tracking.batchModal.docColRequired') || 'Bạn đã thêm tệp đính kèm nhưng chưa chọn cột nhận tệp. Vui lòng bấm chọn ít nhất 1 thẻ phía trên (VD: + Chứng chỉ QT, + Giản đồ nhiệt...).');
       return;
     }
     if (totalModificationsCount === 0) {
-      toast.warning('Chưa có thông số nào được chỉnh sửa hoặc tệp nào được gán');
+      toast.warning(t('tracking.batchModal.noParamsModified') || 'Chưa có thông số nào được chỉnh sửa hoặc tệp nào được gán');
       return;
     }
     onApply(candidatePatchMap);
     playAudioCue('success');
-    toast.success(`Đã áp dụng cập nhật cho ${candidatePatchMap.size} lô thành công!`);
+    toast.success(t('tracking.batchModal.appliedSuccess', { count: candidatePatchMap.size }) || `Đã áp dụng cập nhật cho ${candidatePatchMap.size} lô thành công!`);
     onClose();
   };
 
@@ -551,14 +553,16 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight uppercase whitespace-nowrap">
-                  THAO TÁC HÀNG LOẠT ({items.length} LÔ)
+                  {t('tracking.batchModal.title', { count: items.length }) || `THAO TÁC HÀNG LOẠT (${items.length} LÔ)`}
                 </h2>
                 <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-300 whitespace-nowrap">
-                  Quyền: {roleLabel(role as Role)}
+                  {t('tracking.batchModal.role', { role: roleLabel(role as Role) }) || `Quyền: ${roleLabel(role as Role)}`}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Cập nhật đồng bộ các thông số và tài liệu cho toàn bộ lô được chọn • <span className="font-medium text-slate-700">{totalPieces} chi tiết • {totalWeight} kg</span>
+                {t('tracking.batchModal.description', { pieces: totalPieces, weight: totalWeight }) || (
+                  <>Cập nhật đồng bộ các thông số và tài liệu cho toàn bộ lô được chọn • <span className="font-medium text-slate-700">{totalPieces} chi tiết • {totalWeight} kg</span></>
+                )}
               </p>
             </div>
           </div>
@@ -567,7 +571,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-base transition cursor-pointer"
-            title="Đóng (Esc)"
+            title={t('tracking.lotDetail.closeEsc') || 'Đóng (Esc)'}
           >
             <X size={18} />
           </button>
@@ -581,7 +585,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
             <div className="p-4 border-b border-slate-200 bg-slate-50/70 space-y-2.5 shrink-0">
               <div className="flex items-center justify-between gap-2">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap">
-                  1. Chọn thông số cần cập nhật đồng bộ
+                  {t('tracking.batchModal.step1') || '1. Chọn thông số cần cập nhật đồng bộ'}
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -591,9 +595,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                       setFieldValues({});
                     }}
                     className="text-[11px] text-rose-600 hover:text-rose-700 font-medium cursor-pointer whitespace-nowrap"
-                  >
-                    Bỏ chọn hết trường
-                  </button>
+                  >{t('tracking.batchModal.deselectAllFields') || 'Bỏ chọn hết trường'}</button>
                 </div>
               </div>
 
@@ -603,7 +605,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Tìm nhanh thông số..."
+                    placeholder={t('tracking.batchModal.searchFieldPlaceholder') || 'Tìm nhanh thông số...'}
                     value={fieldSearch}
                     onChange={(e) => setFieldSearch(e.target.value)}
                     className="w-full pl-7 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
@@ -647,7 +649,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         key={field.key as string}
                         type="button"
                         disabled
-                        title="Vai trò của bạn không có quyền sửa thông số này"
+                        title={t('tracking.batchModal.noPermissionField') || 'Vai trò của bạn không có quyền sửa thông số này'}
                         className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed flex items-center gap-1 opacity-75"
                       >
                         <Lock size={11} className="shrink-0" />
@@ -689,10 +691,8 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-white">
               {selectedFieldKeys.size === 0 && activeTab !== 'documents' ? (
                 <div className="border border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50/50">
-                  <div className="text-base font-semibold text-slate-700">Chưa chọn thông số nào để cập nhật</div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Hãy bấm vào các thẻ thông số phía trên (VD: <strong>+ CHỨNG CHỈ QT</strong>, <strong>+ ĐỘ CỨNG</strong>, <strong>+ HẠN TRẢ</strong>) để mở khung nhập liệu đồng bộ.
-                  </p>
+                  <div className="text-base font-semibold text-slate-700">{t('tracking.batchModal.noFieldSelectedTitle') || 'Chưa chọn thông số nào để cập nhật'}</div>
+                  <p className="text-xs text-slate-500 mt-1">{t('tracking.batchModal.noFieldSelectedDesc') || 'Hãy bấm vào các thẻ thông số phía trên (VD: + CHỨNG CHỈ QT, + ĐỘ CỨNG, + HẠN TRẢ) để mở khung nhập liệu đồng bộ.'}</p>
                 </div>
               ) : null}
 
@@ -706,12 +706,8 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                     {/* Hàng 1: Tiêu đề Card và Nút đóng */}
                     <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold uppercase shrink-0">
-                          UPLOAD HÀNG LOẠT
-                        </span>
-                        <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                          ĐÍNH KÈM TÀI LIỆU & CHỨNG CHỈ GIA CÔNG
-                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold uppercase shrink-0">{t('tracking.batchModal.uploadCardTitle') || 'UPLOAD HÀNG LOẠT'}</span>
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-slate-100 whitespace-nowrap">{t('tracking.batchModal.uploadCardSubtitle') || 'ĐÍNH KÈM TÀI LIỆU & CHỨNG CHỈ GIA CÔNG'}</span>
                       </div>
                       <button
                         type="button"
@@ -727,7 +723,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           }
                         }}
                         className="text-slate-400 hover:text-rose-600 text-xs px-1 cursor-pointer shrink-0"
-                        title="Đóng khung Upload"
+                        title={t('tracking.batchModal.closeUpload') || 'Đóng khung Upload'}
                       >
                         <X size={14} />
                       </button>
@@ -737,7 +733,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                     <div className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap min-h-[34px]">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[11px] font-bold uppercase text-slate-600 dark:text-slate-400 shrink-0">
-                          Cột nhận tệp ({activeDocColumns.size}):
+                          {t('tracking.batchModal.targetDocColumns', { count: activeDocColumns.size }) || `Cột nhận tệp (${activeDocColumns.size}):`}
                         </span>
                         {activeDocColumns.size > 0 ? (
                           Array.from(activeDocColumns).map((col) => {
@@ -754,7 +750,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           })
                         ) : (
                           <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium italic">
-                            Chưa chọn cột nhận tệp — Vui lòng bấm chọn thẻ phía trên (+ Chứng chỉ QT, + Giản đồ nhiệt...)
+                            {t('tracking.batchModal.noTargetDocColumns') || 'Chưa chọn cột nhận tệp — Vui lòng bấm chọn thẻ phía trên (+ Chứng chỉ QT, + Giản đồ nhiệt...)'}
                           </span>
                         )}
                       </div>
@@ -764,7 +760,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
                       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
                         <div className="text-[10.5px] font-bold uppercase text-slate-700">
-                          A. Phương thức phân bổ tệp
+                          {t('tracking.batchModal.allocationMethod') || 'A. Phương thức phân bổ tệp'}
                         </div>
                         <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
                           <button
@@ -773,27 +769,25 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                             className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${assignmentStrategy === 'shared' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                               }`}
                           >
-                            Đồng bộ ({activeLotIds.size} lô)
+                            {t('tracking.batchModal.allocSync', { count: activeLotIds.size }) || `Đồng bộ (${activeLotIds.size} lô)`}
                           </button>
                           <button
                             type="button"
                             onClick={() => setAssignmentStrategy('smart')}
                             className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${assignmentStrategy === 'smart' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                               }`}
-                          >
-                            Tự khớp Mã hàng
-                          </button>
+                          >{t('tracking.batchModal.allocSmartMatch') || 'Tự khớp Mã hàng'}</button>
                         </div>
                         <p className="text-[10px] text-slate-500 leading-tight">
                           {assignmentStrategy === 'shared'
-                            ? 'Gắn cùng 1 bộ tệp/link cho toàn bộ các lô được chọn.'
-                            : 'Sửa tên file (VD: 9690-C17.pdf) để gắn tự động vào đúng mã hàng.'}
+                            ? (t('tracking.batchModal.allocSyncDesc') || 'Gắn cùng 1 bộ tệp/link cho toàn bộ các lô được chọn.')
+                            : (t('tracking.batchModal.allocSmartMatchDesc') || 'Sửa tên file (VD: 9690-C17.pdf) để gắn tự động vào đúng mã hàng.')}
                         </p>
                       </div>
 
                       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
                         <div className="text-[10.5px] font-bold uppercase text-slate-700">
-                          B. Chế độ ghi dữ liệu
+                          {t('tracking.batchModal.writeMode') || 'B. Chế độ ghi dữ liệu'}
                         </div>
                         <div className="grid grid-cols-2 gap-1 bg-slate-200/70 p-0.5 rounded-md text-[11px]">
                           <button
@@ -801,22 +795,18 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                             onClick={() => setWritePolicy('append')}
                             className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${writePolicy === 'append' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                               }`}
-                          >
-                            Cộng nối (Append)
-                          </button>
+                          >{t('tracking.batchModal.modeAppend') || 'Cộng nối (Append)'}</button>
                           <button
                             type="button"
                             onClick={() => setWritePolicy('replace')}
                             className={`py-1 px-2 rounded font-semibold transition cursor-pointer ${writePolicy === 'replace' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                               }`}
-                          >
-                            Ghi đè (Replace)
-                          </button>
+                          >{t('tracking.batchModal.modeReplace') || 'Ghi đè (Replace)'}</button>
                         </div>
                         <p className="text-[10px] text-slate-500 leading-tight">
                           {writePolicy === 'append'
-                            ? 'An toàn: Giữ nguyên tệp cũ và cộng nối thêm tệp mới vào danh sách.'
-                            : 'Chú ý: Xóa nội dung cột đã chọn và thay mới hoàn toàn.'}
+                            ? (t('tracking.batchModal.modeAppendDesc') || 'An toàn: Giữ nguyên tệp cũ và cộng nối thêm tệp mới vào danh sách.')
+                            : (t('tracking.batchModal.modeReplaceDesc') || 'Chú ý: Xóa nội dung cột đã chọn và thay mới hoàn toàn.')}
                         </p>
                       </div>
                     </div>
@@ -848,20 +838,20 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         <span className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
                           ↑
                         </span>
-                        <span>Kéo thả nhiều tệp vào đây, hoặc <span className="underline">chọn tệp từ máy tính</span></span>
+                        <span>{t('tracking.batchModal.dropzoneText') || 'Kéo thả nhiều tệp vào đây, hoặc chọn tệp từ máy tính'}</span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        Hỗ trợ PDF, Ảnh, Excel (Khuyến nghị &lt;50KB hoặc dán nhiều Link Google Drive / OneDrive bên dưới)
+                        {t('tracking.batchModal.dropzoneHint') || 'Hỗ trợ PDF, Ảnh, Excel (Khuyến nghị <50KB hoặc dán nhiều Link Google Drive / OneDrive bên dưới)'}
                       </p>
                     </div>
 
                     {/* Multi-URL Cloud Paste Bar */}
                     <form onSubmit={handleAddMultiUrls} className="flex flex-col sm:flex-row gap-2">
-                      <label htmlFor={urlInputId} className="sr-only">URL tài liệu</label>
+                      <label htmlFor={urlInputId} className="sr-only">{t('tracking.attachments.urlPlaceholder') || 'URL tài liệu'}</label>
                       <input
                         id={urlInputId}
                         type="text"
-                        placeholder="Dán Link URL Google Drive / OneDrive (hỗ trợ nhiều link cách nhau bởi dấu phẩy hoặc dòng mới)..."
+                        placeholder={t('tracking.batchModal.urlInputPlaceholder') || 'Dán Link URL Google Drive / OneDrive (hỗ trợ nhiều link cách nhau bởi dấu phẩy hoặc dòng mới)...'}
                         value={urlInput}
                         onChange={(e) => setUrlInput(e.target.value)}
                         className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
@@ -870,15 +860,13 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         type="submit"
                         disabled={!urlInput.trim()}
                         className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold whitespace-nowrap transition cursor-pointer disabled:opacity-40"
-                      >
-                        + Thêm Link
-                      </button>
+                      >{t('tracking.batchModal.addLink') || '+ Thêm Link'}</button>
                     </form>
 
                     {/* Staged file list header without simulation buttons */}
                     <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
                       <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                        DANH SÁCH TỆP CHỜ GẮN ({stagedFiles.length + stagedUrls.length})
+                        {t('tracking.batchModal.stagedFilesTitle', { count: stagedFiles.length + stagedUrls.length }) || `DANH SÁCH TỆP CHỜ GẮN (${stagedFiles.length + stagedUrls.length})`}
                       </div>
                       {(stagedFiles.length > 0 || stagedUrls.length > 0) && (
                         <button
@@ -889,7 +877,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           }}
                           className="text-[10.5px] text-rose-600 hover:text-rose-700 hover:underline font-medium cursor-pointer"
                         >
-                          Xóa tất cả tệp ({stagedFiles.length + stagedUrls.length})
+                          {t('tracking.batchModal.clearAllFiles', { count: stagedFiles.length + stagedUrls.length }) || `Xóa tất cả tệp (${stagedFiles.length + stagedUrls.length})`}
                         </button>
                       )}
                     </div>
@@ -913,7 +901,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                                     <span className={`text-[10px] font-mono px-1 py-0.2 rounded-xs inline-block ${
                                       isMatched ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold' : 'text-amber-700 bg-amber-50 border border-amber-200'
                                     }`}>
-                                      {isMatched ? `✓ Khớp ${matchedLots.length} lô (${matchedLots.map(l => l.ma_hang).slice(0, 2).join(', ')})` : '⚠ Chưa khớp mã lô nào'}
+                                      {isMatched ? `✓ Khớp ${matchedLots.length} lô (${matchedLots.map(l => l.ma_hang).slice(0, 2).join(', ')})` : (t('tracking.batchModal.unmatchedLots') || '⚠ Chưa khớp mã lô nào')}
                                     </span>
                                   )}
                                 </div>
@@ -957,15 +945,13 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                                         onKeyDown={(e) => {
                                           if (e.key === 'Escape') setEditingUrlIdx(null);
                                         }}
-                                        placeholder="Nhập mã hàng (VD: 9662-R1)..."
+                                        placeholder={t('tracking.batchModal.enterPartNoPlaceholder') || 'Nhập mã hàng (VD: 9662-R1)...'}
                                         className="h-6 px-2 text-xs font-mono font-bold border border-slate-900 rounded bg-white text-slate-900 focus:outline-none flex-1 max-w-[220px]"
                                       />
                                       <button
                                         type="submit"
                                         className="h-6 px-2 rounded bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
-                                      >
-                                        Lưu & Khớp
-                                      </button>
+                                      >{t('tracking.batchModal.saveAndMatch') || 'Lưu & Khớp'}</button>
                                       <button
                                         type="button"
                                         onClick={() => setEditingUrlIdx(null)}
@@ -981,7 +967,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                                           setEditingUrlIdx(i);
                                           setEditingNameValue(u.name.replace(/\.pdf$/i, ''));
                                         }}
-                                        title="Click để đổi tên hoặc gán mã hàng (VD: 9662-R1)"
+                                        title={t('tracking.batchModal.renameHint') || 'Click để đổi tên hoặc gán mã hàng (VD: 9662-R1)'}
                                         className="text-xs font-semibold text-slate-900 truncate block hover:text-blue-700 hover:underline cursor-pointer"
                                       >
                                         {u.name}
@@ -992,7 +978,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                                           setEditingUrlIdx(i);
                                           setEditingNameValue(u.name.replace(/\.pdf$/i, ''));
                                         }}
-                                        title="Click để đổi tên hoặc gán mã hàng (VD: 9662-R1)"
+                                        title={t('tracking.batchModal.renameHint') || 'Click để đổi tên hoặc gán mã hàng (VD: 9662-R1)'}
                                         className="p-0.5 text-slate-400 hover:text-slate-900 opacity-60 group-hover/name:opacity-100 transition cursor-pointer"
                                       >
                                         <PenLine size={12} />
@@ -1005,7 +991,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                                       <span className={`text-[10px] font-mono px-1 py-0.2 rounded-xs inline-block ${
                                         isMatched ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold' : 'text-amber-700 bg-amber-50 border border-amber-200'
                                       }`}>
-                                        {isMatched ? `✓ Khớp ${matchedLots.length} lô (${matchedLots.map(l => l.ma_hang).slice(0, 2).join(', ')})` : '⚠ Chưa khớp mã lô nào (Click tên để sửa mã)'}
+                                        {isMatched ? `✓ Khớp ${matchedLots.length} lô (${matchedLots.map(l => l.ma_hang).slice(0, 2).join(', ')})` : (t('tracking.batchModal.unmatchedLotsRename') || '⚠ Chưa khớp mã lô nào (Click tên để sửa mã)')}
                                       </span>
                                     )}
                                   </div>
@@ -1048,8 +1034,8 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           <span className="text-xs font-bold uppercase tracking-wide text-slate-900 whitespace-nowrap">{def.label}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[11px] text-slate-500 truncate max-w-[360px]" title={`Hiện tại: ${currentDistribution}`}>
-                            Hiện tại: <strong className="text-slate-700">{currentDistribution}</strong>
+                          <span className="text-[11px] text-slate-500 truncate max-w-[360px]" title={t('tracking.batchModal.currentDistribution', { dist: currentDistribution }) || `Hiện tại: ${currentDistribution}`}>
+                            {t('tracking.batchModal.currentDistribution', { dist: currentDistribution }) || `Hiện tại: ${currentDistribution}`}
                           </span>
                           <button
                             type="button"
@@ -1069,10 +1055,10 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           }
                           className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-slate-900 font-medium text-slate-900"
                         >
-                          <option value="">-- Chọn giá trị cập nhật đồng bộ --</option>
+                          <option value="">{t('tracking.batchModal.selectBatchValue') || '-- Chọn giá trị cập nhật đồng bộ --'}</option>
                           {def.options?.map((opt) => (
                             <option key={opt} value={opt}>
-                              {opt || '(Trống)'}
+                              {opt || (t('tracking.batchModal.emptyOption') || '(Trống)')}
                             </option>
                           ))}
                         </select>
@@ -1088,7 +1074,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                       ) : (
                         <input
                           type={def.type === 'number' ? 'number' : 'text'}
-                          placeholder={`Nhập ${def.label}...`}
+                          placeholder={t('tracking.batchModal.inputFieldPlaceholder', { label: def.label }) || `Nhập ${def.label}...`}
                           value={fieldValues[key] ?? ''}
                           onChange={(e) =>
                             setFieldValues((prev) => ({
@@ -1111,14 +1097,14 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 whitespace-nowrap">
-                    2. Danh sách lô áp dụng & Xem trước (Live Diff)
+                    {t('tracking.batchModal.step2') || '2. Danh sách lô áp dụng & Xem trước (Live Diff)'}
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap">
-                    Có thể bỏ tích từng lô ngoại lệ ngay bên dưới trước khi xác nhận
+                    {t('tracking.batchModal.step2Sub') || 'Có thể bỏ tích từng lô ngoại lệ ngay bên dưới trước khi xác nhận'}
                   </p>
                 </div>
                 <span className="px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-[11px] font-semibold whitespace-nowrap shrink-0">
-                  {activeLotIds.size} / {items.length} lô
+                  {t('tracking.batchModal.lotCount', { active: activeLotIds.size, total: items.length }) || `${activeLotIds.size} / ${items.length} lô`}
                 </span>
               </div>
 
@@ -1128,7 +1114,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                   <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Lọc mã hàng, mã đơn trong danh sách..."
+                    placeholder={t('tracking.batchModal.searchLotsPlaceholder') || 'Lọc mã hàng, mã đơn trong danh sách...'}
                     value={lotSearch}
                     onChange={(e) => setLotSearch(e.target.value)}
                     className="w-full pl-7 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
@@ -1140,7 +1126,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                     onClick={() => setActiveLotIds(new Set(items.map((i) => i.ID_Key)))}
                     className="px-2 py-1 rounded bg-white text-slate-900 font-semibold border border-slate-200 text-[11px] shadow-xs cursor-pointer hover:bg-slate-50"
                   >
-                    Tất cả ({items.length})
+                    {t('tracking.batchModal.allLots', { count: items.length }) || `Tất cả (${items.length})`}
                   </button>
                   {assignmentStrategy === 'smart' && (stagedFiles.length > 0 || stagedUrls.length > 0) && (
                     <button
@@ -1160,17 +1146,13 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                         setActiveLotIds(matched);
                       }}
                       className="px-2 py-1 rounded bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 text-[11px] cursor-pointer hover:bg-emerald-100 whitespace-nowrap"
-                    >
-                      Chỉ lô khớp
-                    </button>
+                    >{t('tracking.batchModal.onlyMatchedLots') || 'Chỉ lô khớp'}</button>
                   )}
                   <button
                     type="button"
                     onClick={() => setActiveLotIds(new Set())}
                     className="px-2 py-1 rounded text-slate-600 hover:text-slate-900 border border-slate-200 text-[11px] cursor-pointer hover:bg-slate-50"
-                  >
-                    Bỏ chọn
-                  </button>
+                  >{t('tracking.batchModal.deselect') || 'Bỏ chọn'}</button>
                 </div>
               </div>
             </div>
@@ -1230,11 +1212,11 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                           {isSmartActive && (
                             isMatchedToFiles ? (
                               <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-0.5 shrink-0">
-                                ✓ Khớp file
+                                {t('tracking.batchModal.fileMatched') || '✓ Khớp file'}
                               </span>
                             ) : (
                               <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-400 text-[10px] shrink-0">
-                                Chưa khớp
+                                {t('tracking.batchModal.fileUnmatched') || 'Chưa khớp'}
                               </span>
                             )
                           )}
@@ -1259,7 +1241,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
                             ))
                           ) : (
                             <span className="text-[10px] text-slate-400 italic">
-                              — Chưa có thông số thay đổi
+                              {t('tracking.batchModal.noChanges') || '— Chưa có thông số thay đổi'}
                             </span>
                           )}
                         </div>
@@ -1276,7 +1258,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
           <div className="flex items-center gap-2 text-xs text-slate-600">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span>
-              Đang chọn cập nhật <strong className="text-slate-900">{selectedFieldKeys.size} thông số/tài liệu</strong> đồng bộ cho <strong className="text-slate-900">{activeLotIds.size} lô</strong> (Không yêu cầu Audit Trail).
+              {t('tracking.batchModal.summaryUpdating', { fields: `${selectedFieldKeys.size} ${t('tracking.batchModal.tabs.technical') || 'thông số'}`, lots: `${activeLotIds.size} ${t('common.units.lots') || 'lô'}` }) || `Đang chọn cập nhật ${selectedFieldKeys.size} thông số/tài liệu đồng bộ cho ${activeLotIds.size} lô (Không yêu cầu Audit Trail).`}
             </span>
           </div>
 
@@ -1285,9 +1267,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
               type="button"
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs transition cursor-pointer"
-            >
-              Hủy
-            </button>
+            >{t('common.cancel') || 'Hủy'}</button>
             <button
               type="button"
               disabled={activeLotIds.size === 0 || totalModificationsCount === 0}
@@ -1295,7 +1275,7 @@ export const BatchOperationsModal: React.FC<BatchOperationsModalProps> = ({
               className="px-5 py-2 rounded-lg bg-[#111827] hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Check size={14} />
-              <span>Xác nhận ({candidatePatchMap.size} lô)</span>
+              <span>{t('tracking.batchModal.confirmUpdate', { count: candidatePatchMap.size }) || `Xác nhận (${candidatePatchMap.size} lô)`}</span>
             </button>
           </div>
         </div>

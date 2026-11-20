@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/i18n';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 export interface FileLightboxModalProps {
@@ -7,6 +8,7 @@ export interface FileLightboxModalProps {
 }
 
 export const FileLightboxModal: React.FC<FileLightboxModalProps> = ({ previewFile, onClose }) => {
+  const { t } = useTranslation();
   if (!previewFile) return null;
 
   return (
@@ -29,7 +31,7 @@ export const FileLightboxModal: React.FC<FileLightboxModalProps> = ({ previewFil
             rel="noreferrer"
             className="text-xs text-primary hover:underline font-sans"
           >
-            [Mở tab mới]
+            [{t('tracking.attachments.openTab') || 'Mở tab mới'}]
           </a>
         </DialogTitle>
         <div className="mt-3 max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-50/50 dark:bg-secondary/30 rounded-lg p-2 border border-slate-100 dark:border-border/40">

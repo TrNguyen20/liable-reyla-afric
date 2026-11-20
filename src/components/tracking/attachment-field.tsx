@@ -1,4 +1,5 @@
 import React, { useState, useRef, useId } from 'react';
+import { useTranslation } from '@/i18n';
 import {
   FileText,
   Image as ImageIcon,
@@ -542,6 +543,7 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
   canEdit = true,
   field,
 }) => {
+  const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isHeatCycleField = field === 'ncc_giando';
   const items = isHeatCycleField ? [] : parseAttachments(value, lotCode);
@@ -575,7 +577,7 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenDialog}
-                  title="Bấm để xem hoặc chỉnh sửa thông số chu trình nhiệt luyện"
+                  title={t('tracking.attachments.clickToEditThermal') || 'Bấm để xem hoặc chỉnh sửa thông số chu trình nhiệt luyện'}
                   className="inline-flex items-center justify-center h-6 px-1.5 py-0.5 rounded-xs bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-2xs transition cursor-pointer active:scale-95 select-none"
                 >
                   {/* Mini SVG Graphic - hoàn toàn thuần vector nét than chì, không còn chữ/tag QT */}
@@ -597,9 +599,7 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
                 className="z-50 w-[400px] rounded-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-2.5 shadow-xl text-slate-900 dark:text-slate-100 outline-none"
               >
                 <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1 mb-2">
-                  <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    CHU TRÌNH NHIỆT LUYỆN
-                  </span>
+                  <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">{t('tracking.lotDetail.thermalCycleTitle') || 'CHU TRÌNH NHIỆT LUYỆN'}</span>
                   {lotCode && (
                     <span className="font-mono text-[9.5px] font-semibold text-slate-500 dark:text-slate-400">
                       {lotCode}
@@ -618,9 +618,7 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
                   <span className="text-slate-600 dark:text-slate-300 truncate max-w-[280px]" title={value}>
                     {value}
                   </span>
-                  <span className="text-slate-400 text-[9px] shrink-0">
-                    Bấm để hiệu chỉnh
-                  </span>
+                  <span className="text-slate-400 text-[9px] shrink-0">{t('tracking.attachments.clickToCalibrate') || 'Bấm để hiệu chỉnh'}</span>
                 </div>
               </HoverCardContent>
             </HoverCard>
@@ -629,14 +627,14 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
               type="button"
               onClick={handleOpenDialog}
               disabled={!canEdit}
-              title="Chưa có biểu đồ chu trình nhiệt luyện - Bấm để nạp thông số"
+              title={t('tracking.attachments.noDiagramClickToLoad') || 'Chưa có biểu đồ chu trình nhiệt luyện - Bấm để nạp thông số'}
               className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all ${
                 canEdit
                   ? 'border-slate-200 dark:border-slate-700 bg-secondary/50 hover:bg-secondary text-slate-700 dark:text-slate-300 hover:border-amber-500/50 cursor-pointer active:scale-95'
                   : 'border-slate-200/50 dark:border-slate-800 bg-secondary/20 text-muted-foreground/50 opacity-50 cursor-not-allowed'
               } select-none`}
             >
-              <span>+ Giản đồ</span>
+              <span>{t('tracking.attachments.addDiagram') || '+ Giản đồ'}</span>
             </button>
           )
         ) : items.length === 0 ? (
@@ -644,26 +642,26 @@ export const AttachmentCell: React.FC<AttachmentCellProps> = ({
             <button
               type="button"
               onClick={handleOpenDialog}
-              title={`${title}: Bấm để tải lên tệp hoặc dán liên kết`}
+              title={t('tracking.attachments.clickToUploadOrLink', { title }) || `${title}: Bấm để tải lên tệp hoặc dán liên kết`}
               className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all border-slate-200 dark:border-slate-700 bg-secondary/50 hover:bg-secondary text-slate-700 dark:text-slate-300 hover:border-primary/40 cursor-pointer active:scale-95 select-none"
             >
-              <span>+ Tệp</span>
+              <span>{t('tracking.attachments.addFile') || '+ Tệp'}</span>
             </button>
           ) : (
             <button
               type="button"
               disabled
-              title="Chưa được phân quyền tải lên"
+              title={t('tracking.attachments.unauthorizedUpload') || 'Chưa được phân quyền tải lên'}
               className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-xs border text-[11px] font-medium transition-all border-slate-200/50 dark:border-slate-800 bg-secondary/20 text-muted-foreground/50 opacity-50 cursor-not-allowed select-none"
             >
-              <span>+ Tệp</span>
+              <span>{t('tracking.attachments.addFile') || '+ Tệp'}</span>
             </button>
           )
         ) : (
           <button
             type="button"
             onClick={handleOpenDialog}
-            title={`${title} (${items.length} tệp) - Bấm để xem hoặc chỉnh sửa`}
+            title={t('tracking.attachments.clickToViewOrEdit', { title, count: items.length }) || `${title} (${items.length} tệp) - Bấm để xem hoặc chỉnh sửa`}
             className="inline-flex items-center justify-center gap-1 rounded-xs bg-slate-900 px-2 py-0.5 font-mono text-[10.5px] font-bold text-white shadow-2xs transition-all hover:bg-slate-800 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 border border-slate-700/60 dark:border-slate-600/60 tabular-nums cursor-pointer active:scale-95 select-none"
           >
             <span>{getAttachmentBadgeLabel(items)}</span>
@@ -730,6 +728,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
   onSave,
   canEdit = true,
 }) => {
+  const { t } = useTranslation();
   const [fileList, setFileList] = useState<AttachmentItem[]>(initialItems);
 
   // Sync internal state when initialItems change or dialog re-opens
@@ -752,7 +751,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
   // Process a local file: Canvas compress for image, 50KB check for PDF/Excel
   const handleProcessFile = async (file: File) => {
     if (file.type.startsWith('image/')) {
-      toast.info(`Đang tối ưu ảnh ${file.name}...`);
+      toast.info(t('tracking.attachments.optimizingImage', { name: file.name }) || `Đang tối ưu ảnh ${file.name}...`);
       try {
         const compressed = await compressImageFile(file);
         const newItem: AttachmentItem = {
@@ -768,9 +767,9 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
         setFileList(updated);
         onSave(updated);
         playAudioCue('success');
-        toast.success(`Đã thêm ảnh: ${file.name}`);
+        toast.success(t('tracking.attachments.imageAdded', { name: file.name }) || `Đã thêm ảnh: ${file.name}`);
       } catch {
-        toast.error('Không thể xử lý hình ảnh này');
+        toast.error(t('tracking.attachments.imageError') || 'Không thể xử lý hình ảnh này');
       }
       return;
     }
@@ -799,7 +798,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
         setFileList(updated);
         onSave(updated);
         playAudioCue('success');
-        toast.success(`Đã thêm tệp: ${file.name}`);
+        toast.success(t('tracking.attachments.fileAdded', { name: file.name }) || `Đã thêm tệp: ${file.name}`);
       }
     };
     reader.readAsDataURL(file);
@@ -824,7 +823,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
     const effectivePrefix = urlNote.trim() || lotCode || 'Tài liệu';
     const parsedItems = parseMultiUrls(raw, effectivePrefix);
     if (parsedItems.length === 0) {
-      toast.error('Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)');
+      toast.error(t('tracking.attachments.invalidUrl') || 'Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)');
       return;
     }
 
@@ -834,7 +833,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
     setPastedUrl('');
     setUrlNote('');
     playAudioCue('success');
-    toast.success(`Đã thêm ${parsedItems.length} liên kết tài liệu`);
+    toast.success(t('tracking.attachments.linksAdded', { count: parsedItems.length }) || `Đã thêm ${parsedItems.length} liên kết tài liệu`);
   };
 
   const handleRenameFile = (id: string, newName: string) => {
@@ -849,7 +848,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
     onSave(updated);
     setEditingFileId(null);
     playAudioCue('success');
-    toast.success(`Đã đổi tên tệp thành: ${finalName}`);
+    toast.success(t('tracking.attachments.renamedFile', { name: finalName }) || `Đã đổi tên tệp thành: ${finalName}`);
   };
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {
@@ -863,7 +862,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
       setFileList(updated);
       onSave(updated);
       playAudioCue('beep');
-      toast.info('Đã xóa tệp đính kèm');
+      toast.info(t('tracking.attachments.fileDeleted') || 'Đã xóa tệp đính kèm');
     } else {
       setConfirmDeleteId(id);
       if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
@@ -907,7 +906,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
               </div>
               {lotCode && (
                 <span className="text-xs text-slate-500 block mt-1">
-                  Lô: <strong className="text-slate-900 font-mono">{lotCode}</strong>
+                  {t('tracking.attachments.lotLabel', { lot: lotCode }) || <>Lô: <strong className="text-slate-900 font-mono">{lotCode}</strong></>}
                 </span>
               )}
             </div>
@@ -954,27 +953,27 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                     ↑
                   </div>
                   <div className="text-xs font-semibold text-slate-800">
-                    Kéo thả tệp vào đây, hoặc <span className="underline text-slate-900">chọn từ máy tính</span>
+                    {t('tracking.attachments.dropzoneSingle') || <>Kéo thả tệp vào đây, hoặc <span className="underline text-slate-900">chọn từ máy tính</span></>}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Hỗ trợ PDF, Ảnh, Excel (Ảnh tự nén &lt;45KB, PDF khuyến nghị &lt;50KB hoặc dán link Cloud)
+                    {t('tracking.attachments.dropzoneSingleHint') || 'Hỗ trợ PDF, Ảnh, Excel (Ảnh tự nén <45KB, PDF khuyến nghị <50KB hoặc dán link Cloud)'}
                   </p>
                 </div>
 
                 {/* Paste Multi-URL Input bar */}
                 <form onSubmit={handleAddUrl} className="flex flex-col sm:flex-row gap-2">
-                  <label htmlFor={urlInputId} className="sr-only">Đường link tài liệu</label>
+                  <label htmlFor={urlInputId} className="sr-only">{t('tracking.attachments.urlPlaceholder') || 'Đường link tài liệu'}</label>
                   <input
                     id={urlInputId}
                     type="text"
-                    placeholder="Hoặc dán Link URL (Google Drive / OneDrive / Cloud)..."
+                    placeholder={t('tracking.attachments.urlPlaceholder') || 'Hoặc dán Link URL (Google Drive / OneDrive / Cloud)...'}
                     value={pastedUrl}
                     onChange={(e) => setPastedUrl(e.target.value)}
                     className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
                   />
                   <input
                     type="text"
-                    placeholder="Tên gợi nhớ (tùy chọn)"
+                    placeholder={t('tracking.attachments.notePlaceholder') || 'Tên gợi nhớ (tùy chọn)'}
                     value={urlNote}
                     onChange={(e) => setUrlNote(e.target.value)}
                     className="sm:w-44 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 font-sans"
@@ -983,9 +982,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                     type="submit"
                     disabled={!pastedUrl.trim()}
                     className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold whitespace-nowrap transition cursor-pointer disabled:opacity-40"
-                  >
-                    + Thêm Link
-                  </button>
+                  >{t('tracking.batchModal.addLink') || '+ Thêm Link'}</button>
                 </form>
               </div>
             )}
@@ -993,12 +990,12 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
             {/* Danh sách tệp (Vertical File List) */}
             <div>
               <div className="flex items-center justify-between pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">
-                <span>Danh sách tệp ({fileList.length})</span>
+                <span>{t('tracking.attachments.fileListTitle', { count: fileList.length }) || `Danh sách tệp (${fileList.length})`}</span>
               </div>
 
               {fileList.length === 0 ? (
                 <div className="p-6 text-center border border-dashed border-slate-200 rounded-lg text-xs text-slate-400">
-                  Chưa có tệp đính kèm nào
+                  {t('tracking.attachments.noAttachments') || 'Chưa có tệp đính kèm nào'}
                 </div>
               ) : (
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
@@ -1027,15 +1024,13 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                                 onKeyDown={(e) => {
                                   if (e.key === 'Escape') setEditingFileId(null);
                                 }}
-                                placeholder="Nhập tên tệp (VD: 9662-R1)..."
+                                placeholder={t('tracking.attachments.renameInputPlaceholder') || 'Nhập tên tệp (VD: 9662-R1)...'}
                                 className="h-6 px-2 text-xs font-mono font-bold border border-slate-900 rounded bg-white text-slate-900 focus:outline-none flex-1 max-w-[240px]"
                               />
                               <button
                                 type="submit"
                                 className="h-6 px-2 rounded bg-slate-900 text-white text-[10px] font-bold cursor-pointer"
-                              >
-                                Lưu
-                              </button>
+                              >{t('tracking.attachments.save') || 'Lưu'}</button>
                               <button
                                 type="button"
                                 onClick={() => setEditingFileId(null)}
@@ -1055,7 +1050,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                                 className={`text-xs font-semibold text-slate-900 truncate block ${
                                   canEdit ? 'hover:text-blue-700 hover:underline cursor-pointer' : ''
                                 }`}
-                                title={canEdit ? 'Click để sửa tên tệp hoặc mã hàng' : file.name}
+                                title={canEdit ? (t('tracking.attachments.clickToRename') || 'Click để sửa tên tệp hoặc mã hàng') : file.name}
                               >
                                 {middleTruncate(file.name, 28)}
                               </p>
@@ -1066,7 +1061,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                                     setEditingFileId(file.id);
                                     setEditingNameValue(file.name.replace(/\.pdf$/i, ''));
                                   }}
-                                  title="Click để sửa tên tệp hoặc mã hàng"
+                                  title={t('tracking.attachments.clickToRename') || 'Click để sửa tên tệp hoặc mã hàng'}
                                   className="p-0.5 text-slate-400 hover:text-slate-900 opacity-60 group-hover/name:opacity-100 transition cursor-pointer"
                                 >
                                   <PenLine size={12} />
@@ -1089,7 +1084,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                           type="button"
                           onClick={() => setPreviewFile(file)}
                           className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-medium flex items-center gap-1 cursor-pointer"
-                          title="Xem trước tệp"
+                          title={t('tracking.attachments.previewFile') || 'Xem trước tệp'}
                         >
                           <Eye size={12} />
                           <span className="hidden sm:inline">Xem</span>
@@ -1101,10 +1096,10 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                             e.stopPropagation();
                             navigator.clipboard.writeText(file.url);
                             playAudioCue('pop');
-                            toast.success('Đã sao chép liên kết vào bộ nhớ tạm');
+                            toast.success(t('tracking.attachments.linkCopied') || 'Đã sao chép liên kết vào bộ nhớ tạm');
                           }}
                           className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] cursor-pointer"
-                          title="Sao chép liên kết"
+                          title={t('tracking.attachments.copyLink') || 'Sao chép liên kết'}
                         >
                           <Copy size={12} />
                         </button>
@@ -1115,7 +1110,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                           target="_blank"
                           rel="noreferrer"
                           className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] cursor-pointer inline-flex items-center"
-                          title="Mở tab mới hoặc tải về"
+                          title={t('tracking.attachments.openInNewTab') || 'Mở tab mới hoặc tải về'}
                         >
                           {file.url.startsWith('data:') ? <Download size={12} /> : <ExternalLink size={12} />}
                         </a>
@@ -1127,16 +1122,16 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                                 type="button"
                                 onClick={(e) => handleDeleteClick(file.id, e)}
                                 className="px-2 py-1 rounded border border-rose-300 bg-rose-50 text-rose-700 font-mono text-[10.5px] font-bold animate-in fade-in cursor-pointer shrink-0"
-                                title="Bấm lần nữa để xác nhận xóa"
+                                title={t('tracking.attachments.deleteFileTooltip') || 'Bấm lần nữa để xác nhận xóa'}
                               >
-                                Bấm lại để xóa
+                                {t('tracking.attachments.clickAgainToDelete') || 'Bấm lại để xóa'}
                               </button>
                             ) : (
                               <button
                                 type="button"
                                 onClick={(e) => handleDeleteClick(file.id, e)}
                                 className="p-1.5 rounded border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-400 hover:text-rose-600 text-[11px] transition cursor-pointer"
-                                title="Xóa tệp này (Bấm 2 lần)"
+                                title={t('tracking.attachments.deleteFileTooltip') || 'Xóa tệp này (Bấm 2 lần)'}
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -1155,20 +1150,18 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
               <div className="rounded-lg border border-slate-700 bg-slate-900 text-slate-100 p-3.5 text-xs space-y-2 animate-slide-up">
                 <div className="flex items-center justify-between border-b border-slate-700 pb-2">
                   <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
-                    <span>👁</span> Xem trước nhanh: <span className="text-white font-mono">{previewFile.name}</span>
+                    <span>👁</span> {t('tracking.attachments.quickPreview', { name: previewFile.name }) || <>Xem trước nhanh: <span className="text-white font-mono">{previewFile.name}</span></>}
                   </span>
                   <button
                     type="button"
                     onClick={() => setPreviewFile(null)}
                     className="text-slate-400 hover:text-white text-xs cursor-pointer"
-                  >
-                    Đóng xem trước ✕
-                  </button>
+                  >{t('tracking.attachments.closePreview') || 'Đóng xem trước ✕'}</button>
                 </div>
                 <div className="text-[11px] text-slate-300 font-mono leading-relaxed">
-                  <div>• Đường dẫn gốc: <a href={previewFile.url} target="_blank" rel="noreferrer" className="underline text-emerald-300">{previewFile.url}</a></div>
-                  <div>• Mã lô: {lotCode || '—'} | Xưởng: {workshop || '—'} | Vật liệu: {material || '—'}</div>
-                  <div>• Dung lượng / Trạng thái: {previewFile.size || 'Cloud Link'} • Hợp lệ</div>
+                  <div>• {t('tracking.attachments.originalPath', { url: '' }) || 'Đường dẫn gốc:'} <a href={previewFile.url} target="_blank" rel="noreferrer" className="underline text-emerald-300">{previewFile.url}</a></div>
+                  <div>• {t('tracking.columns.lotId') || 'Mã lô'}: {lotCode || '—'} | {t('tracking.columns.workshop') || 'Xưởng'}: {workshop || '—'} | {t('tracking.columns.material') || 'Vật liệu'}: {material || '—'}</div>
+                  <div>• {t('common.details') || 'Dung lượng / Trạng thái'}: {previewFile.size || 'Cloud Link'} • {t('tracking.status.passLabel') || 'Hợp lệ'}</div>
                 </div>
               </div>
             )}
@@ -1177,29 +1170,25 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
           {/* Footer */}
           <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 -mx-5 -mb-5 mt-4">
             <span className="text-[11px] text-slate-500">
-              Đang lưu {fileList.length} tệp đính kèm
+              {t('tracking.attachments.savingFiles', { count: fileList.length }) || `Đang lưu ${fileList.length} tệp đính kèm`}
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
                 className="px-4 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium cursor-pointer"
-              >
-                Đóng
-              </button>
+              >{t('common.close') || 'Đóng'}</button>
               <button
                 type="button"
                 onClick={() => {
                   onSave(fileList);
                   playAudioCue('success');
-                  toast.success('Đã lưu thay đổi tệp đính kèm');
+                  toast.success(t('tracking.attachments.changesSaved') || 'Đã lưu thay đổi tệp đính kèm');
                   onClose();
                 }}
                 className="px-4 py-1.5 rounded-lg bg-[#111827] hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer inline-flex items-center gap-1"
               >
-                <Check size={12} />
-                Lưu thay đổi
-              </button>
+                <Check size={12} />{t('tracking.attachments.saveChanges') || 'Lưu thay đổi'}</button>
             </div>
           </div>
         </div>
@@ -1239,7 +1228,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                       type="button"
                       onClick={() => setImgZoom((z) => Math.min(3, Math.round((z + 0.25) * 100) / 100))}
                       className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer"
-                      title="Phóng to (+)"
+                      title={t('tracking.attachments.zoomIn') || 'Phóng to (+)'}
                     >
                       <ZoomIn size={13} />
                     </button>
@@ -1250,7 +1239,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                       type="button"
                       onClick={() => setImgZoom((z) => Math.max(0.5, Math.round((z - 0.25) * 100) / 100))}
                       className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer"
-                      title="Thu nhỏ (-)"
+                      title={t('tracking.attachments.zoomOut') || 'Thu nhỏ (-)'}
                     >
                       <ZoomOut size={13} />
                     </button>
@@ -1261,7 +1250,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                         setImgRotation(0);
                       }}
                       className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer text-[10px] font-mono"
-                      title="Đặt lại zoom ban đầu"
+                      title={t('tracking.attachments.resetZoom') || 'Đặt lại zoom ban đầu'}
                     >
                       1:1
                     </button>
@@ -1269,7 +1258,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                       type="button"
                       onClick={() => setImgRotation((r) => (r + 90) % 360)}
                       className="p-1 rounded hover:bg-slate-100 text-slate-700 cursor-pointer"
-                      title="Xoay ảnh 90°"
+                      title={t('tracking.attachments.rotate') || 'Xoay ảnh 90°'}
                     >
                       <RotateCw size={13} />
                     </button>
@@ -1280,18 +1269,18 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                   href={previewFile.url}
                   download={previewFile.name}
                   className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 font-mono text-[11px] shrink-0 flex items-center gap-1"
-                  title="Tải về máy tính"
+                  title={t('tracking.attachments.downloadTooltip') || 'Tải về máy tính'}
                 >
-                  <Download size={11} /> <span className="hidden sm:inline">Tải về</span>
+                  <Download size={11} /> <span className="hidden sm:inline">{t('tracking.attachments.downloadOriginal') || 'Tải về'}</span>
                 </a>
                 <a
                   href={previewFile.url}
                   target="_blank"
                   rel="noreferrer"
                   className="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 text-white font-mono text-[11px] shrink-0 flex items-center gap-1 shadow-2xs"
-                  title="Mở tab mới"
+                  title={t('tracking.attachments.openTab') || 'Mở tab mới'}
                 >
-                  Mở tab mới <ExternalLink size={11} />
+                  {t('tracking.attachments.openTab') || 'Mở tab mới'} <ExternalLink size={11} />
                 </a>
               </div>
             </DialogTitle>
@@ -1323,7 +1312,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                   </div>
                   <p className="font-bold text-white text-sm mb-1 font-mono">{previewFile.name}</p>
                   <p className="text-slate-400 text-xs mb-4 leading-relaxed">
-                    Tệp lưu trữ trên nền tảng đám mây ({previewFile.source === 'onedrive' ? 'OneDrive' : previewFile.source === 'sharepoint' ? 'SharePoint' : 'Liên kết ngoài'}). Để đảm bảo an toàn bảo mật chính sách nhúng CSP, vui lòng mở trực tiếp trên tab mới.
+                    {t('tracking.attachments.cloudNotice', { source: previewFile.source === 'onedrive' ? 'OneDrive' : previewFile.source === 'sharepoint' ? 'SharePoint' : 'Cloud' }) || `Tệp lưu trữ trên nền tảng đám mây (${previewFile.source === 'onedrive' ? 'OneDrive' : previewFile.source === 'sharepoint' ? 'SharePoint' : 'Liên kết ngoài'}). Để đảm bảo an toàn bảo mật chính sách nhúng CSP, vui lòng mở trực tiếp trên tab mới.`}
                   </p>
                   <a
                     href={previewFile.url}
@@ -1331,7 +1320,7 @@ export const AttachmentDialog: React.FC<AttachmentDialogProps> = ({
                     rel="noreferrer"
                     className="px-4 py-2 rounded-xs bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-xs font-semibold flex items-center gap-1.5 shadow-md cursor-pointer transition active:scale-95"
                   >
-                    <span>Mở tài liệu ngay</span>
+                    <span>{t('tracking.attachments.openDocNow') || 'Mở tài liệu ngay'}</span>
                     <ExternalLink size={12} />
                   </a>
                 </div>

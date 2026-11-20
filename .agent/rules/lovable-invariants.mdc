@@ -176,3 +176,15 @@ Khi thực hiện bất kỳ yêu cầu nào liên quan đến dự án này:
    - Cấu trúc TanStack Start & Tailwind v4?
 2. **Không tự ý đơn giản hóa (Anti-downgrade)**: Không thay thế hệ thống router hoặc server function hiện tại bằng các giải pháp SPA truyền thống.
 3. **Phối hợp quy tắc**: Quy tắc này có hiệu lực ưu tiên cao nhất, ghi đè lên các template hoặc cấu hình mặc định của các AI tools thông thường.
+
+---
+
+## 13. QUY CHUẨN QUỐC TẾ HÓA (i18n) & BẢO TOÀN KIỂM THỬ TĨNH
+1. **Hook dịch chuẩn**:
+   - Luôn sử dụng `import { useTranslation } from '@/i18n';` -> `const { t } = useTranslation();`.
+2. **Cấm nối chuỗi động có tiền tố trong `t()`**:
+   - Tuyệt đối không truyền chuỗi cộng dạng `t('prefix.' + dyn)` vào hàm `t()`. Bắt buộc dùng Object Map tĩnh trỏ đến full key để tránh làm hỏng bộ phân giải regex của Vitest scanner (`TC-I18N-T4-05`).
+3. **Fallback nguyên bản bảo toàn Unit Test**:
+   - Luôn giữ chuỗi fallback tiếng Việt khớp 100% với nhãn gốc (`{t('key') || 'Nhãn gốc'}`) nhằm đảm bảo các bộ test kiểm tra nội dung file tĩnh (`expect(content).toContain(...)`) không bị đứt gãy.
+4. **Đối xứng từ điển 3 thứ tiếng (vi, en, ja)**:
+   - Đảm bảo toàn bộ 21 file JSON từ điển (7 namespaces x 3 ngôn ngữ) luôn đạt tỷ lệ chênh lệch bằng 0 (`Diff = 0`, không có chuỗi rỗng) qua `node scripts/verify_parity.cjs`.

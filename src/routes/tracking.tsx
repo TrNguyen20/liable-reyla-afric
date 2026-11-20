@@ -207,6 +207,15 @@ export type ColumnKey =
 
 export type ColumnView = 'ALL' | 'DOCS' | 'TECH' | 'COMM' | 'VENDOR_QC' | 'CUSTOM';
 
+export const VIEW_SPEC_KEYS: Record<ColumnView, { label: string; shortLabel: string; desc: string }> = {
+  ALL: { label: 'tracking.views.all', shortLabel: 'tracking.views.allShort', desc: 'tracking.views.allDesc' },
+  DOCS: { label: 'tracking.views.docs', shortLabel: 'tracking.views.docsShort', desc: 'tracking.views.docsDesc' },
+  TECH: { label: 'tracking.views.tech', shortLabel: 'tracking.views.techShort', desc: 'tracking.views.techDesc' },
+  COMM: { label: 'tracking.views.comm', shortLabel: 'tracking.views.commShort', desc: 'tracking.views.commDesc' },
+  VENDOR_QC: { label: 'tracking.views.vendor', shortLabel: 'tracking.views.vendorShort', desc: 'tracking.views.vendorDesc' },
+  CUSTOM: { label: 'tracking.views.custom', shortLabel: 'tracking.views.customShort', desc: 'tracking.views.customDesc' },
+};
+
 export const COLUMN_VIEW_SPECS: Record<ColumnView, { label: string; shortLabel: string; description: string }> = {
   ALL: {
     label: 'Tất cả cột (36)',
@@ -2418,11 +2427,11 @@ function Tracking() {
                     title={
                       isCustom
                         ? isActive
-                          ? 'Góc nhìn tùy chỉnh (Nhấp để mở lại cấu hình ẩn/hiện cột)'
+                          ? (t('tracking.views.customActiveTooltip') || 'Góc nhìn tùy chỉnh (Nhấp để mở lại cấu hình ẩn/hiện cột)')
                           : hasCustomConfig
-                            ? 'Chuyển sang góc nhìn tùy chỉnh (Nhấp lần nữa để sửa cột)'
-                            : 'Chưa có cấu hình tùy chỉnh — Nhấp để thiết lập ẩn/hiện cột'
-                        : spec.description
+                            ? (t('tracking.views.customSwitchTooltip') || 'Chuyển sang góc nhìn tùy chỉnh (Nhấp lần nữa để sửa cột)')
+                            : (t('tracking.views.customEmptyTooltip') || 'Chưa có cấu hình tùy chỉnh — Nhấp để thiết lập ẩn/hiện cột')
+                        : (VIEW_SPEC_KEYS[viewKey] ? (t(VIEW_SPEC_KEYS[viewKey].desc) || spec.description) : spec.description)
                     }
                     className={`flex items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${isActive
                       ? 'bg-card text-foreground shadow-2xs font-bold border border-border/60'
@@ -2431,7 +2440,7 @@ function Tracking() {
                         : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
-                    <span>{spec.shortLabel}</span>
+                    <span>{VIEW_SPEC_KEYS[viewKey] ? (t(VIEW_SPEC_KEYS[viewKey].shortLabel) || spec.shortLabel) : spec.shortLabel}</span>
                   </button>
                 );
               })}
@@ -4002,16 +4011,16 @@ function Tracking() {
                                       ? 'font-bold text-emerald-600 dark:text-emerald-400'
                                       : 'font-bold text-destructive'
                                     }`}
-                                  title="Chọn nghiệm thu QC của NCC"
+                                  title={t('tracking.grid.selectQcTooltip') || 'Chọn nghiệm thu QC của NCC'}
                                 >
                                   <option value="" disabled hidden>
-                                    Click để chọn
+                                    {t('tracking.grid.clickSelect') || 'Click để chọn'}
                                   </option>
                                   <option value="PASS" className="font-mono text-emerald-600 font-bold">
-                                    PASS (Đạt)
+                                    {t('tracking.grid.qcPass') || 'PASS (Đạt)'}
                                   </option>
                                   <option value="FAIL" className="font-mono text-destructive font-bold">
-                                    FAIL (Không đạt)
+                                    {t('tracking.grid.qcFail') || 'FAIL (Không đạt)'}
                                   </option>
                                 </select>
                                 <div className="pointer-events-none absolute right-1 flex items-center text-muted-foreground/60">
@@ -4029,7 +4038,7 @@ function Tracking() {
                                     FAIL
                                   </span>
                                 ) : (
-                                  <span className="text-muted-foreground/50 text-[10.5px]">Click để chọn</span>
+                                  <span className="text-muted-foreground/50 text-[10.5px]">{t('tracking.grid.clickSelect') || 'Click để chọn'}</span>
                                 )}
                               </div>
                             )}
@@ -4088,22 +4097,22 @@ function Tracking() {
                                   }}
                                   className={`h-6 w-full appearance-none rounded-xs border border-transparent hover:border-border bg-transparent px-1.5 pr-5 font-mono text-[11px] outline-none transition cursor-pointer focus:bg-background focus:border-primary shadow-2xs ${!r.ncc_tatus ? 'text-muted-foreground/50' : 'font-semibold text-foreground'
                                     }`}
-                                  title="Chọn tiến độ xử lý của NCC"
+                                  title={t('tracking.grid.selectProgressTooltip') || 'Chọn tiến độ xử lý của NCC'}
                                 >
                                   <option value="" disabled hidden>
-                                    Click để chọn
+                                    {t('tracking.grid.clickSelect') || 'Click để chọn'}
                                   </option>
                                   <option value="WAIT" className="font-mono text-foreground">
-                                    WAIT (Chờ xử lý)
+                                    {t('tracking.grid.progressWait') || 'WAIT (Chờ xử lý)'}
                                   </option>
                                   <option value="HEAT" className="font-mono text-amber-600 font-semibold">
-                                    HEAT (Đang nhiệt)
+                                    {t('tracking.grid.progressHeat') || 'HEAT (Đang nhiệt)'}
                                   </option>
                                   <option value="TRANSIT" className="font-mono text-sky-600 font-semibold">
-                                    TRANSIT (Đang giao)
+                                    {t('tracking.grid.progressTransit') || 'TRANSIT (Đang giao)'}
                                   </option>
                                   <option value="DONE" className="font-mono text-emerald-600 font-semibold">
-                                    DONE (Hoàn thành)
+                                    {t('tracking.grid.progressDone') || 'DONE (Hoàn thành)'}
                                   </option>
                                 </select>
                                 <div className="pointer-events-none absolute right-1 flex items-center text-muted-foreground/60">
@@ -4115,7 +4124,7 @@ function Tracking() {
                                 {r.ncc_tatus ? (
                                   <span className="truncate">{r.ncc_tatus}</span>
                                 ) : (
-                                  <span className="text-muted-foreground/50 text-[10.5px]">Click để chọn</span>
+                                  <span className="text-muted-foreground/50 text-[10.5px]">{t('tracking.grid.clickSelect') || 'Click để chọn'}</span>
                                 )}
                               </div>
                             )}
