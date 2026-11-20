@@ -189,4 +189,49 @@ describe('Lot Detail Modal Floating Window (v2.8.0) Specification Suite (TDD)', 
     // Kiểm tra backdrop click bảo vệ modal mẹ khi sub-modal đang mở
     expect(modalCode).toMatch(/if\s*\(\s*lightboxFile\s*\|\|\s*heatCycleModalOpen\s*\)\s*return;/);
   });
+
+  it('TC-LDM-17: Khóa 100% 7 Master Identifiers kể cả Người tạo (nguoi_tao) có biểu tượng 🔒', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // nguoi_tao không còn là ô input cho sửa
+    expect(modalCode).not.toMatch(/setForm\(\(f\)\s*=>\s*\(\{\s*\.\.\.f,\s*nguoi_tao/);
+    // Có biểu tượng Lock cạnh Người tạo
+    expect(modalCode).toMatch(/Người tạo[\s\S]*?<Lock/);
+  });
+
+  it('TC-LDM-18: DateCell hỗ trợ variant="input" với viền input, icon lịch và placeholder trực quan', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // DateCell trong LotDetailModal truyền variant="input"
+    expect(modalCode).toMatch(/<DateCell[\s\S]*?variant="input"/);
+  });
+
+  it('TC-LDM-19: Tự động tính Thành tiền (Thành tiền = SL tính x Đơn giá x Tỷ giá) và format tiền tệ ₫', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Có cơ chế tự động tính Thành tiền khi nhập Đơn giá / SL tính
+    expect(modalCode).toMatch(/updateDonGia|updateSoLuongTinh|thanh_tien.*so_luong_tinh.*don_gia/);
+    // Có ký hiệu tiền tệ ₫
+    expect(modalCode).toMatch(/₫/);
+  });
+
+  it('TC-LDM-20: Cân bằng Bento Grid đầy đủ 36 cột: hiển thị ty_gia, ncc_thongtinkhac1, ncc_thongtinkhac2 và gap-2.5', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Hiển thị Tỷ giá ở Vùng 3
+    expect(modalCode).toMatch(/Tỷ giá[\s\S]*?ty_gia/);
+    // Hiển thị NCC Ghi chú 1 và 2 ở Vùng 4
+    expect(modalCode).toMatch(/NCC Ghi chú 1/);
+    expect(modalCode).toMatch(/NCC Ghi chú 2/);
+    // Gap thu nhỏ xuống gap-2.5
+    expect(modalCode).toMatch(/gap-2\.5/);
+  });
+
+  it('TC-LDM-21: Cơ chế Unsaved Changes Guard cảnh báo mất dữ liệu khi chuyển lô hoặc đóng modal', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Có kiểm tra isDirty và confirm cảnh báo
+    expect(modalCode).toMatch(/isDirty/);
+    expect(modalCode).toMatch(/confirm\(/);
+  });
 });

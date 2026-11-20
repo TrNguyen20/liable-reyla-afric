@@ -208,8 +208,6 @@ export function LotDetailModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editReason, setEditReason] = useState('');
   const [form, setForm] = useState({
-    // Zone 1
-    nguoi_tao: item.nguoi_tao || '',
     // Zone 2: Tech & Dimensions
     vat_lieu: item.vat_lieu || '',
     do_cung: item.do_cung === '—' ? '' : item.do_cung || '',
@@ -221,7 +219,6 @@ export function LotDetailModal({
     // Zone 3: Dispatch & Commercial
     so_dat_hang: item.So_DatHang || item.so_dat_hang || '',
     ngay_gui_qt: item.ngay_gui_QT || item.ngay_gui_qt || '',
-    han_tra: item.han_tra || '',
     trang_thai: item.TrangThai || (item.trang_thai as Status) || 'Chờ xuất xưởng',
     don_gia: item.don_gia ?? 0,
     thanh_tien: item.thanh_tien ?? 0,
@@ -243,45 +240,147 @@ export function LotDetailModal({
     ncc_file1: item.ncc_file1 || '',
   });
 
-  // Sync form when item changes via navigation
-  useEffect(() => {
+  const resetFormFromItem = useCallback((it: QTItem) => {
     setForm({
-      nguoi_tao: item.nguoi_tao || '',
-      vat_lieu: item.vat_lieu || '',
-      do_cung: item.do_cung === '—' ? '' : item.do_cung || '',
-      kich_thuoc_sp: item.Kich_Thuoc_SP || item.kich_thuoc_sp || '',
-      so_luong: item.so_luong ?? 0,
-      kg_lot: item.kg_Lot ?? item.kg_lot ?? 0,
-      don_vi_tinh: item.don_vi_tinh || 'pcs',
-      so_luong_tinh: item.so_luong_tinh ?? item.so_luong ?? 0,
-      so_dat_hang: item.So_DatHang || item.so_dat_hang || '',
-      ngay_gui_qt: item.ngay_gui_QT || item.ngay_gui_qt || '',
-      han_tra: item.han_tra || '',
-      trang_thai: item.TrangThai || (item.trang_thai as Status) || 'Chờ xuất xưởng',
-      don_gia: item.don_gia ?? 0,
-      thanh_tien: item.thanh_tien ?? 0,
-      ty_gia: item.ty_gia ?? 1,
-      ten_file_dat_hang: item.ten_file_dat_hang || '',
-      ghi_chu_khi_gui: item.ghi_chu_khi_gui || item.ghi_chu || '',
-      ncc_ngay_qt: item.ncc_ngay_qt || '',
-      ncc_ngay_tra_qt: item.ncc_ngay_tra_qt || '',
-      ncc_id_lot_qt: item.ncc_id_lot_qt || '',
-      ncc_name_qt: item.ncc_name_qt || '',
-      ncc_ket_qua_hrc: item.ncc_ket_qua_hrc || '',
-      ncc_ket_qua_qc: item.ncc_ket_qua_qc || '',
-      ncc_don_gia: item.ncc_don_gia ?? 0,
-      ncc_tatus: item.ncc_tatus || '',
-      ncc_thongtinkhac1: item.ncc_thongtinkhac1 || '',
-      ncc_thongtinkhac2: item.ncc_thongtinkhac2 || '',
-      ncc_giando: item.ncc_giando || '',
-      ncc_file1: item.ncc_file1 || '',
+      vat_lieu: it.vat_lieu || '',
+      do_cung: it.do_cung === '—' ? '' : it.do_cung || '',
+      kich_thuoc_sp: it.Kich_Thuoc_SP || it.kich_thuoc_sp || '',
+      so_luong: it.so_luong ?? 0,
+      kg_lot: it.kg_Lot ?? it.kg_lot ?? 0,
+      don_vi_tinh: it.don_vi_tinh || 'pcs',
+      so_luong_tinh: it.so_luong_tinh ?? it.so_luong ?? 0,
+      so_dat_hang: it.So_DatHang || it.so_dat_hang || '',
+      ngay_gui_qt: it.ngay_gui_QT || it.ngay_gui_qt || '',
+      trang_thai: it.TrangThai || (it.trang_thai as Status) || 'Chờ xuất xưởng',
+      don_gia: it.don_gia ?? 0,
+      thanh_tien: it.thanh_tien ?? 0,
+      ty_gia: it.ty_gia ?? 1,
+      ten_file_dat_hang: it.ten_file_dat_hang || '',
+      ghi_chu_khi_gui: it.ghi_chu_khi_gui || it.ghi_chu || '',
+      ncc_ngay_qt: it.ncc_ngay_qt || '',
+      ncc_ngay_tra_qt: it.ncc_ngay_tra_qt || '',
+      ncc_id_lot_qt: it.ncc_id_lot_qt || '',
+      ncc_name_qt: it.ncc_name_qt || '',
+      ncc_ket_qua_hrc: it.ncc_ket_qua_hrc || '',
+      ncc_ket_qua_qc: it.ncc_ket_qua_qc || '',
+      ncc_don_gia: it.ncc_don_gia ?? 0,
+      ncc_tatus: it.ncc_tatus || '',
+      ncc_thongtinkhac1: it.ncc_thongtinkhac1 || '',
+      ncc_thongtinkhac2: it.ncc_thongtinkhac2 || '',
+      ncc_giando: it.ncc_giando || '',
+      ncc_file1: it.ncc_file1 || '',
     });
     setEditReason('');
     setIsEditing(false);
     setIsSearchingItem(false);
     setSearchItemCode('');
     setJumpIndex('');
-  }, [item]);
+  }, []);
+
+  // Sync form when item changes via navigation
+  useEffect(() => {
+    resetFormFromItem(item);
+  }, [item, resetFormFromItem]);
+
+  // Track Unsaved Changes (isDirty)
+  const isDirty = useMemo(() => {
+    if (!isEditing) return false;
+    return (
+      form.vat_lieu !== (item.vat_lieu || '') ||
+      form.do_cung !== (item.do_cung === '—' ? '' : (item.do_cung || '')) ||
+      form.kich_thuoc_sp !== (item.Kich_Thuoc_SP || item.kich_thuoc_sp || '') ||
+      Number(form.so_luong) !== Number(item.so_luong ?? 0) ||
+      Number(form.kg_lot) !== Number(item.kg_Lot ?? item.kg_lot ?? 0) ||
+      form.don_vi_tinh !== (item.don_vi_tinh || 'pcs') ||
+      Number(form.so_luong_tinh) !== Number(item.so_luong_tinh ?? item.so_luong ?? 0) ||
+      form.so_dat_hang !== (item.So_DatHang || item.so_dat_hang || '') ||
+      form.ngay_gui_qt !== (item.ngay_gui_QT || item.ngay_gui_qt || '') ||
+      form.trang_thai !== (item.TrangThai || item.trang_thai || 'Chờ xuất xưởng') ||
+      (hasPricingView && (
+        Number(form.don_gia) !== Number(item.don_gia ?? 0) ||
+        Number(form.thanh_tien) !== Number(item.thanh_tien ?? 0) ||
+        Number(form.ty_gia) !== Number(item.ty_gia ?? 1)
+      )) ||
+      form.ten_file_dat_hang !== (item.ten_file_dat_hang || '') ||
+      form.ghi_chu_khi_gui !== (item.ghi_chu_khi_gui || item.ghi_chu || '') ||
+      form.ncc_ngay_qt !== (item.ncc_ngay_qt || '') ||
+      form.ncc_ngay_tra_qt !== (item.ncc_ngay_tra_qt || '') ||
+      form.ncc_id_lot_qt !== (item.ncc_id_lot_qt || '') ||
+      form.ncc_name_qt !== (item.ncc_name_qt || '') ||
+      form.ncc_ket_qua_hrc !== (item.ncc_ket_qua_hrc || '') ||
+      form.ncc_ket_qua_qc !== (item.ncc_ket_qua_qc || '') ||
+      Number(form.ncc_don_gia) !== Number(item.ncc_don_gia ?? 0) ||
+      form.ncc_tatus !== (item.ncc_tatus || '') ||
+      form.ncc_thongtinkhac1 !== (item.ncc_thongtinkhac1 || '') ||
+      form.ncc_thongtinkhac2 !== (item.ncc_thongtinkhac2 || '') ||
+      form.ncc_giando !== (item.ncc_giando || '') ||
+      form.ncc_file1 !== (item.ncc_file1 || '')
+    );
+  }, [form, item, isEditing, hasPricingView]);
+
+  // Unsaved Changes Guard helper
+  const confirmDiscardChanges = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm('Bạn có thay đổi chưa lưu trên lô này. Bạn có chắc chắn muốn hủy bỏ các thay đổi không?');
+  }, [isDirty]);
+
+  const handleCancelEdit = useCallback(() => {
+    if (confirmDiscardChanges()) {
+      resetFormFromItem(item);
+    }
+  }, [confirmDiscardChanges, item, resetFormFromItem]);
+
+  const handleCloseModal = useCallback(() => {
+    if (confirmDiscardChanges()) {
+      onClose();
+    }
+  }, [confirmDiscardChanges, onClose]);
+
+  // Auto-calculation functions for Commercial fields (Thành tiền = SL tính x Đơn giá x Tỷ giá)
+  const updateDonGia = useCallback((dg: number) => {
+    setForm((f) => {
+      const calc = Math.round(Number(f.so_luong_tinh) * Number(dg) * Number(f.ty_gia || 1));
+      return { ...f, don_gia: dg, thanh_tien: calc };
+    });
+  }, []);
+
+  const updateSoLuongTinh = useCallback((slt: number) => {
+    setForm((f) => {
+      const calc = Math.round(Number(slt) * Number(f.don_gia) * Number(f.ty_gia || 1));
+      return { ...f, so_luong_tinh: slt, thanh_tien: calc };
+    });
+  }, []);
+
+  const updateTyGia = useCallback((tg: number) => {
+    setForm((f) => {
+      const calc = Math.round(Number(f.so_luong_tinh) * Number(f.don_gia) * Number(tg || 1));
+      return { ...f, ty_gia: tg, thanh_tien: calc };
+    });
+  }, []);
+
+  const updateSoLuong = useCallback((sl: number) => {
+    setForm((f) => {
+      const newSlt = f.don_vi_tinh === 'Kg' ? f.kg_lot : sl;
+      const calc = Math.round(Number(newSlt) * Number(f.don_gia) * Number(f.ty_gia || 1));
+      return { ...f, so_luong: sl, so_luong_tinh: newSlt, thanh_tien: calc };
+    });
+  }, []);
+
+  const updateKgLot = useCallback((kg: number) => {
+    setForm((f) => {
+      const newSlt = f.don_vi_tinh === 'Kg' ? kg : f.so_luong;
+      const calc = Math.round(Number(newSlt) * Number(f.don_gia) * Number(f.ty_gia || 1));
+      return { ...f, kg_lot: kg, so_luong_tinh: newSlt, thanh_tien: calc };
+    });
+  }, []);
+
+  const updateDonViTinh = useCallback((dvt: string) => {
+    setForm((f) => {
+      const newSlt = dvt === 'Kg' ? f.kg_lot : f.so_luong;
+      const calc = Math.round(Number(newSlt) * Number(f.don_gia) * Number(f.ty_gia || 1));
+      return { ...f, don_vi_tinh: dvt, so_luong_tinh: newSlt, thanh_tien: calc };
+    });
+  }, []);
 
   // Sibling lot navigation
   const currentIndex = useMemo(() => {
@@ -293,21 +392,23 @@ export function LotDetailModal({
 
   const handlePrevLot = useCallback(() => {
     if (hasPrev) {
+      if (!confirmDiscardChanges()) return;
       const prev = siblingItems[currentIndex - 1];
       if (prev && onItemChange) {
         onItemChange(prev);
       }
     }
-  }, [hasPrev, siblingItems, currentIndex, onItemChange]);
+  }, [hasPrev, siblingItems, currentIndex, onItemChange, confirmDiscardChanges]);
 
   const handleNextLot = useCallback(() => {
     if (hasNext) {
+      if (!confirmDiscardChanges()) return;
       const next = siblingItems[currentIndex + 1];
       if (next && onItemChange) {
         onItemChange(next);
       }
     }
-  }, [hasNext, siblingItems, currentIndex, onItemChange]);
+  }, [hasNext, siblingItems, currentIndex, onItemChange, confirmDiscardChanges]);
 
   // Quick search by item code
   const handleSearchItem = useCallback(() => {
@@ -315,6 +416,7 @@ export function LotDetailModal({
       setIsSearchingItem(false);
       return;
     }
+    if (!confirmDiscardChanges()) return;
     const q = searchItemCode.trim().toLowerCase();
     const matched = siblingItems.find(
       (x) =>
@@ -332,11 +434,12 @@ export function LotDetailModal({
       playAudioCue('error');
       toast.error(`Không tìm thấy mã hàng phù hợp với "${searchItemCode}"`);
     }
-  }, [searchItemCode, siblingItems, onItemChange]);
+  }, [searchItemCode, siblingItems, onItemChange, confirmDiscardChanges]);
 
   // Quick jump by lot index / ID
   const handleJumpLot = useCallback(() => {
     if (!jumpIndex.trim()) return;
+    if (!confirmDiscardChanges()) return;
     const raw = jumpIndex.trim();
     const num = parseInt(raw, 10);
     if (!isNaN(num) && num >= 1 && num <= siblingItems.length) {
@@ -358,7 +461,7 @@ export function LotDetailModal({
       return;
     }
     toast.error(`Số thứ tự phải từ 1 đến ${siblingItems.length}`);
-  }, [jumpIndex, siblingItems, onItemChange]);
+  }, [jumpIndex, siblingItems, onItemChange, confirmDiscardChanges]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -382,12 +485,12 @@ export function LotDetailModal({
           setHeatCycleModalOpen(false);
           return;
         }
-        onClose();
+        handleCloseModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrevLot, handleNextLot, onClose, lightboxFile, heatCycleModalOpen]);
+  }, [handlePrevLot, handleNextLot, handleCloseModal, lightboxFile, heatCycleModalOpen]);
 
   // Handle save changes
   const handleSave = () => {
@@ -413,7 +516,6 @@ export function LotDetailModal({
     if (form.ngay_gui_qt !== (item.ngay_gui_QT || item.ngay_gui_qt)) {
       changes['Ngày gửi'] = [item.ngay_gui_QT || item.ngay_gui_qt, form.ngay_gui_qt];
     }
-    if (form.han_tra !== (item.han_tra || '')) changes['Hạn trả'] = [item.han_tra, form.han_tra];
     if (form.trang_thai !== (item.TrangThai || item.trang_thai)) {
       changes['Trạng thái'] = [item.TrangThai || item.trang_thai, form.trang_thai];
     }
@@ -476,7 +578,6 @@ export function LotDetailModal({
       so_dat_hang: form.so_dat_hang,
       ngay_gui_QT: form.ngay_gui_qt,
       ngay_gui_qt: form.ngay_gui_qt,
-      han_tra: form.han_tra,
       TrangThai: form.trang_thai as Status,
       trang_thai: form.trang_thai,
       ten_file_dat_hang: form.ten_file_dat_hang,
@@ -484,6 +585,7 @@ export function LotDetailModal({
       ghi_chu: form.ghi_chu_khi_gui,
       ncc_ngay_qt: form.ncc_ngay_qt,
       ncc_ngay_tra_qt: form.ncc_ngay_tra_qt,
+      han_tra: form.ncc_ngay_tra_qt || item.han_tra,
       ncc_id_lot_qt: form.ncc_id_lot_qt,
       ncc_name_qt: form.ncc_name_qt,
       ncc_ket_qua_hrc: form.ncc_ket_qua_hrc,
@@ -524,7 +626,7 @@ export function LotDetailModal({
       onClick={(e) => {
         if (lightboxFile || heatCycleModalOpen) return;
         if (e.target === e.currentTarget) {
-          onClose();
+          handleCloseModal();
         }
       }}
     >
@@ -606,7 +708,7 @@ export function LotDetailModal({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={handleCancelEdit}
                   className="inline-flex items-center gap-1 rounded-xs border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer"
                 >
                   <RotateCcw size={12} />
@@ -637,7 +739,7 @@ export function LotDetailModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="rounded-xs p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition"
               title="Đóng (Esc)"
             >
@@ -647,13 +749,13 @@ export function LotDetailModal({
         </div>
 
         {/* Modal Scrollable Body: 4-Zone Bento Grid covering 36 Columns */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 space-y-3.5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2.5">
           {/* Bento Grid: 4 Scientific Zones */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
-            {/* ZONE 1: ĐỊNH DANH & BẢN VẼ PHÔI (8 cột) */}
-            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3.5 shadow-2xs flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+            {/* ZONE 1: ĐỊNH DANH & BẢN VẼ PHÔI (7 Master Identifiers) */}
+            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-3">
+                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-primary rounded-xs" />
                     <span>1. ĐỊNH DANH & BẢN VẼ PHÔI</span>
@@ -664,7 +766,7 @@ export function LotDetailModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Mã hàng */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
@@ -692,19 +794,13 @@ export function LotDetailModal({
                     <span className="font-mono text-xs text-muted-foreground block mt-0.5">{date(item.ngay_tao) || '—'}</span>
                   </div>
 
-                  {/* Người tạo */}
+                  {/* Người tạo - Khóa 100% 7 Master Identifiers */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Người tạo</span>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={form.nguoi_tao}
-                        onChange={(e) => setForm((f) => ({ ...f, nguoi_tao: e.target.value }))}
-                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
-                      />
-                    ) : (
-                      <span className="font-mono text-xs text-foreground block mt-0.5">{item.nguoi_tao || '—'}</span>
-                    )}
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
+                      <span>Người tạo</span>
+                      <Lock size={9} className="text-muted-foreground/50" />
+                    </span>
+                    <span className="font-mono text-xs text-foreground block mt-0.5">{item.nguoi_tao || '—'}</span>
                   </div>
 
                   {/* Quốc gia */}
@@ -738,9 +834,9 @@ export function LotDetailModal({
             </div>
 
             {/* ZONE 2: THÔNG SỐ KỸ THUẬT & KÍCH THƯỚC (7 cột) */}
-            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3.5 shadow-2xs flex flex-col justify-between">
+            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-3">
+                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-amber-500 rounded-xs" />
                     <span>2. THÔNG SỐ KỸ THUẬT & KÍCH THƯỚC</span>
@@ -748,8 +844,8 @@ export function LotDetailModal({
                   <span className="text-[10px] font-mono text-muted-foreground">Quy chuẩn xưởng</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  {/* Vật liệu */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {/* Mác thép / Vật liệu */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block">Mác thép / Vật liệu</span>
                     {isEditing ? (
@@ -798,74 +894,81 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* Số lượng */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số lượng xuất</span>
-                    {isEditing ? (
-                      <div className="flex items-center gap-1 mt-0.5">
+                  {/* Gom hàng 3 ô cân đối: Số lượng xuất | Khối lượng lô (kg) | SL tính tiền */}
+                  <div className="col-span-2 grid grid-cols-3 gap-2">
+                    {/* Số lượng */}
+                    <div className="p-2 rounded bg-card/80 border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số lượng xuất</span>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <input
+                            type="number"
+                            value={form.so_luong}
+                            onChange={(e) => updateSoLuong(Number(e.target.value))}
+                            className="w-full min-w-0 h-6 px-1.5 text-xs font-mono font-bold rounded-xs border border-primary bg-background"
+                          />
+                          <select
+                            value={form.don_vi_tinh}
+                            onChange={(e) => updateDonViTinh(e.target.value)}
+                            className="w-14 shrink-0 h-6 px-1 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
+                          >
+                            <option value="pcs">pcs</option>
+                            <option value="chi tiết">chi tiết</option>
+                            <option value="Kg">Kg</option>
+                            <option value="bộ">bộ</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
+                          {number(item.so_luong)} {item.don_vi_tinh || 'chi tiết'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Khối lượng (kg) */}
+                    <div className="p-2 rounded bg-card/80 border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Khối lượng lô (kg)</span>
+                      {isEditing ? (
                         <input
                           type="number"
-                          value={form.so_luong}
-                          onChange={(e) => setForm((f) => ({ ...f, so_luong: Number(e.target.value) }))}
-                          className="w-20 h-6 px-1.5 text-xs font-mono font-bold rounded-xs border border-primary bg-background"
+                          step="0.1"
+                          value={form.kg_lot}
+                          onChange={(e) => updateKgLot(Number(e.target.value))}
+                          className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono font-bold rounded-xs border border-primary bg-background"
                         />
+                      ) : (
+                        <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
+                          {number(item.kg_Lot ?? item.kg_lot ?? 0, 1)} kg
+                        </span>
+                      )}
+                    </div>
+
+                    {/* SL Tính tiền */}
+                    <div className="p-2 rounded bg-card/80 border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">SL Tính tiền</span>
+                      {isEditing ? (
                         <input
-                          type="text"
-                          value={form.don_vi_tinh}
-                          onChange={(e) => setForm((f) => ({ ...f, don_vi_tinh: e.target.value }))}
-                          className="w-16 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
+                          type="number"
+                          step="0.01"
+                          value={form.so_luong_tinh}
+                          onChange={(e) => updateSoLuongTinh(Number(e.target.value))}
+                          className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
                         />
-                      </div>
-                    ) : (
-                      <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
-                        {number(item.so_luong)} {item.don_vi_tinh || 'chi tiết'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Khối lượng (kg) */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Khối lượng lô (kg)</span>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={form.kg_lot}
-                        onChange={(e) => setForm((f) => ({ ...f, kg_lot: Number(e.target.value) }))}
-                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono font-bold rounded-xs border border-primary bg-background"
-                      />
-                    ) : (
-                      <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
-                        {number(item.kg_Lot ?? item.kg_lot ?? 0, 1)} kg
-                      </span>
-                    )}
-                  </div>
-
-                  {/* SL Tính */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">SL Tính tiền</span>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={form.so_luong_tinh}
-                        onChange={(e) => setForm((f) => ({ ...f, so_luong_tinh: Number(e.target.value) }))}
-                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
-                      />
-                    ) : (
-                      <span className="font-mono text-xs text-muted-foreground block mt-0.5">
-                        {number(item.so_luong_tinh || (item.don_vi_tinh === 'Kg' ? (item.kg_lot || item.kg_Lot) : item.so_luong), 2)}
-                      </span>
-                    )}
+                      ) : (
+                        <span className="font-mono text-xs text-muted-foreground block mt-0.5">
+                          {number(item.so_luong_tinh || (item.don_vi_tinh === 'Kg' ? (item.kg_lot || item.kg_Lot) : item.so_luong), 2)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* ZONE 3: TIẾN ĐỘ, ĐƠN GIÁ & HỒ SƠ PO (9 cột) */}
-            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3.5 shadow-2xs flex flex-col justify-between">
+            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-3">
+                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-blue-500 rounded-xs" />
                     <span>3. TIẾN ĐỘ, ĐƠN GIÁ & HỒ SƠ PO</span>
@@ -873,7 +976,7 @@ export function LotDetailModal({
                   <span className="text-[10px] font-mono text-muted-foreground">Đơn vị & Thương mại</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Đối tác gia công */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
@@ -921,38 +1024,6 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* Ngày gửi QT */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Ngày gửi QT</span>
-                    {isEditing ? (
-                      <DateCell
-                        field="ngay_gui_QT"
-                        title="Ngày gửi QT"
-                        value={form.ngay_gui_qt}
-                        canEdit={true}
-                        onChange={(val) => setForm((f) => ({ ...f, ngay_gui_qt: val }))}
-                      />
-                    ) : (
-                      <span className="font-mono text-xs text-foreground block mt-0.5">{date(item.ngay_gui_QT || item.ngay_gui_qt) || '—'}</span>
-                    )}
-                  </div>
-
-                  {/* Hạn trả */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Hạn trả cam kết</span>
-                    {isEditing ? (
-                      <DateCell
-                        field="han_tra"
-                        title="Hạn trả"
-                        value={form.han_tra}
-                        canEdit={true}
-                        onChange={(val) => setForm((f) => ({ ...f, han_tra: val }))}
-                      />
-                    ) : (
-                      <span className="font-mono text-xs font-bold text-foreground block mt-0.5">{date(item.han_tra) || '—'}</span>
-                    )}
-                  </div>
-
                   {/* File PO đính kèm */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block">File PO đính kèm</span>
@@ -976,16 +1047,61 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* Đơn giá */}
+                  {/* Ngày gửi QT */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Đơn giá gia công</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Ngày gửi QT</span>
+                    {isEditing ? (
+                      <DateCell
+                        field="ngay_gui_QT"
+                        title="Ngày gửi QT"
+                        value={form.ngay_gui_qt}
+                        canEdit={true}
+                        variant="input"
+                        onChange={(val) => setForm((f) => ({ ...f, ngay_gui_qt: val }))}
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-foreground block mt-0.5">{date(item.ngay_gui_QT || item.ngay_gui_qt) || '—'}</span>
+                    )}
+                  </div>
+
+                  {/* Tỷ giá */}
+                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tỷ giá</span>
                     {isEditing && hasPricingView ? (
                       <input
                         type="number"
-                        value={form.don_gia}
-                        onChange={(e) => setForm((f) => ({ ...f, don_gia: Number(e.target.value) }))}
+                        step="1"
+                        value={form.ty_gia}
+                        onChange={(e) => updateTyGia(Number(e.target.value))}
                         className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono font-bold rounded-xs border border-primary bg-background"
                       />
+                    ) : (
+                      <span className="font-mono text-xs text-foreground block mt-0.5">
+                        {hasPricingView ? (item.ty_gia || 1).toLocaleString() : '***'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Đơn giá gia công */}
+                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Đơn giá gia công</span>
+                      {isEditing && hasPricingView && (
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {money(form.don_gia)}
+                        </span>
+                      )}
+                    </div>
+                    {isEditing && hasPricingView ? (
+                      <div className="relative mt-0.5">
+                        <input
+                          type="number"
+                          value={form.don_gia}
+                          onChange={(e) => updateDonGia(Number(e.target.value))}
+                          className="w-full h-6 px-1.5 pr-6 text-xs font-mono font-bold rounded-xs border border-primary bg-background"
+                        />
+                        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground pointer-events-none">₫</span>
+                      </div>
                     ) : (
                       <span className="font-mono text-xs font-bold text-foreground block mt-0.5">
                         {hasPricingView ? money(item.don_gia) : '*** ₫'}
@@ -993,16 +1109,26 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* Thành tiền */}
+                  {/* Thành tiền dự kiến */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Thành tiền dự kiến</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Thành tiền dự kiến</span>
+                      {isEditing && hasPricingView && (
+                        <span className="text-[10px] font-mono text-primary font-bold">
+                          {money(form.thanh_tien)}
+                        </span>
+                      )}
+                    </div>
                     {isEditing && hasPricingView ? (
-                      <input
-                        type="number"
-                        value={form.thanh_tien}
-                        onChange={(e) => setForm((f) => ({ ...f, thanh_tien: Number(e.target.value) }))}
-                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono font-bold text-primary rounded-xs border border-primary bg-background"
-                      />
+                      <div className="relative mt-0.5">
+                        <input
+                          type="number"
+                          value={form.thanh_tien}
+                          onChange={(e) => setForm((f) => ({ ...f, thanh_tien: Number(e.target.value) }))}
+                          className="w-full h-6 px-1.5 pr-6 text-xs font-mono font-bold text-primary rounded-xs border border-primary bg-background"
+                        />
+                        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground pointer-events-none">₫</span>
+                      </div>
                     ) : (
                       <span className="font-mono text-xs font-bold text-primary block mt-0.5">
                         {hasPricingView ? money(item.thanh_tien) : '*** ₫'}
@@ -1029,9 +1155,9 @@ export function LotDetailModal({
             </div>
 
             {/* ZONE 4: CỔNG NHÀ CUNG CẤP & QC ĐO KIỂM (12 cột vendor) */}
-            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3.5 shadow-2xs flex flex-col justify-between">
+            <div className="md:col-span-6 rounded-lg border border-border/80 bg-slate-50/50 dark:bg-card/50 p-3 shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-3">
+                <div className="flex items-center justify-between border-b border-border/70 pb-2 mb-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span className="w-1.5 h-3 bg-emerald-500 rounded-xs" />
                     <span>4. CỔNG NHÀ CUNG CẤP & QC ĐO KIỂM</span>
@@ -1039,7 +1165,7 @@ export function LotDetailModal({
                   <span className="text-[10px] font-mono text-muted-foreground">12 Cột NCC_*</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* NCC Độ cứng thực tế */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Độ cứng đo thực tế</span>
@@ -1097,6 +1223,7 @@ export function LotDetailModal({
                         title="NCC Ngày vào lò"
                         value={form.ncc_ngay_qt}
                         canEdit={true}
+                        variant="input"
                         onChange={(val) => setForm((f) => ({ ...f, ncc_ngay_qt: val }))}
                       />
                     ) : (
@@ -1104,19 +1231,20 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* NCC Hạn trả */}
+                  {/* NCC Hạn trả cam kết (đồng bộ field="han_tra" và field="ncc_ngay_tra_qt") */}
                   <div className="p-2 rounded bg-card/80 border border-border/60">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Hạn trả cam kết</span>
                     {isEditing ? (
                       <DateCell
-                        field="ncc_ngay_tra_qt"
+                        field="ncc_ngay_tra_qt" /* field="han_tra" */
                         title="NCC Hạn trả"
                         value={form.ncc_ngay_tra_qt}
                         canEdit={true}
+                        variant="input"
                         onChange={(val) => setForm((f) => ({ ...f, ncc_ngay_tra_qt: val }))}
                       />
                     ) : (
-                      <span className="font-mono text-xs font-bold text-foreground block mt-0.5">{date(item.ncc_ngay_tra_qt) || '—'}</span>
+                      <span className="font-mono text-xs font-bold text-foreground block mt-0.5">{date(item.ncc_ngay_tra_qt || item.han_tra) || '—'}</span>
                     )}
                   </div>
 
@@ -1260,63 +1388,95 @@ export function LotDetailModal({
                     )}
                   </div>
 
-                  {/* NCC Báo giá & Tiến độ */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Báo giá NCC</span>
-                      {isEditing && hasPricingView ? (
-                        <input
-                          type="number"
-                          value={form.ncc_don_gia}
-                          onChange={(e) => setForm((f) => ({ ...f, ncc_don_gia: Number(e.target.value) }))}
-                          className="w-24 mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
-                        />
-                      ) : (
-                        <span className="font-mono text-xs text-foreground block mt-0.5">
-                          {hasPricingView && item.ncc_don_gia ? money(item.ncc_don_gia) : '—'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tiến độ NCC</span>
-                      {isEditing ? (
-                        <select
-                          value={form.ncc_tatus}
-                          onChange={(e) => setForm((f) => ({ ...f, ncc_tatus: e.target.value }))}
-                          className="w-36 mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
-                        >
-                          <option value="">— Chưa chọn —</option>
-                          <option value="WAIT">WAIT (Chờ xử lý)</option>
-                          <option value="HEAT">HEAT (Đang nhiệt)</option>
-                          <option value="TRANSIT">TRANSIT (Đang giao)</option>
-                          <option value="DONE">DONE (Hoàn thành)</option>
-                        </select>
-                      ) : (
-                        <div className="mt-0.5">
-                          {item.ncc_tatus === 'WAIT' ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-semibold bg-slate-100 text-slate-700 dark:bg-muted dark:text-muted-foreground border border-border">
-                              WAIT
-                            </span>
-                          ) : item.ncc_tatus === 'HEAT' ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                              HEAT
-                            </span>
-                          ) : item.ncc_tatus === 'TRANSIT' ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                              TRANSIT
-                            </span>
-                          ) : item.ncc_tatus === 'DONE' ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                              DONE
-                            </span>
-                          ) : item.ncc_tatus ? (
-                            <span className="font-mono text-xs text-foreground">{item.ncc_tatus}</span>
-                          ) : (
-                            <span className="font-mono text-xs text-muted-foreground/60">—</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  {/* NCC Báo giá */}
+                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Báo giá NCC</span>
+                    {isEditing && hasPricingView ? (
+                      <input
+                        type="number"
+                        value={form.ncc_don_gia}
+                        onChange={(e) => setForm((f) => ({ ...f, ncc_don_gia: Number(e.target.value) }))}
+                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-foreground block mt-0.5">
+                        {hasPricingView && item.ncc_don_gia ? money(item.ncc_don_gia) : '—'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tiến độ NCC */}
+                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tiến độ NCC</span>
+                    {isEditing ? (
+                      <select
+                        value={form.ncc_tatus}
+                        onChange={(e) => setForm((f) => ({ ...f, ncc_tatus: e.target.value }))}
+                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
+                      >
+                        <option value="">— Chưa chọn —</option>
+                        <option value="WAIT">WAIT (Chờ xử lý)</option>
+                        <option value="HEAT">HEAT (Đang nhiệt)</option>
+                        <option value="TRANSIT">TRANSIT (Đang giao)</option>
+                        <option value="DONE">DONE (Hoàn thành)</option>
+                      </select>
+                    ) : (
+                      <div className="mt-0.5">
+                        {item.ncc_tatus === 'WAIT' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-semibold bg-slate-100 text-slate-700 dark:bg-muted dark:text-muted-foreground border border-border">
+                            WAIT
+                          </span>
+                        ) : item.ncc_tatus === 'HEAT' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                            HEAT
+                          </span>
+                        ) : item.ncc_tatus === 'TRANSIT' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                            TRANSIT
+                          </span>
+                        ) : item.ncc_tatus === 'DONE' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs font-mono text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            DONE
+                          </span>
+                        ) : item.ncc_tatus ? (
+                          <span className="font-mono text-xs text-foreground">{item.ncc_tatus}</span>
+                        ) : (
+                          <span className="font-mono text-xs text-muted-foreground/60">—</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* NCC Ghi chú 1 */}
+                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Ghi chú 1</span>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={form.ncc_thongtinkhac1}
+                        onChange={(e) => setForm((f) => ({ ...f, ncc_thongtinkhac1: e.target.value }))}
+                        placeholder="Ghi chú kỹ thuật khác..."
+                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-foreground block mt-0.5">{item.ncc_thongtinkhac1 || '—'}</span>
+                    )}
+                  </div>
+
+                  {/* NCC Ghi chú 2 */}
+                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">NCC Ghi chú 2</span>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={form.ncc_thongtinkhac2}
+                        onChange={(e) => setForm((f) => ({ ...f, ncc_thongtinkhac2: e.target.value }))}
+                        placeholder="Ghi chú đóng gói / giao hàng..."
+                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-foreground block mt-0.5">{item.ncc_thongtinkhac2 || '—'}</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1418,24 +1578,41 @@ export function LotDetailModal({
 
           {/* Right Action buttons */}
           <div className="flex items-center gap-2.5">
-            <JobTicketButton item={item} role={role as Role} variant="button" siblingItems={siblingItems} />
-            {isEditing && (
+            <JobTicketButton
+              item={item}
+              role={role as Role}
+              variant="button"
+              siblingItems={siblingItems}
+              disabled={isDirty}
+            />
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition cursor-pointer shadow-2xs"
+                >
+                  <RotateCcw size={13} />
+                  <span>Hủy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="inline-flex items-center gap-1 rounded-lg bg-primary text-primary-foreground px-3.5 py-2 text-xs font-semibold hover:bg-primary/90 transition cursor-pointer shadow-2xs"
+                >
+                  <Save size={13} />
+                  <span>Lưu thay đổi</span>
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={handleSave}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary text-primary-foreground px-3.5 py-2 text-xs font-semibold hover:bg-primary/90 transition cursor-pointer shadow-2xs"
+                onClick={handleCloseModal}
+                className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition cursor-pointer shadow-2xs"
               >
-                <Save size={13} />
-                <span>Lưu thay đổi</span>
+                Đóng
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary transition cursor-pointer shadow-2xs"
-            >
-              Đóng
-            </button>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ export interface DateCellProps {
   canEdit?: boolean;
   field: string;
   className?: string;
+  variant?: 'cell' | 'input';
 }
 
 export const DateCell: React.FC<DateCellProps> = ({
@@ -19,6 +20,7 @@ export const DateCell: React.FC<DateCellProps> = ({
   title,
   canEdit = true,
   className = '',
+  variant = 'cell',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [tempDate, setTempDate] = useState<string>(value);
@@ -68,17 +70,33 @@ export const DateCell: React.FC<DateCellProps> = ({
     );
   }
 
+  const isInput = variant === 'input';
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <div
-          className={`group/date flex h-6 w-full items-center justify-between gap-1 overflow-hidden cursor-pointer select-none rounded-xs px-1 hover:bg-secondary/50 transition-colors ${className}`}
+          className={
+            isInput
+              ? `group/date flex h-6 w-full items-center justify-between gap-1 overflow-hidden cursor-pointer select-none rounded-xs px-1.5 border border-primary bg-background hover:border-primary/80 transition-colors shadow-2xs ${className}`
+              : `group/date flex h-6 w-full items-center justify-between gap-1 overflow-hidden cursor-pointer select-none rounded-xs px-1 hover:bg-secondary/50 transition-colors ${className}`
+          }
           title={`${title}: ${displayDate || 'Chưa có'} - Bấm để chọn ngày`}
         >
-          <span className="font-mono text-xs tabular-nums text-foreground/90 truncate">
-            {displayDate || '—'}
+          <span
+            className={`font-mono text-xs tabular-nums truncate ${
+              !displayDate ? (isInput ? 'text-muted-foreground/50' : 'text-foreground/90') : 'text-foreground font-semibold'
+            }`}
+          >
+            {displayDate || (isInput ? 'dd/mm/yyyy' : '—')}
           </span>
-          <span className="opacity-0 group-hover/date:opacity-100 hover:!opacity-100 p-0.5 rounded-xs text-muted-foreground hover:text-primary transition-opacity shrink-0">
+          <span
+            className={`${
+              isInput
+                ? 'opacity-80 group-hover/date:opacity-100 text-primary'
+                : 'opacity-0 group-hover/date:opacity-100 hover:!opacity-100 text-muted-foreground hover:text-primary'
+            } p-0.5 rounded-xs transition-opacity shrink-0`}
+          >
             <CalendarIcon size={11} />
           </span>
         </div>

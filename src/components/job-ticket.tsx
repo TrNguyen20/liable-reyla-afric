@@ -794,6 +794,7 @@ export interface JobTicketButtonProps {
   variant?: "icon" | "button";
   siblingItems?: QTItem[];
   onItemChange?: (item: QTItem) => void;
+  disabled?: boolean;
 }
 
 export function JobTicketButton({
@@ -802,6 +803,7 @@ export function JobTicketButton({
   variant = "icon",
   siblingItems,
   onItemChange,
+  disabled = false,
 }: JobTicketButtonProps) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
@@ -930,10 +932,11 @@ export function JobTicketButton({
       {variant === "icon" ? (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          disabled={disabled}
+          onClick={() => !disabled && setOpen(true)}
           title={t("ticket.printFor", { itemCode: item.ma_hang }) || `In phiếu gia công ${item.ma_hang}`}
           aria-label={t("ticket.openFor", { itemCode: item.ma_hang }) || `Mở phiếu giao nhận ${item.ma_hang}`}
-          className="inline-flex size-7 items-center justify-center rounded-xs text-primary transition-colors hover:bg-primary/10 active:scale-95 cursor-pointer"
+          className="inline-flex size-7 items-center justify-center rounded-xs text-primary transition-colors hover:bg-primary/10 active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Download size={15} />
         </button>
@@ -942,7 +945,8 @@ export function JobTicketButton({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => setOpen(true)}
+          disabled={disabled}
+          onClick={() => !disabled && setOpen(true)}
           className="gap-1.5 text-xs font-semibold cursor-pointer rounded-xs"
         >
           <Download size={14} /> In phiếu lệnh A4
