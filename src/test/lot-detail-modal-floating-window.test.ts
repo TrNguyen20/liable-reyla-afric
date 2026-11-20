@@ -234,4 +234,27 @@ describe('Lot Detail Modal Floating Window (v2.8.0) Specification Suite (TDD)', 
     expect(modalCode).toMatch(/isDirty/);
     expect(modalCode).toMatch(/confirm\(/);
   });
+
+  it('TC-LDM-22: Quốc gia, Phân xưởng và Đối tượng hàng được xếp trên cùng một hàng (grid-cols-3) ở Vùng 1', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Vùng 1 có hàng 3 ô cân đối grid-cols-3 tương tự Vùng 2
+    expect(modalCode).toMatch(/grid-cols-3[\s\S]*?Quốc gia[\s\S]*?Phân xưởng[\s\S]*?Đối tượng hàng/);
+  });
+
+  it('TC-LDM-23: Mục Quốc gia tích hợp CountryCellBadge hiển thị cờ Việt Nam và chữ VN chuẩn tracking', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Import CountryCellBadge
+    expect(modalCode).toMatch(/import\s*\{[^}]*CountryCellBadge[^}]*\}\s*from\s*['"]@\/components\/common\/vietnam-flag['"]/);
+    // Sử dụng CountryCellBadge cho quoc_gia
+    expect(modalCode).toMatch(/<CountryCellBadge\s+country=\{item\.quoc_gia\}\s+showText=\{true\}\s*\/>/);
+  });
+
+  it('TC-LDM-24: Xóa bỏ hoàn toàn mục Trạng thái luân chuyển khỏi cửa sổ chi tiết lô', () => {
+    const modalCode = fs.readFileSync(modalPath, 'utf-8');
+
+    // Không còn nhãn hay select Trạng thái luân chuyển
+    expect(modalCode).not.toMatch(/Trạng thái luân chuyển/);
+  });
 });

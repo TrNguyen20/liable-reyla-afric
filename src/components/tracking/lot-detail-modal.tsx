@@ -30,6 +30,7 @@ import { auditFor, appendAudit } from '@/lib/dynamo-workflow';
 import { playAudioCue } from '@/lib/audio-cues';
 import { JobTicketButton } from '@/components/job-ticket';
 import { DateCell } from '@/components/tracking/date-cell';
+import { CountryCellBadge } from '@/components/common/vietnam-flag';
 import { FileLightboxModal } from '@/components/tracking/file-lightbox-modal';
 import {
   parseAttachments,
@@ -219,7 +220,6 @@ export function LotDetailModal({
     // Zone 3: Dispatch & Commercial
     so_dat_hang: item.So_DatHang || item.so_dat_hang || '',
     ngay_gui_qt: item.ngay_gui_QT || item.ngay_gui_qt || '',
-    trang_thai: item.TrangThai || (item.trang_thai as Status) || 'Chờ xuất xưởng',
     don_gia: item.don_gia ?? 0,
     thanh_tien: item.thanh_tien ?? 0,
     ty_gia: item.ty_gia ?? 1,
@@ -251,7 +251,6 @@ export function LotDetailModal({
       so_luong_tinh: it.so_luong_tinh ?? it.so_luong ?? 0,
       so_dat_hang: it.So_DatHang || it.so_dat_hang || '',
       ngay_gui_qt: it.ngay_gui_QT || it.ngay_gui_qt || '',
-      trang_thai: it.TrangThai || (it.trang_thai as Status) || 'Chờ xuất xưởng',
       don_gia: it.don_gia ?? 0,
       thanh_tien: it.thanh_tien ?? 0,
       ty_gia: it.ty_gia ?? 1,
@@ -295,7 +294,6 @@ export function LotDetailModal({
       Number(form.so_luong_tinh) !== Number(item.so_luong_tinh ?? item.so_luong ?? 0) ||
       form.so_dat_hang !== (item.So_DatHang || item.so_dat_hang || '') ||
       form.ngay_gui_qt !== (item.ngay_gui_QT || item.ngay_gui_qt || '') ||
-      form.trang_thai !== (item.TrangThai || item.trang_thai || 'Chờ xuất xưởng') ||
       (hasPricingView && (
         Number(form.don_gia) !== Number(item.don_gia ?? 0) ||
         Number(form.thanh_tien) !== Number(item.thanh_tien ?? 0) ||
@@ -516,9 +514,6 @@ export function LotDetailModal({
     if (form.ngay_gui_qt !== (item.ngay_gui_QT || item.ngay_gui_qt)) {
       changes['Ngày gửi'] = [item.ngay_gui_QT || item.ngay_gui_qt, form.ngay_gui_qt];
     }
-    if (form.trang_thai !== (item.TrangThai || item.trang_thai)) {
-      changes['Trạng thái'] = [item.TrangThai || item.trang_thai, form.trang_thai];
-    }
     if (hasPricingView) {
       if (Number(form.don_gia) !== Number(item.don_gia)) changes['Đơn giá'] = [item.don_gia, Number(form.don_gia)];
       if (Number(form.thanh_tien) !== Number(item.thanh_tien)) {
@@ -578,8 +573,6 @@ export function LotDetailModal({
       so_dat_hang: form.so_dat_hang,
       ngay_gui_QT: form.ngay_gui_qt,
       ngay_gui_qt: form.ngay_gui_qt,
-      TrangThai: form.trang_thai as Status,
-      trang_thai: form.trang_thai,
       ten_file_dat_hang: form.ten_file_dat_hang,
       ghi_chu_khi_gui: form.ghi_chu_khi_gui,
       ghi_chu: form.ghi_chu_khi_gui,
@@ -646,9 +639,6 @@ export function LotDetailModal({
                   Phân xưởng {item.phong_sx}
                 </span>
               )}
-              <span className="text-[10.5px] px-2 py-0.5 rounded-xs bg-primary/10 text-primary border border-primary/20 font-bold">
-                {item.TrangThai || item.trang_thai || 'Chờ xuất xưởng'}
-              </span>
             </div>
 
             {/* Title with Click-to-Search Inline Feature */}
@@ -803,31 +793,38 @@ export function LotDetailModal({
                     <span className="font-mono text-xs text-foreground block mt-0.5">{item.nguoi_tao || '—'}</span>
                   </div>
 
-                  {/* Quốc gia */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Quốc gia</span>
-                      <Lock size={9} className="text-muted-foreground/50" />
-                    </span>
-                    <span className="font-mono text-xs text-foreground block mt-0.5">{item.quoc_gia || 'VN'}</span>
-                  </div>
+                  {/* Gom hàng 3 ô cân đối: Quốc gia | Phân xưởng | Đối tượng hàng */}
+                  <div className="col-span-2 grid grid-cols-3 gap-2">
+                    {/* Quốc gia */}
+                    <div className="p-2 rounded bg-card/80 border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
+                        <span>Quốc gia</span>
+                        <Lock size={9} className="text-muted-foreground/50" />
+                      </span>
+                      <div className="mt-1 flex items-center h-5">
+                        <CountryCellBadge country={item.quoc_gia} showText={true} />
+                      </div>
+                    </div>
 
-                  {/* Phân xưởng */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Phân xưởng</span>
-                      <Lock size={9} className="text-muted-foreground/50" />
-                    </span>
-                    <span className="font-mono text-xs font-semibold text-foreground block mt-0.5">{item.phong_sx || '—'}</span>
-                  </div>
+                    {/* Phân xưởng */}
+                    <div className="p-2 rounded bg-card/80 border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
+                        <span>Phân xưởng</span>
+                        <Lock size={9} className="text-muted-foreground/50" />
+                      </span>
+                      <span className="font-mono text-xs font-semibold text-foreground block mt-0.5">{item.phong_sx || '—'}</span>
+                    </div>
 
-                  {/* Đối tượng hàng */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
-                      <span>Đối tượng hàng</span>
-                      <Lock size={9} className="text-muted-foreground/50" />
-                    </span>
-                    <span className="font-mono text-xs text-foreground block mt-0.5">{item.doi_tuong_hang || '—'}</span>
+                    {/* Đối tượng hàng */}
+                    <div className="p-2 rounded bg-card/80 border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
+                        <span>Đối tượng hàng</span>
+                        <Lock size={9} className="text-muted-foreground/50" />
+                      </span>
+                      <span className="font-mono text-xs text-foreground block mt-0.5 truncate" title={item.doi_tuong_hang || '—'}>
+                        {item.doi_tuong_hang || '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -978,7 +975,7 @@ export function LotDetailModal({
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {/* Đối tác gia công */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
+                  <div className="p-2 rounded bg-card/80 border border-border/60 col-span-2">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block flex items-center gap-1">
                       <span>Đối tác gia công</span>
                       <Lock size={9} className="text-muted-foreground/50" />
@@ -986,27 +983,6 @@ export function LotDetailModal({
                     <span className="font-mono text-xs font-bold text-primary block mt-0.5">
                       {formatVendorName(item.cty_QT || item.cty_qt, role as Role)}
                     </span>
-                  </div>
-
-                  {/* Trạng thái luân chuyển */}
-                  <div className="p-2 rounded bg-card/80 border border-border/60">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Trạng thái luân chuyển</span>
-                    {isEditing ? (
-                      <select
-                        value={form.trang_thai}
-                        onChange={(e) => setForm((f) => ({ ...f, trang_thai: e.target.value as Status }))}
-                        className="w-full mt-0.5 h-6 px-1.5 text-xs font-mono rounded-xs border border-primary bg-background text-foreground"
-                      >
-                        <option value="Chờ xuất xưởng">Chờ xuất xưởng</option>
-                        <option value="Đang tại Vendor">Đang tại Vendor</option>
-                        <option value="Kiểm tra QC">Kiểm tra QC</option>
-                        <option value="Đã nhập kho">Đã nhập kho</option>
-                      </select>
-                    ) : (
-                      <span className="font-mono text-xs font-semibold text-foreground block mt-0.5">
-                        {item.TrangThai || item.trang_thai || 'Chờ xuất xưởng'}
-                      </span>
-                    )}
                   </div>
 
                   {/* Số ĐH (PO) */}
