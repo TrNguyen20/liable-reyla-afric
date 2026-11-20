@@ -1,174 +1,179 @@
 ---
 name: qt-mes-git-release
 description: >-
-  Use this skill whenever the user asks to commit, push, create a pull request, release code,
-  or tag a version with phrases like "hãy chạy release code", "hãy đẩy lên github",
-  "hãy commit đẩy lên github", "hãy commit và đẩy nhánh lên GitHub", "release code",
-  "quy trình phát hành", "đánh dấu tag semver", "qt-mes-git-release", or requests the 3-stage Git Release & SemVer workflow.
+  Quy trình phát hành mã nguồn chuẩn hóa 5 giai đoạn cho Dynamo MES:
+  1. Kiểm tra môi trường thực thi (Worktree hay Thư mục Gốc);
+  2. Cổng kiểm soát (Gatekeeper): Nếu ở Worktree, commit và merge về Thư mục Gốc trước, CHỈ KHI NÀO đứng ở Thư mục Gốc mới cho phép tạo nhánh phát hành;
+  3. Tạo nhánh release/vX.Y.Z, push GitHub, mở PR thủ công & giám sát CI Checks;
+  4. Cập nhật main tại Thư mục Gốc & đánh Annotated Tag SemVer chính thức;
+  5. Dọn dẹp nhánh release & worktree tạm (tùy chọn).
+  Kích hoạt khi người dùng yêu cầu: "qt-mes-git-release", "qt-mes-worktree-merg2main", "release code",
+  "đẩy lên github", "commit đẩy lên github", "merge worktree vào main", "kéo worktree về main", "tạo PR", "đánh dấu tag semver".
 ---
 
-# QT-MES Git Release & SemVer Workflow (Quy Trình Phát Hành Mã Nguồn 3 Giai Đoạn)
+# QT-MES Git Release & Worktree-to-Main Pipeline (`qt-mes-git-release`)
 
 ## Tổng Quan
 
-Skill này quy định quy trình chuẩn hóa gồm 3 giai đoạn để commit, đồng bộ nhánh, mở Pull Request kiểm tra CI trên GitHub và phát hành phiên bản chính thức theo chuẩn Quốc tế (Semantic Versioning - SemVer) cho hệ thống **DYNAMO MES**.
+Skill này là **chuẩn hóa duy nhất** cho toàn bộ chu trình phát hành mã nguồn của hệ thống **DYNAMO MES**. Chu trình tích hợp liền mạch từ việc phát hiện môi trường làm việc cục bộ (Git Worktree vs. Thư mục Gốc), cổng kiểm soát an toàn (Gatekeeper), tạo nhánh phát hành chuẩn SemVer, mở Pull Request kiểm tra CI trên GitHub, cho đến việc đánh dấu Tag chính thức và dọn dẹp môi trường.
 
-Điểm cốt lõi của quy trình:
-1. **Linh hoạt và trao quyền kiểm soát**: Cung cấp khối lệnh Terminal (PowerShell / Git CLI) rõ ràng để người dùng copy-paste thực thi chủ động.
-2. **Hỏi xác nhận nhánh ở Giai đoạn 1**: Không tự ý giả định nhánh mà phải hỏi người dùng chọn nhánh hiện tại hay nhánh mới.
-3. **Mô tả chi tiết (Description Bullet Points)**: Cung cấp đầy đủ các gạch đầu dòng tóm tắt nội dung thay đổi để người dùng điền vào ô *"Add a description"* (trên Git UI / GitHub PR) hoặc chạy commit đa dòng qua terminal.
-4. **Bảo toàn kết nối Lovable.dev**: Tuyệt đối không force-push (`git push -f`) hoặc viết đè lịch sử git đã đẩy lên remote.
-5. **Nghiệm thu CI trên GitHub**: Người dùng chủ động kiểm tra CI/CD trên giao diện GitHub trước khi chốt merge vào `main`.
+```mermaid
+flowchart TD
+    Start(["Kích hoạt quy trình release"]) --> S1["GIAI ĐOẠN 1: Kiểm Tra Môi Trường Thực Thi<br/>(Worktree hay Thư mục Gốc?)"]
+    
+    S1 -->|Đang ở Worktree| S2["GIAI ĐOẠN 2: Cổng Kiểm Soát (Gatekeeper)<br/>Commit tại Worktree -> cd Thư mục Gốc -> Merge main"]
+    S1 -->|Đã ở Thư mục Gốc| S2_Skip["Xác nhận Thư mục Gốc sạch & sẵn sàng"]
+    
+    S2 --> CheckRoot{"ĐÃ ĐỨNG TẠI THƯ MỤC GỐC?"}
+    S2_Skip --> CheckRoot
+    
+    CheckRoot -->|Chưa đứng ở Gốc| Block["CHẶN: Tuyệt đối không cho phép tạo nhánh release"]
+    CheckRoot -->|ĐÃ Ở THƯ MỤC GỐC| S3["GIAI ĐOẠN 3: Tạo Nhánh release/vX.Y.Z<br/>Push GitHub -> Mở PR thủ công -> CI Check Pass -> Merge"]
+    
+    S3 --> S4["GIAI ĐOẠN 4: Cập Nhật main Tại Thư Mục Gốc<br/>Tạo Annotated Tag SemVer (vX.Y.Z) -> Push Tag GitHub"]
+    
+    S4 --> S5["GIAI ĐOẠN 5 (Tùy chọn): Dọn Dẹp Môi Trường<br/>Xóa nhánh release & xóa worktree tạm"]
+```
 
 ---
 
 ## Cơ Chế Kích Hoạt (Triggers)
 
-Kích hoạt skill này khi người dùng gửi các câu lệnh hoặc yêu cầu tương tự:
-- *"qt-mes-git-release"* hoặc *"/qt-mes-git-release"*
-- *"hãy chạy release code"*
-- *"hãy đẩy lên github"*
-- *"hãy commit đẩy lên github"*
-- *"hãy commit và đẩy nhánh lên GitHub"*
-- *"chạy quy trình release"*
-- *"tạo lệnh commit và push nhánh"*
-- *"cập nhật main và đánh dấu tag semver"*
+Kích hoạt skill này khi người dùng gửi các câu lệnh hoặc cụm từ:
+- `qt-mes-git-release` hoặc `/qt-mes-git-release`
+- `qt-mes-worktree-merg2main` hoặc `/qt-mes-worktree-merg2main`
+- *"hãy chạy release code"*, *"chạy quy trình release"*
+- *"kéo worktree về main"*, *"merge worktree vào main"*, *"đưa mã nguồn từ worktree về thư mục gốc"*
+- *"commit đẩy lên github"*, *"đẩy nhánh lên GitHub"*, *"mở pull request"*
+- *"đánh dấu tag semver"*, *"cập nhật main và tag phiên bản"*
 
 ---
 
-## Chi Tiết Quy Trình 3 Giai Đoạn
+## Chi Tiết Quy Trình 5 Giai Đoạn
 
-```mermaid
-flowchart TD
-    subgraph S1["Giai Đoạn 1: Commit & Đẩy Nhánh (Local -> Remote)"]
-        A1["1. Kiểm tra git status & nhánh hiện tại"] --> A2["2. BẮT BUỘC: Hỏi người dùng chọn nhánh"]
-        A2 --> A3["3. Tạo khối lệnh Terminal & Gạch đầu dòng Description chi tiết"]
-        A3 --> A4["4. Người dùng copy chạy trên terminal hoặc điền vào Git UI"]
-    end
+### GIAI ĐOẠN 1: Kiểm Tra Môi Trường Thực Thi (Worktree vs. Thư Mục Gốc)
 
-    subgraph S2["Giai Đoạn 2: Mở PR & CI Check (GitHub UI)"]
-        B1["1. Người dùng mở PR vào main trên GitHub (dán Description)"] --> B2["2. Giám sát CI/CD Checks (Test, Build, Preview)"]
-        B2 --> B3["3. Merge PR vào nhánh main"]
-        B3 --> B4["4. Checkpoint: Người dùng báo 'OK' hoặc AI kiểm tra realtime"]
-    end
-
-    subgraph S3["Giai Đoạn 3: Cập Nhật main & Đánh Tag SemVer (Local & Release)"]
-        C1["1. Tạo khối lệnh Terminal chuyển & kéo main mới nhất"] --> C2["2. Thống nhất số hiệu phiên bản SemVer (vX.Y.Z)"]
-        C2 --> C3["3. Tạo lệnh tạo Annotated Tag & Push Tag lên GitHub"]
-        C3 --> C4["4. Nghiệm thu Tag trên GitHub Releases"]
-    end
-
-    S1 --> S2 --> S3
-```
-
----
-
-### GIAI ĐOẠN 1: Commit & Đẩy Nhánh Lên GitHub
-
-#### Bước 1.1: Khảo sát hiện trạng & Xác nhận nhánh (BẮT BUỘC)
-Trước khi đưa ra bất kỳ khối lệnh commit/push nào, Agent phải:
-1. Chạy lệnh ngầm `git status` và `git branch --show-current` để nắm thông tin.
-2. **Hỏi người dùng câu hỏi xác nhận**:
-   - Nhánh hiện tại là `<tên_nhánh_hiện_tại>`.
-   - Hỏi người dùng: *"Bạn muốn tiếp tục commit và đẩy lên nhánh hiện tại (`<tên_nhánh>`) hay muốn tạo/chỉ định một tên nhánh cụ thể nào khác?"*
-
-#### Bước 1.2: Sinh khối lệnh Terminal và Gạch đầu dòng Description chi tiết
-Sau khi người dùng đã chốt tên nhánh (`TARGET_BRANCH`), Agent thực hiện:
-1. **Soạn thảo danh sách gạch đầu dòng chi tiết (Commit Description / Body)** phục vụ việc điền vào mục *"Add a description"* (trên VSCode Source Control, GitHub Desktop, hoặc Description của PR trên GitHub).
-2. **Cung cấp 2 lựa chọn thực thi**:
-   - **Lựa chọn 1 (Khuyên dùng trong Terminal PowerShell)**: Dùng lệnh commit đa dòng (`-m` lặp lại) chứa sẵn toàn bộ mô tả chi tiết.
-   - **Lựa chọn 2 (Đơn giản)**: Dùng dòng commit ngắn gọn kèm block text description riêng biệt để người dùng tùy biến dán vào giao diện UI.
-
-##### Mẫu khối lệnh Terminal đầy đủ kèm Description chi tiết:
-
+Agent chủ động khảo sát môi trường hiện tại bằng các lệnh ngầm:
 ```powershell
-# 1. Kiểm tra lại trạng thái tệp thay đổi
-git status
-
-# 2. Stage các tệp thay đổi cần thiết (tránh commit nhầm file môi trường bí mật)
-git add .
-
-# 3. Commit kèm tiêu đề và danh sách gạch đầu dòng mô tả chi tiết:
-git commit -m "feat: <tiêu đề ngắn gọn theo chuẩn Conventional Commits>" `
-           -m "- <Gạch đầu dòng 1: Cải tiến tính năng / nghiệp vụ>" `
-           -m "- <Gạch đầu dòng 2: Cấu hình hệ thống & hạ tầng server>" `
-           -m "- <Gạch đầu dòng 3: Bổ sung kế hoạch plan & chuẩn hóa quy trình>" `
-           -m "- <Gạch đầu dòng 4: Cập nhật bộ kiểm thử unit tests>"
-
-# 4. Đẩy an toàn lên GitHub (KHÔNG dùng --force)
-git push -u origin <TARGET_BRANCH>
+git worktree list
+git branch --show-current
+git status --short
 ```
 
-##### Mẫu nội dung Description dự phòng để Copy dán vào ô "Add a description" trên Git UI / GitHub PR:
-```markdown
-- **Tính năng & Nghiệp vụ**: <Mô tả chi tiết>
-- **Hạ tầng & Cấu hình**: <Mô tả chi tiết>
-- **Tài liệu & Kế hoạch**: <Mô tả chi tiết>
-- **Kiểm chuẩn & Unit tests**: <Mô tả chi tiết>
-```
+#### Quy tắc nhận diện:
+1. **Thư mục Gốc (Main Repo)**: Luôn là **dòng đầu tiên** trong kết quả của `git worktree list` (thường gắn với nhánh `[main]`, ví dụ: `D:/NTT-2025/KAIZEN/m.Clone-github (internet)/liable-reyla-afric`).
+2. **Git Worktree**: Bất kỳ thư mục nào từ dòng thứ 2 trở đi trong `git worktree list` (ví dụ: `C:/Users/USER01/.../dynamo_mes_i18n_audit`).
 
 ---
 
-### GIAI ĐOẠN 2: Mở Pull Request & Kiểm Tra CI Tự Động
+### GIAI ĐOẠN 2: Cổng Kiểm Soát (Gatekeeper) & Merge về Thư Mục Gốc
 
-Giai đoạn này do **Người dùng chủ động thực hiện trên GitHub UI**:
-1. Truy cập kho lưu trữ GitHub của dự án.
-2. Màn hình sẽ hiện gợi ý *"Compare & pull request"* cho nhánh vừa đẩy -> Bấm mở PR vào nhánh `main`.
-3. Dán các gạch đầu dòng Description ở Giai đoạn 1 vào phần mô tả PR.
-4. Kiểm tra mục **Checks**:
-   - Đảm bảo các automated tests, Vite build, hoặc Vercel deployment preview đạt trạng thái ✅ **All checks have passed**.
-5. Chọn **Merge pull request** (hoặc *Rebase and merge* tùy quy ước dự án) -> **Confirm merge**.
+> [!CAUTION]
+> **NGUYÊN TẮC BẤT BIẾN CỐT LÕI (GATEKEEPER INVARIANT)**:
+> TUYỆT ĐỐI CẤM tạo nhánh phát hành (`release/vX.Y.Z`) hoặc đẩy thẻ Tag trực tiếp từ bên trong thư mục Worktree.
+> **Chỉ khi nào phiên làm việc đã xác nhận đứng tại Thư mục Gốc (`main`) thì mới được phép sang Giai đoạn 3.**
 
-#### Bỏ qua Điểm kiểm tra (Checkpoint) này:
-- Agent tự động kiểm tra thời gian thực (realtime) qua GitHub CLI / git:
-  ```powershell
-  git fetch origin main
-  git log origin/main -n 3 --oneline
+#### Trường hợp A: Đang ở Worktree tạm thời
+1. **Commit tại Worktree**: Nếu còn tệp thay đổi uncommitted, stage và commit ngay tại worktree:
+   ```powershell
+   git add .
+   git commit -m "feat/fix: <mô tả ngắn gọn công việc trên worktree>"
+   ```
+2. **Hỏi xác nhận đường dẫn Thư mục Gốc**:
+   - Sử dụng `ask_question` (hoặc đối chiếu xác nhận): *"Hệ thống phát hiện Thư mục Gốc là: `[Đường_Dẫn_Gốc]`. Bạn có đồng ý chuyển về đây để merge không?"*
+3. **Chuyển về Thư mục Gốc và Merge vào `main`**:
+   Cung cấp khối lệnh hoặc One-liner chuyển thư mục an toàn:
+   ```powershell
+   cd "<ĐƯỜNG_DẪN_THƯ_MỤC_GỐC>"
+   git checkout main
+   git pull origin main
+   git merge <tên_nhánh_worktree> -m "merge: <tên_nhánh_worktree> into main"
+   ```
+4. **Kiểm tra Gatekeeper**: Xác nhận vị trí hiện tại đã là Thư mục Gốc $\rightarrow$ Cho phép chuyển sang Giai đoạn 3.
+
+#### Trường hợp B: Đã ở Thư mục Gốc từ đầu
+- Kiểm tra `git status`, đảm bảo nhánh `main` đã `git pull origin main` mới nhất $\rightarrow$ Chuyển thẳng sang Giai đoạn 3.
+
+---
+
+### GIAI ĐOẠN 3: Tạo Nhánh Release, Mở PR Thủ Công & Kiểm Tra CI trên GitHub UI
+
+Sau khi đã đứng chắc chắn tại **Thư mục Gốc**:
+
+#### 1. Thống nhất số hiệu phiên bản SemVer 2.0.0
+- Tra cứu danh sách tag hiện có: `git tag -l`
+- Gợi ý phiên bản kế tiếp theo quy tắc SemVer (`v<MAJOR>.<MINOR>.<PATCH>`):
+  - Ví dụ: bản trước là `v4.4.0` $\rightarrow$ bản mới chứa tính năng/refactor lớn là `v4.5.0` (hoặc bản vá là `v4.4.1`).
+
+#### 2. Tạo nhánh phát hành và đẩy lên GitHub
+```powershell
+# Tạo nhánh phát hành chuẩn SemVer tại Thư mục Gốc
+git checkout -b release/vX.Y.Z
+
+# Đẩy nhánh lên GitHub
+git push -u origin release/vX.Y.Z
+```
+
+#### 3. Mở Pull Request & Kiểm tra CI trên GitHub UI
+Agent soạn sẵn mẫu Tiêu đề và Mô tả chi tiết (Description) cho người dùng:
+- **Tiêu đề PR**: `Release vX.Y.Z: <Tóm tắt cải tiến chính>`
+- **Description mẫu (Markdown)**:
+  ```markdown
+  ### 🚀 Chi tiết phát hành vX.Y.Z:
+  - **Tính năng & Nghiệp vụ**: <Chi tiết các tính năng mới/chuyển ngữ/giao diện>
+  - **Sửa lỗi & Ổn định**: <Chi tiết các bugfix thời gian chạy>
+  - **Bảo toàn kiểm thử & Chuẩn hóa**: 100% tests PASS, Parity đối xứng 0 diffs.
   ```
-- Và thông báo lại cho người dùng nếu an toàn và tiếp tục sang Giai đoạn 3
+
+#### 4. Thao tác người dùng trên GitHub:
+1. Nhấp nút xanh **Compare & pull request** cho nhánh `release/vX.Y.Z` vào `main`.
+2. Dán nội dung Description ở trên vào ô mô tả.
+3. Chờ toàn bộ kiểm tra tự động (**Checks**: Vite build, Vitest, Preview deployment) đạt trạng thái xanh ✅ **All checks have passed**.
+4. Nhấp **Merge pull request** $\rightarrow$ **Confirm merge**.
+
 ---
 
-### GIAI ĐOẠN 3: Cập Nhật main Tại Local & Đánh Dấu Tag Phiên Bản Quốc Tế (SemVer)
+### GIAI ĐOẠN 4: Cập Nhật `main` Tại Thư Mục Gốc & Đánh Dấu Tag SemVer Chính Thức
 
-Song song  Giai đoạn 2, Agent sinh luôn khối lệnh Terminal để người dùng copy-paste thực thi như Giai đoạn 1 trên cùng 1 phản hồi:
-
-#### Bước 3.1: Xác định phiên bản theo chuẩn SemVer 2.0.0
-- Quy ước: `v<MAJOR>.<MINOR>.<PATCH>`
-  - `MAJOR`: Thay đổi lớn phá vỡ tương thích ngược (breaking changes).
-  - `MINOR`: Bổ sung tính năng mới, tương thích ngược (features).
-  - `PATCH`: Vá lỗi nhỏ, refactor hoặc tài liệu hóa (fixes/docs).
-- Gợi ý tag kế tiếp dựa trên `git tag -l` và commit history.
-
-#### Bước 3.2: Sinh khối lệnh Terminal cập nhật main & tạo Tag
-Cung cấp khối lệnh copy-paste:
+Sau khi PR đã được merge thành công trên GitHub, người dùng quay lại terminal tại **Thư mục Gốc** và chạy khối lệnh:
 
 ```powershell
-# 1. Chuyển về nhánh main cục bộ
+# 1. Chuyển về nhánh main
 git checkout main
 
 # 2. Kéo toàn bộ mã nguồn vừa merge trên GitHub về local
 git pull origin main
 
-# 3. Xác minh commit mới nhất trên nhánh main
-git log -1 --oneline
+# 3. Tạo Annotated Tag chính thức
+git tag -a vX.Y.Z -m "Release vX.Y.Z: <Mô tả tóm tắt phiên bản>"
 
-# 4. Tạo Annotated Tag có chú thích theo chuẩn SemVer
-git tag -a v1.0.0 -m "Release v1.0.0: <Tóm tắt các tính năng/cải tiến nổi bật>"
+# 4. Đẩy thẻ Tag lên GitHub Releases
+git push origin vX.Y.Z
 
-# 5. Đẩy thẻ Tag lên GitHub
-git push origin v1.0.0
-
-# 6. Kiểm tra lại danh sách tag cục bộ
-git tag -l -n1
+# 5. Xác minh Tag đã được tạo thành công
+git tag -l -n1 vX.Y.Z
 ```
 
 ---
 
-## Các Lưu Ý Trọng Yếu & An Toàn
+### GIAI ĐOẠN 5: Dọn Dẹp Nhánh Release & Worktree Tạm (Tùy Chọn)
 
-1. **Quy tắc vàng Lovable.dev**:
-   - Tuyệt đối KHÔNG chạy hoặc khuyến nghị `git push --force`, `git push -f`, hoặc `git rebase -i` trên các commit đã đẩy lên GitHub.
-2. **Kiểm tra tệp nhạy cảm**:
-   - Luôn nhắc nhở hoặc kiểm tra file `.gitignore` không để lọt tệp `.env`, `.env.local`, file chứa mật khẩu/token vào commit.
-3. **Định dạng Terminal**:
-   - Ưu tiên định dạng khối lệnh chạy tương thích tốt trên PowerShell của Windows và Bash Terminal.
+Sau khi phiên bản `vX.Y.Z` đã được phát hành và tag thành công, cung cấp lệnh dọn dẹp môi trường sạch sẽ:
+
+```powershell
+# Xóa nhánh release cục bộ và trên remote GitHub
+git branch -d release/vX.Y.Z
+git push origin --delete release/vX.Y.Z
+
+# Nếu ban đầu bắt đầu từ một Worktree tạm thời, tiến hành xóa worktree và nhánh worktree đó:
+git worktree remove "<đường_dẫn_worktree_tạm>"
+git branch -d <tên_nhánh_worktree>
+```
+
+---
+
+## Nguyên Tắc Vàng An Toàn (Invariants)
+
+1. **Gatekeeping**: Luôn từ chối tạo nhánh `release/` nếu chưa ở Thư mục Gốc.
+2. **Bảo toàn Lovable.dev**: Tuyệt đối KHÔNG sử dụng `git push --force` (`-f`) hoặc `git rebase` đối với bất kỳ commit nào đã đẩy lên GitHub.
+3. **Mô tả tường minh**: Luôn soạn sẵn tiêu đề và nội dung description đầy đủ các tiêu chuẩn kỹ thuật để người dùng chỉ cần copy dán vào GitHub PR.
