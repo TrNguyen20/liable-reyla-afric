@@ -122,11 +122,14 @@ Người dùng có thể yêu cầu chỉ định nhanh subagent thông qua ngô
 > 4. **Systematic Debugging**: Form hypotheses and find root cause; never apply random patches.
 <!-- SUPERPOWERS:END -->
 
-<!-- WORKTREE_MERGE_PROTOCOL:BEGIN -->
+<!-- QT_MES_RELEASE_PIPELINE:BEGIN -->
 > [!IMPORTANT]
-> ### 🌿 WORKTREE TO MAIN MERGE PROTOCOL (`qt-mes-worktree-merg2main`)
-> Khi người dùng yêu cầu kéo/merge thay đổi từ git worktree về mã nguồn main hoặc đồng bộ sang thư mục chính:
-> 1. **BẮT BUỘC Kích hoạt skill**: [`qt-mes-worktree-merg2main`](./.agent/skills/qt-mes-worktree-merg2main/SKILL.md).
-> 2. **Tự động nhận diện & hỏi lại xác nhận**: Dùng `git worktree list` nhận diện thư mục main (mặc định: `D:\NTT-2025\KAIZEN\m.Clone-github (internet)\liable-reyla-afric`), BẮT BUỘC hỏi lại người dùng để nạp thêm hoặc xác nhận đường dẫn chính xác.
-> 3. **Sinh One-liner an toàn**: Luôn cung cấp 1 dòng lệnh duy nhất (gộp commit tại worktree $\rightarrow$ cd thư mục main $\rightarrow$ pull main $\rightarrow$ merge branch $\rightarrow$ push GitHub).
-<!-- WORKTREE_MERGE_PROTOCOL:END -->
+> ### 🚀 QT-MES 5-STAGE GIT RELEASE PIPELINE (`qt-mes-git-release`)
+> Quy trình chuẩn hóa duy nhất gồm 5 giai đoạn cho mọi hoạt động release mã nguồn, đồng bộ worktree và gắn thẻ SemVer:
+> 1. **BẮT BUỘC Kích hoạt skill**: [`qt-mes-git-release`](./.agent/skills/qt-mes-git-release/SKILL.md).
+> 2. **Kiểm tra môi trường (Giai đoạn 1)**: Nhận diện đang ở Worktree hay Thư mục Gốc thông qua `git worktree list`.
+> 3. **Cổng kiểm soát Gatekeeper (Giai đoạn 2)**: Nếu ở Worktree, bắt buộc commit và merge về Thư mục Gốc (`main`) trước. **TUYỆT ĐỐI CẤM** tạo nhánh `release/` hoặc gắn tag từ bên trong Worktree. CHỈ KHI NÀO đứng ở Thư mục Gốc mới cho phép chuyển bước.
+> 4. **Tạo nhánh release, mở PR & kiểm tra CI (Giai đoạn 3)**: Tạo nhánh `release/vX.Y.Z` từ Thư mục Gốc, đẩy lên GitHub, mở PR thủ công và đợi 100% checks pass trước khi merge.
+> 5. **Gắn thẻ Tag SemVer chính thức (Giai đoạn 4)**: Cập nhật `main` tại Thư mục Gốc, tạo Annotated Tag (`git tag -a vX.Y.Z`) và push tag lên GitHub Releases.
+> 6. **Dọn dẹp môi trường (Giai đoạn 5)**: Xóa nhánh release và dọn dẹp worktree tạm nếu có.
+<!-- QT_MES_RELEASE_PIPELINE:END -->
